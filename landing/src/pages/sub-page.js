@@ -23,6 +23,8 @@ import * as cursor from '../features/cursor/cursor.js';
 import * as nav from '../features/nav/nav.js';
 import * as hud from '../features/hud/hud.js';
 import * as login from '../features/login/login.js';
+import * as cookieConsent from '../features/cookie-consent/cookie-consent.js';
+import * as onextap from '../onextap/index.js';
 import pageFoot from './page-foot.html?raw';
 
 var HOME = '/';
@@ -36,6 +38,7 @@ export function bootSubPage(features) {
     'nav': nav,
     'hud': hud,
     'login': login,
+    'cookie-consent': cookieConsent,
     'page-foot': { markup: pageFoot }
   }, features));
 
@@ -67,7 +70,11 @@ export function bootSubPage(features) {
   // The open menu holds the page still, as it does on the landing page,
   // and so does the sign-in window.
   navApi.onToggle(hold);
-  login.initLogin().onToggle(hold);
+  // Onextap: sign-in reaches the real accounts (src/onextap/).
+  var loginWindow = login.initLogin(onextap.loginOptions());
+  onextap.connect(loginWindow);
+  loginWindow.onToggle(hold);
+  cookieConsent.initCookieConsent();
   return { hold: hold };
 }
 

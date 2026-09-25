@@ -4,6 +4,10 @@ node_modules/
 # Build outputs
 dist/
 dist-dashboard/
+
+# Playwright output (npm run test:landing)
+test-results/
+playwright-report/
 *.crx
 *.pem
 

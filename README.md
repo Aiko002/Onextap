@@ -57,10 +57,12 @@ Supabase holds only accounts and billing state: auth users, plus a `profiles` ro
 ├── api/index.js            # Vercel serverless entry — re-exports the Express app
 ├── supabase/schema.sql     # Database schema, RLS policies, sign-up trigger
 ├── dist/                   # Built extension (load this in Chrome)
-├── dist-dashboard/         # Built web dashboard (deployed by Vercel)
+├── landing/                # Public landing site at / (vanilla JS; see landing/README.md)
+├── dist-dashboard/         # Built landing site + dashboard at /app/ (deployed by Vercel)
 ├── index.html              # React entry HTML
 ├── vite.config.js          # Extension build
 ├── vite.dashboard.config.js # Web dashboard build
+├── vite.landing.config.js  # Landing site build
 ├── tailwind.config.js
 └── postcss.config.js
 ```
@@ -156,7 +158,9 @@ npm run server:dev
 npm run dev              # Vite dev server at localhost:5173
 npm run server:dev       # Backend with auto-reload
 npm run build            # Extension build → dist/
-npm run build:dashboard  # Web dashboard build → dist-dashboard/
+npm run build:dashboard  # Web build → dist-dashboard/: dashboard at /app/, landing at /
+npm run dev:landing      # Landing site dev server at localhost:5180
+npm run test:landing     # Landing site e2e (Playwright; Supabase is mocked)
 ```
 
 After any code change, rebuild and reload the extension in Chrome.
@@ -185,7 +189,9 @@ LOG_LEVEL=debug npm run server:dev
 When a user reports a failure, ask for the `X-Request-Id` or the copied
 diagnostics — that is what ties their report to a server log line.
 
-There are two separate builds from the same React source. `vite.config.js` produces the extension (crx plugin, relative base). `vite.dashboard.config.js` produces the standalone web dashboard — that is the build command in `vercel.json`, alongside `api/index.js`, which serves the Express app as a serverless function.
+There are two separate builds from the same React source. `vite.config.js` produces the extension (crx plugin, relative base). `vite.dashboard.config.js` produces the standalone web dashboard, served at `/app/`. A third build, `vite.landing.config.js`, produces the public landing site from `landing/` — the page at `/` and the About, Contact and Privacy pages. `npm run build:dashboard` runs the dashboard build and then the landing build into the same `dist-dashboard/`; that script is the build command in `vercel.json`, alongside `api/index.js`, which serves the Express app as a serverless function.
+
+A signed-in visitor who opens `/` goes straight on to `/app/` (the query string is kept, so the extension's `?extensionId=` and checkout's `?payment=` still arrive), and the dashboard sends a signed-out visitor back to `/`. The landing site's Log in window signs in through the same Supabase project as the dashboard. `docs/repo-structure.md` (rule 12) has the details.
 
 ## Server API
 

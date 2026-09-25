@@ -30,6 +30,8 @@ import * as closing from './features/closing/closing.js';
 import * as footer from './features/footer/footer.js';
 import * as faq from './features/faq/faq.js';
 import * as login from './features/login/login.js';
+import * as cookieConsent from './features/cookie-consent/cookie-consent.js';
+import * as onextap from './onextap/index.js';
 
 // Keys match the data-mount attributes in index.html.
 mountFeatures({
@@ -44,7 +46,8 @@ mountFeatures({
   'closing': closing,
   'footer': footer,
   'faq': faq,
-  'login': login
+  'login': login,
+  'cookie-consent': cookieConsent
 });
 
 // Content that must work with or without motion.
@@ -52,7 +55,12 @@ var hudApi = hud.initHud();
 var navApi = nav.initNav();
 navApi.onToggle(hudApi.refresh);   // the header is re-inked over the open menu, and after it
 var tabs = featureShowcase.initFeatureTabs();
-var windows = [faq.initFaq(), login.initLogin()];
+// Onextap: sign-in reaches the real accounts, and the calls to action
+// somewhere real (src/onextap/).
+var loginWindow = login.initLogin(onextap.loginOptions());
+onextap.connect(loginWindow);
+var windows = [faq.initFaq(), loginWindow];
+cookieConsent.initCookieConsent();
 
 // No motion wanted: the chapters stay in normal flow, one full screen each,
 // with every state already shown (the .no-motion rules), and we stop.

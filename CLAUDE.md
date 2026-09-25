@@ -6,8 +6,10 @@ in `memory/` and `docs/` and is read on demand.
 ## Project
 
 Onextap: a Chrome MV3 extension that autofills job applications, plus a web
-dashboard and an Express backend. One React source tree ships as both the
-extension popup and the dashboard. Supabase holds accounts and billing only.
+dashboard, a public landing site and an Express backend. One React source
+tree ships as both the extension popup and the dashboard (served at `/app/`);
+the landing site at `/` is `landing/`, vendored non-React code. Supabase
+holds accounts and billing only.
 Layout and import rules: `docs/repo-structure.md`.
 
 ## Always
@@ -57,13 +59,14 @@ Layout and import rules: `docs/repo-structure.md`.
 
 - Install: `npm install && npm run server:install`
 - Build extension → `dist/`: `npm run build`
-- Build dashboard → `dist-dashboard/`: `npm run build:dashboard`
-- Dev server (dashboard only): `npm run dev`
+- Build dashboard + landing → `dist-dashboard/`: `npm run build:dashboard`
+- Dev server (dashboard only): `npm run dev`; landing site: `npm run dev:landing`
 - Backend with reload: `npm run server:dev`
 - Health check: `curl localhost:3001/api/health`
 - Verbose server logs: `LOG_LEVEL=debug npm run server:dev`
   (levels: error/warn/info/debug; client side uses `VITE_LOG_LEVEL`)
 - **Test: `npm test`** (`node --test`) — pure matching/corpus functions only.
+  Landing site: `npm run test:landing` (Playwright; mocks Supabase).
 - **Lint: none.** There is no ESLint or Prettier config.
 
 Automated checks cover only the pure functions in `src/matching/` and
@@ -72,8 +75,11 @@ exercised the path in the browser. Say so plainly when you have not.
 
 ## Key facts
 
-- Two builds, one source. `vite.config.js` → extension; `vite.dashboard.config.js`
-  → dashboard, and that second one is what `vercel.json` runs on deploy.
+- Three builds. `vite.config.js` → extension; `vite.dashboard.config.js` →
+  dashboard at `/app/`; `vite.landing.config.js` → landing at `/`.
+  `build:dashboard` runs the last two; that is what `vercel.json` runs.
+- `landing/` touches the product only via `landing/src/onextap/`; the `/` ⟷
+  `/app/` hand-over lives in three files (docs/repo-structure.md, rule 12).
 - `api/index.js` re-exports the Express app so Vercel serves it as a
   function. Keep it a bare re-export.
 - `server/load-env.js` must stay the first import in `server/index.js`;

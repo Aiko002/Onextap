@@ -3,7 +3,38 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<script>
+  /* Onextap: this page is the public landing site; the signed-in dashboard
+     lives at /app/ (the React app). Before anything paints, a reader who is
+     already signed in (supabase-js keeps the session in localStorage) or who
+     is coming back from Google sign-in or an email link (tokens in the URL)
+     goes on to /app/, with the query (?extensionId=, ?view=, ?payment=) and
+     the hash kept. The dashboard sends a reader it finds signed out back here
+     with a one-shot 'onextap:landing' flag, obeyed once, so the two pages can
+     never bounce a stale session between them. Classic and inline so it runs
+     before the page does; landing/src/onextap/session.js and
+     src/components/dashboard/PublicLandingPage.jsx use the same path and
+     flag (docs/repo-structure.md, rule 12). */
+  (function () {
+    try {
+      if (sessionStorage.getItem('onextap:landing')) {
+        sessionStorage.removeItem('onextap:landing');
+        return;
+      }
+    } catch (e) {}
+    var rest = location.search + location.hash;
+    var signedIn = false;
+    try {
+      var host = new URL('%VITE_SUPABASE_URL%').hostname;
+      signedIn = !!localStorage.getItem('sb-' + host.split('.')[0] + '-auth-token');
+    } catch (e) {}
+    if (signedIn || /[?#&](access_token|refresh_token|code|error_description)=/.test(rest)) {
+      location.replace('/app/' + rest);
+    }
+  })();
+</script>
 <title>We're Hiring (We're Not)</title>
+<link rel="icon" type="image/png" href="/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
@@ -36,6 +67,9 @@
 <!-- The windows: outside the stage, so each can hold the rest inert. -->
 <div data-mount="faq"></div>
 <div data-mount="login"></div>
+
+<!-- The cookie note (Onextap): not a window, so it holds nothing inert. -->
+<div data-mount="cookie-consent"></div>
 
 <script type="module" src="/src/main.js"></script>
 </body>

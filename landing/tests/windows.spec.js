@@ -31,6 +31,25 @@ async function toClose(page) {
 }
 
 const press = (page, isMobile, sel) => isMobile ? page.tap(sel) : page.click(sel);
+
+// Onextap: sign-in reaches Supabase now (src/onextap/sign-in.js). These
+// answer the stand-in project the dev server is given (playwright.config.js):
+// the password grant always works, a sign-up asks for email confirmation (no
+// session, so the reader stays on the page), and the dashboard it goes on
+// to is a stub. tests/onextap.spec.js covers the rest of that journey.
+async function stubAccounts(page) {
+  const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+  await page.route('https://onextap-test.supabase.co/auth/v1/**', route => {
+    const url = new URL(route.request().url());
+    const email = (route.request().postDataJSON() || {}).email;
+    const user = { id: 'u1', aud: 'authenticated', role: 'authenticated', email, app_metadata: {}, user_metadata: {} };
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    const session = { access_token: b64({ alg: 'HS256' }) + '.' + b64({ sub: 'u1', exp }) + '.sig', token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'rt', user };
+    const body = url.pathname === '/auth/v1/token' ? session : user;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  await page.route(/\/app\/$/, route => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Dashboard</title>' }));
+}
 const isOpen = (page, id) => page.evaluate(id => document.getElementById(id).classList.contains('is-open'), id);
 
 // Everything but the window is inert, and the page is held.
@@ -257,6 +276,7 @@ test.describe('the sign-in window', () => {
   });
 
   test('checks the form, then signs in', async ({ page, isMobile }) => {
+    await stubAccounts(page);
     await bootLanding(page);
     await page.evaluate(() => { window.__logins = []; document.addEventListener('onextap:login', e => window.__logins.push(e.detail)); });
     await press(page, isMobile, '.hud [data-login]');
@@ -282,16 +302,14 @@ test.describe('the sign-in window', () => {
     const logins = await page.evaluate(() => window.__logins);
     expect(logins).toEqual([{ method: 'email', mode: 'in', email: 'reader@example.com' }]);   // never the password
 
-    // Closed and opened again, it starts fresh.
+    // Onextap: signed in, closing the window is the way into the dashboard.
+    // (That it starts fresh when opened again: tests/onextap.spec.js.)
     await press(page, isMobile, '#loginDone [data-dlg-close]');
-    await expect.poll(() => isOpen(page, 'login')).toBe(false);
-    await press(page, isMobile, '.hud [data-login]');
-    await expect(page.locator('#loginView')).toBeVisible();
-    await expect(page.locator('#loginEmail')).toHaveValue('');
-    await expect(page.locator('#loginPassword')).toHaveValue('');
+    await expect(page).toHaveURL(/\/app\/$/);
   });
 
   test('Sign up turns it into the sign-up form, and back', async ({ page, isMobile }) => {
+    await stubAccounts(page);
     await bootLanding(page);
     await press(page, isMobile, '.hud [data-login]');
     await press(page, isMobile, '#loginSwitch');
@@ -312,11 +330,15 @@ test.describe('the sign-in window', () => {
     await expect(page.locator('#loginTitle')).toHaveText('Welcome back');   // back to signing in
   });
 
-  test('Continue with Google signs in', async ({ page, isMobile }) => {
+  // Onextap: Google is a real round trip now, through Supabase and back to
+  // the root of the site, so the window never gets to say so itself.
+  test('Continue with Google goes to Google', async ({ page, isMobile }) => {
+    await page.route('https://onextap-test.supabase.co/auth/v1/authorize?**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Google</title>' }));
     await bootLanding(page);
     await press(page, isMobile, '.hud [data-login]');
     await press(page, isMobile, '#loginGoogle');
-    await expect(page.locator('#loginDoneText')).toHaveText('Signed in with Google.');
+    await expect(page).toHaveTitle('Google');
+    expect(new URL(page.url()).searchParams.get('provider')).toBe('google');
   });
 
   test('closes from the ×, Escape and the scrim, and hands focus back', async ({ page, isMobile }) => {

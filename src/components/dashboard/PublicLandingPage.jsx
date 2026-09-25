@@ -3,7 +3,9 @@ import { Plus, Activity, X, ArrowRight, Zap, Moon, Sun, Menu } from 'lucide-reac
 import { getIconUrl, openChromeWebStore } from '../../extensionClient';
 
 /**
- * Signed-out marketing page with the inline sign-in / sign-up form.
+ * Signed-out marketing page with the inline sign-in / sign-up form, as the
+ * extension's own pages show it (index.html?mode=dashboard). The web build
+ * shows the public landing site instead — see PublicLandingPage below.
  *
  * Fully controlled: every auth field and its setter is owned by DashboardView
  * and passed down, so this component holds only presentational state (FAQ
@@ -29,7 +31,7 @@ import { getIconUrl, openChromeWebStore } from '../../extensionClient';
  * @param {() => void} props.onOpenPremiumModal
  * @param {object|null} props.user
  */
-const PublicLandingPage = ({
+const ReactLandingPage = ({
   authMode,
   setAuthMode,
   authName,
@@ -637,5 +639,40 @@ const PublicLandingPage = ({
     </div>
   );
 };
+
+// Defined only by vite.dashboard.config.js, so it is true in the web build
+// and, never declared in the extension build, false there.
+const WEB_LANDING = typeof __ONEXTAP_WEB_LANDING__ !== 'undefined' && __ONEXTAP_WEB_LANDING__;
+
+/**
+ * The web dashboard's signed-out screen, which is a hand-over: the public
+ * landing site (landing/, served at /) is where a signed-out reader belongs,
+ * with its own sign-in window. Keeps the query (?extensionId=, ?view=) for
+ * the way back in, and sets the one-shot 'onextap:landing' flag so the
+ * landing page stays put even if a stale session is still in storage,
+ * instead of forwarding the reader straight back here. The landing page's
+ * inline script and landing/src/onextap/session.js hold the same names.
+ */
+function WebLandingRedirect() {
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('onextap:landing', '1');
+    } catch {
+      // No sessionStorage: then the landing page sends the reader back here
+      // only while a session is still stored, which signing out removes.
+    }
+    window.location.replace('/' + window.location.search);
+  }, []);
+  return null;
+}
+
+/**
+ * Signed-out screen for DashboardView. Web build: WebLandingRedirect.
+ * Extension build: ReactLandingPage, with the auth props from useAuthForm.
+ * @param {object} props See ReactLandingPage.
+ */
+const PublicLandingPage = (props) => (
+  WEB_LANDING ? <WebLandingRedirect /> : <ReactLandingPage {...props} />
+);
 
 export default PublicLandingPage;

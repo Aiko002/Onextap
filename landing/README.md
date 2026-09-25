@@ -3,11 +3,24 @@
 Vanilla JS + [Vite](https://vite.dev). GSAP (ScrollTrigger) and Lenis come from npm.
 The paper effects are hand-written WebGL — no 3D library.
 
+## In the Onextap repository
+
+This folder is [UncannySteel/DEMO_WEB](https://github.com/UncannySteel/DEMO_WEB)
+(at `c5918e3`), vendored as the public site at `/`. The design is kept as it
+was drawn; what plugs it into the product lives in `src/onextap/` and comes in
+through the seams described below (`initLogin({ signIn })`,
+`initFeedback({ send })`), from the composition roots `src/main.js`,
+`src/pages/sub-page.js` and `src/pages/contact/contact.js`. Also added: the
+cookie note (`src/features/cookie-consent/`), the favicon, and the inline
+script at the top of `index.html` that forwards a signed-in reader to the
+dashboard at `/app/`. The rules are in `docs/repo-structure.md` (rule 12).
+
+Commands run from the repository root; there is no package.json here:
+
 ```bash
-npm install
-npm run dev        # http://localhost:5173
-npm run build      # outputs to dist/
-npm run test:e2e   # Playwright: Chromium desktop + phone, WebKit desktop
+npm run dev:landing      # http://localhost:5180
+npm run build:dashboard  # the dashboard, then this, into dist-dashboard/
+npm run test:landing     # Playwright: Chromium desktop + phone, WebKit desktop
 ```
 
 ## How the page moves
@@ -150,16 +163,18 @@ adds its own animation once it has arrived and returns how long that takes.
   a chapter's id; keep `data-jump` on it so it jumps rather than scrolls. The
   company pages rewrite them to `/#id` themselves.
 - **Company page copy**: `src/pages/<name>/<name>.html`.
-- **Where feedback goes**: nowhere yet. `initFeedback` in
+- **Where feedback goes**: `initFeedback` in
   `src/features/feedback/feedback.js` takes a `send(note)` that returns a
-  promise; until one is given, each note is only announced on the document
-  as an `onextap:feedback` event.
+  promise. In Onextap it is `src/onextap/feedback.js`: the reader's mail app,
+  addressed to the support inbox (there is no server route for it yet). Each
+  note is also announced on the document as an `onextap:feedback` event.
 - **FAQ questions**: `src/features/faq/faq.html`, one `<details>` each.
-- **Where sign-in goes**: nowhere yet. `initLogin` in
+- **Where sign-in goes**: `initLogin` in
   `src/features/login/login.js` takes a `signIn({ method, mode, email,
-  password })` that returns a promise; until one is given, each attempt is
-  announced on the document as an `onextap:login` event (never with the
-  password) and counts as signed in.
+  password })` that returns a promise. In Onextap it is
+  `src/onextap/sign-in.js`: the real accounts, through Supabase, then on to
+  the dashboard once the window closes. Each attempt is also announced on the
+  document as an `onextap:login` event (never with the password).
 - **Pacing, order, or which transition joins two chapters**: `src/app/chapters.js`.
   Durations are in screens of scrolling.
 - **Add a section**: create `src/features/<name>/` with the three files (give

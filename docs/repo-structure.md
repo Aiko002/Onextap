@@ -6,11 +6,18 @@ aspirational layout.
 
 ## What this repository is
 
-One product shipped as three artifacts built from one source tree:
+One product shipped as four artifacts:
 
 - a **Chrome MV3 extension** (`dist/`, built by `vite.config.js`)
-- a **web dashboard** (`dist-dashboard/`, built by `vite.dashboard.config.js`, deployed by Vercel)
+- a **web dashboard** (`dist-dashboard/app/`, built by `vite.dashboard.config.js`, deployed by Vercel, served at `/app/`)
+- a **public landing site** (`dist-dashboard/` beside it, built by `vite.landing.config.js` from `landing/`, served at `/`, `/about/`, `/contact/`, `/privacy/`)
 - an **Express backend** (`server/`, run standalone in dev, wrapped as a Vercel serverless function in production)
+
+The landing site is not React: it is a vendored copy of UncannySteel/DEMO_WEB
+(vanilla JS, GSAP, Lenis), built with no PostCSS plugins so the React app's
+Tailwind never touches it. A signed-in reader who opens `/` is forwarded to
+`/app/` before the page paints; the dashboard sends a signed-out reader back
+to `/`. See rule 12.
 
 The dashboard and the extension popup are *the same React app*. It detects
 at runtime whether `chrome.*` is available and adapts. There is no separate
@@ -37,6 +44,18 @@ popup codebase.
 │   │                          #   answer proxying, active-tab scraping
 │   ├── logger.js              # Service-worker logger (no window, no DOM)
 │   └── constants.js           # COUNTRIES / GENDERS option lists
+├── landing/                   # Public landing site — vendored from UncannySteel/DEMO_WEB;
+│   │                          #   its own README.md explains the design's code
+│   ├── index.html             # `/` — its inline <head> script forwards a signed-in
+│   │                          #   reader (or a sign-in callback) to /app/
+│   ├── about/ contact/ privacy/   # The company pages (index.html each)
+│   ├── src/                   # The design as drawn: app/, features/, pages/, shared/
+│   │   ├── features/cookie-consent/  # The cookie note (Onextap's, in the design's idiom)
+│   │   └── onextap/           # The ONLY bridge into the product — rule 12:
+│   │                          #   sign-in (Supabase), calls to action, feedback,
+│   │                          #   the hand-over to /app/, the logger
+│   ├── tests/                 # Playwright — `npm run test:landing`
+│   └── playwright.config.js
 ├── public/                    # Copied verbatim into the build
 │   ├── content.js             # Content script: autofill + page scraping,
 │   │                          #   injected on demand
@@ -130,10 +149,13 @@ popup codebase.
 │   ├── schema.sql             # Tables, RLS policies, sign-up trigger
 │   └── migrations/            # New statements only, for pasting by hand —
 │                              #   schema.sql must never be re-run on prod
-├── index.html                 # HTML entry for both builds
+├── index.html                 # React HTML entry for both React builds (the web
+│                              #   build emits it as app/index.html)
 ├── vite.config.js             # Extension build     → dist/
-├── vite.dashboard.config.js   # Dashboard build     → dist-dashboard/
-├── vercel.json                # Runs the dashboard build; rewrites /api/* → api/index.js
+├── vite.dashboard.config.js   # Dashboard build     → dist-dashboard/app/ (runs first, empties)
+├── vite.landing.config.js     # Landing build       → dist-dashboard/     (runs second)
+├── vercel.json                # Runs both web builds; /app/* → the dashboard,
+│                              #   /api/* → api/index.js, the rest → the landing site
 ├── tailwind.config.js
 └── postcss.config.js
 ```
@@ -191,6 +213,11 @@ THE ONE CROSS-BOUNDARY IMPORT:
 
 extension/background.js   — standalone. Imports nothing from src/.
 public/content.js         — standalone. Imports nothing at all.
+
+landing/src/**            — the design. Imports itself, gsap, lenis, and
+                            landing/src/onextap/ — nothing else.
+landing/src/onextap/*  ──► src/{auth,supabaseClient,logger,extensionClient,config}.js
+                            (the one landing → src import; src/ never imports landing/)
 ```
 
 ### The rules behind that graph
@@ -252,6 +279,9 @@ public/content.js         — standalone. Imports nothing at all.
    | Service worker | `extension/logger.js` | No `window`; must not import `src/` |
    | Content script | inline, top of `public/content.js` | Copied verbatim — cannot import at all |
 
+   The landing site is a browser page too, so it uses `src/logger.js`,
+   through `landing/src/onextap/log.js` (rule 12).
+
    The redaction key lists are the part that must stay in step, the same way
    the two page scrapers must. `server/logger.js` must be imported *after*
    `./load-env.js` — it reads `LOG_LEVEL` at module load.
@@ -293,6 +323,29 @@ public/content.js         — standalone. Imports nothing at all.
     wearing reuse as a disguise. The duplicated part is dropdown chrome, which
     is cheap; if you change one, read the other and decide deliberately.
 
+12. **`landing/` reaches the product only through `landing/src/onextap/`.**
+    Everything else under `landing/` is the design as UncannySteel/DEMO_WEB
+    drew it, and stays that way so the two can be compared and re-synced:
+    its composition roots (`src/main.js`, `src/pages/sub-page.js`,
+    `src/pages/contact/contact.js`) take the bridge in through the seams
+    the design left for it (`initLogin({ signIn })`, `initFeedback({ send })`),
+    and every other change there is a design change. The bridge may import
+    from the React app's `src/`; `src/` must never import `landing/`.
+
+    The hand-over between the two is a contract in three places that cannot
+    share code — the inline script in `landing/index.html`,
+    `landing/src/onextap/session.js`, and `WebLandingRedirect` in
+    `dashboard/PublicLandingPage.jsx`: the dashboard lives at `/app/`, a
+    stored Supabase session (`sb-<project>-auth-token`) or auth tokens in the
+    URL send `/` there, and the one-shot sessionStorage flag
+    `onextap:landing` keeps a stale session from bouncing between them.
+    Change one, change all three. The extension build never defines
+    `__ONEXTAP_WEB_LANDING__`, so its pages keep the React landing.
+
+    Feedback on `/contact/` goes by `mailto:` to the support inbox — there is
+    no server route for it. A real one belongs in `server/index.js`, then in
+    `landing/src/onextap/feedback.js`.
+
 ## Where a change belongs
 
 | Change | Goes in |
@@ -315,6 +368,9 @@ public/content.js         — standalone. Imports nothing at all.
 | Ranking behaviour — batch size, the gate, reformulation | `server/jobs/graph.js` |
 | Prompt wording | `server/jobs/prompts/*.md` — **and bump its version in `index.js`** |
 | What gets traced | `server/observability/opik.js` |
+| Landing page copy, look or motion | `landing/src/features/` (tokens: `landing/src/shared/styles/tokens.css`) — see `landing/README.md` |
+| Where a landing button goes; landing sign-in | `landing/src/onextap/` — rule 12 |
+| The cookie note | `landing/src/features/cookie-consent/` |
 | A new log line | the logger for that runtime — never `console.*` |
 | A field that must never be logged | the `SECRET_KEY` / `PII_KEY` lists in all four loggers |
 

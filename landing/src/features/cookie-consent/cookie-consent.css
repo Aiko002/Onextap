@@ -1,0 +1,43 @@
+/* ===========================================================================
+   The cookie note (Onextap)
+   Oat paper with the windows' bar (shared/styles/dialog.css), the site's
+   type roles and buttons. It sits over the page, above the header row, the
+   menu and the chapter bar (z 60–62) and below the windows (z 80) and the
+   cursor (z 90), right of the spine and clear of the chapter bar (the
+   --sheet-bottom every chapter keeps free for it). It steps aside while the
+   menu is open, and an open window holds it inert like everything else.
+   =========================================================================== */
+.cc{
+  position:fixed;z-index:63;
+  left:16px;right:16px;bottom:var(--sheet-bottom);
+  background:var(--bone);color:var(--ink);
+  border:var(--rule) solid var(--bone-line);border-radius:8px;overflow:hidden;
+  box-shadow:0 30px 90px rgba(4,8,6,.45);
+  opacity:0;transform:translateY(28px) scale(.98);
+  transition:opacity .45s ease,transform .6s cubic-bezier(.16,1,.3,1),visibility 0s;
+}
+.cc[hidden]{display:none}
+@media(min-width:560px){.cc{left:auto;right:clamp(16px,2.5vw,36px);width:420px}}
+
+.cc.is-in{opacity:1;transform:none}
+.cc.is-out{opacity:0;transform:translateY(28px) scale(.98);transition-duration:.3s}
+html.menu-open .cc{opacity:0;visibility:hidden;transition:opacity .3s ease,visibility 0s linear .3s}
+
+.cc__body{display:grid;gap:12px;padding:clamp(18px,3vw,26px)}
+.cc__eyebrow{color:var(--citrine-deep)}
+.cc__title{font-size:clamp(2.1rem,7vw,2.7rem);margin-top:-4px}
+.cc__aside{
+  margin:-8px 0 0;font-family:var(--voice);font-style:italic;
+  font-size:19px;line-height:1.1;color:var(--ash-deep);
+}
+.cc__text{margin:0;font-size:14px;line-height:1.55;color:var(--ash-deep);max-width:46ch}
+.cc__text a{color:var(--ink);text-underline-offset:3px}
+.cc__text a:hover{color:var(--citrine-deep)}
+.cc__actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+@media(max-width:420px){.cc__actions .btn{flex:1 1 auto;justify-content:center}}
+
+/* --- reduced motion: it simply appears, and goes ------------------------- */
+html.no-motion .cc{transition:none;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .cc{transition:none;transform:none}
+}

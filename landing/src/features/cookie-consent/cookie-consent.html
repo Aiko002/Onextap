@@ -1,0 +1,27 @@
+<!-- The cookie note (Onextap). A small sheet of the site's oat paper, dealt
+     in at the foot of the screen on a first visit and dressed like the
+     windows (the bar and its three dots, shared/styles/dialog.css), but not
+     one of them: nothing behind it goes inert and the story still scrolls.
+     It goes once a choice is made, and the choice is remembered. -->
+<section class="cc" id="cookieConsent" aria-labelledby="ccTitle" aria-describedby="ccText" hidden>
+  <div class="dlg__bar">
+    <span class="dlg__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="dlg__url" aria-hidden="true">onextap / cookies</span>
+  </div>
+
+  <div class="cc__body">
+    <p class="label cc__eyebrow">The small print</p>
+    <h2 class="display cc__title" id="ccTitle">Cookies, briefly.</h2>
+    <p class="cc__aside">we keep it small.</p>
+    <p class="cc__text" id="ccText">
+      Onextap uses your browser's storage for what the site needs to work: keeping you
+      signed in, your settings, the profiles you save, and this choice. No ads, and
+      nothing that follows you around the web. Anything optional waits for your yes.
+      <a href="/privacy-policy">Privacy policy</a>.
+    </p>
+    <div class="cc__actions">
+      <button class="btn btn--solid" type="button" data-consent="all">Accept all <span class="btn__arrow">→</span></button>
+      <button class="btn btn--ghost" type="button" data-consent="essential">Essential only</button>
+    </div>
+  </div>
+</section>

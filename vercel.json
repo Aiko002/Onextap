@@ -1,12 +1,18 @@
 {
   "version": 2,
-  "buildCommand": "vite build --config vite.dashboard.config.js",
+  "buildCommand": "npm run build:dashboard",
   "outputDirectory": "dist-dashboard",
   "functions": {
     "api/index.js": {
       "maxDuration": 60
     }
   },
+  "redirects": [
+    { "source": "/app", "destination": "/app/", "permanent": false },
+    { "source": "/about", "destination": "/about/", "permanent": false },
+    { "source": "/contact", "destination": "/contact/", "permanent": false },
+    { "source": "/privacy", "destination": "/privacy/", "permanent": false }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -15,6 +21,10 @@
     {
       "source": "/privacy-policy",
       "destination": "/privacy-policy.html"
+    },
+    {
+      "source": "/app/(.*)",
+      "destination": "/app/index.html"
     },
     {
       "source": "/(.*)",

@@ -2,6 +2,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { createFx } from '../shared/fx/fx.js';
 import { capture, render } from '../shared/fx/snapshot.js';
+import { log } from '../onextap/log.js';
 
 /* ===========================================================================
    The stage: the page played as one timeline.
@@ -93,7 +94,7 @@ export function createStage(opts) {
       }, function (err) {
         // The section keeps its CSS stand-in; say why, once, for whoever
         // is debugging, and carry on with the rest of the queue.
-        console.warn('[stage] snapshot failed, using the CSS fallback:', err && err.message);
+        log.warn('[stage] snapshot failed, using the CSS fallback:', err && err.message);
       }).then(function () { busy = false; pump(); });
     });
   }

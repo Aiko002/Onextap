@@ -12,7 +12,6 @@ import PremiumModal from './PremiumModal';
 import OverviewPage from './OverviewPage';
 import AccountSettingsModal from './AccountSettingsModal';
 import PublicLandingPage from './PublicLandingPage';
-import { useAuthForm } from './useAuthForm';
 import TourOverlay, { TOUR_STEPS } from './TourOverlay';
 import ProfilesPage from './ProfilesPage';
 import VaultPage from './VaultPage';
@@ -22,16 +21,14 @@ import { log as baseLog } from '../../logger';
 
 const log = baseLog.child('ui');
 
-// Simple password strength helper
-// Returns: 'weak' | 'medium' | 'strong' | null
 // --- DASHBOARD VIEW (Main Auth Logic — Supabase) ---
 /**
  * Root of the signed-in dashboard, and the app's auth boundary.
  *
- * Owns the Supabase session (via onAuthStateChange), the sign-in form state it
- * passes down to PublicLandingPage, premium status, the active tab, the
- * application type, and the guided tour. Renders PublicLandingPage until a
- * session exists.
+ * Owns the Supabase session (via onAuthStateChange), premium status, the
+ * active tab, the application type, and the guided tour. Renders
+ * PublicLandingPage, which hands over to the landing site, until a session
+ * exists.
  *
  * Also handles the post-checkout `?payment=success` return by polling
  * verify-premium until the Dodo webhook lands.
@@ -106,14 +103,6 @@ const DashboardView = ({ onClose }) => {
   const [user, setUser] = useState(null); // Supabase User Object
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Sign-in/sign-up form state and handlers. DashboardView stays the auth
-  // boundary: the hook reports success here and owns nothing else.
-  const authForm = useAuthForm({
-    onAuthenticated: (signedInUser) => {
-      setUser(signedInUser);
-      setIsCheckingAuth(false);
-    },
-  });
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [contentKey, setContentKey] = useState(0);
   const [isPremiumUser, setIsPremiumUser] = useState(false);
@@ -285,11 +274,7 @@ const DashboardView = ({ onClose }) => {
   if (!user) {
     return (
       <>
-        <PublicLandingPage
-          {...authForm}
-          onOpenPremiumModal={() => setIsPremiumModalOpen(true)}
-          user={user}
-        />
+        <PublicLandingPage />
         <Toast message={toast.message} type={toast.type} isVisible={toast.visible} onDismiss={hideToast} />
         <PremiumModal isOpen={isPremiumModalOpen} onClose={() => setIsPremiumModalOpen(false)} user={user} />
       </>

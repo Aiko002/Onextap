@@ -22,7 +22,7 @@ const WEB_LANDING = typeof __ONEXTAP_WEB_LANDING__ !== 'undefined' && __ONEXTAP_
  * extension's dev server, when VITE_DASHBOARD_URL points at it) there is
  * nowhere to go, and it renders nothing rather than loop.
  *
- * Takes no props; DashboardView still passes useAuthForm's, which it ignores.
+ * Takes no props.
  */
 function PublicLandingPage() {
   useEffect(() => {

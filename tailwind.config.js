@@ -19,8 +19,6 @@ export default {
           'olive-pale': '#C8D8A8',
           dark: '#1A1A14',
           cream: '#F5F2EC',
-          'cream-dark': '#EDE9E0',
-          bark: '#3A2E1C',
           'bark-mid': '#5C4A2A',
           'bg-light': '#F5F2EC',
           'bg-sidebar': '#EDE9E0',

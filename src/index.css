@@ -257,53 +257,6 @@ html.dark .splash-text {
   to   { width: 100%; }
 }
 
-/* ===== SCROLL REVEAL ===== */
-
-.reveal {
-  opacity: 0;
-  transform: translateY(32px);
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.reveal.revealed {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.reveal-scale {
-  opacity: 0;
-  transform: scale(0.92) translateY(20px);
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.reveal-scale.revealed {
-  opacity: 1;
-  transform: scale(1) translateY(0);
-}
-
-.reveal-left {
-  opacity: 0;
-  transform: translateX(-40px);
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.reveal-left.revealed {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-/* Stagger delays for child-based reveals */
-.stagger-1 { transition-delay: 0.05s; }
-.stagger-2 { transition-delay: 0.1s; }
-.stagger-3 { transition-delay: 0.15s; }
-.stagger-4 { transition-delay: 0.2s; }
-.stagger-5 { transition-delay: 0.25s; }
-.stagger-6 { transition-delay: 0.3s; }
-.stagger-7 { transition-delay: 0.35s; }
-
 /* ===== SIDEBAR ENTRANCE ===== */
 
 @keyframes sidebarSlideIn {
@@ -353,7 +306,6 @@ html.dark .splash-text {
   .splash-logo { animation: none; opacity: 1; }
   .splash-text { animation: none; opacity: 1; }
   .splash-bar, .splash-bar-fill { animation: none; }
-  .reveal, .reveal-scale, .reveal-left { opacity: 1; transform: none; transition: none; }
   .sidebar-enter, .main-content-enter, .nav-item-enter { animation: none; opacity: 1; }
 }
 

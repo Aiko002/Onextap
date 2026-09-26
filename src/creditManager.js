@@ -148,6 +148,36 @@ export const creditManager = {
   },
 
   /**
+   * The account row as GET /api/me reports it — the same route resumeParse.js
+   * uses as its session pre-flight. Read-only; the dashboard's subscription
+   * panel uses it for the plan status line ("Premium since …").
+   *
+   * Like getCreditsWithStatus, `isPremium` is the stored flag, which
+   * verifyPremium keeps honest. Returns a failure object rather than throwing.
+   * @returns {Promise<{ok: true, email: string|null, displayName: string|null,
+   *   credits: number, isPremium: boolean, subscriptionStatus: string|null,
+   *   premiumSince: string|null, createdAt: string|null} | {ok: false, error: string}>}
+   */
+  getAccount: async () => {
+    try {
+      const data = await authFetch('/api/me');
+      return {
+        ok: true,
+        email: data.email ?? null,
+        displayName: data.displayName ?? null,
+        credits: data.isPremium ? Infinity : data.credits,
+        isPremium: !!data.isPremium,
+        subscriptionStatus: data.subscriptionStatus ?? null,
+        premiumSince: data.premiumSince ?? null,
+        createdAt: data.createdAt ?? null,
+      };
+    } catch (error) {
+      log.warn('Account read failed:', error?.message);
+      return { ok: false, error: error?.message || String(error) };
+    }
+  },
+
+  /**
    * Create a Dodo Payments Checkout Session for premium upgrade.
    * @returns {Promise<{url: string, sessionId: string}>}
    */

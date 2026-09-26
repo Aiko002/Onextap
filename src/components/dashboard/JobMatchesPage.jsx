@@ -13,63 +13,60 @@ const log = baseLog.child('ui');
 // ══════════════════════════════════════════════════════════════════
 // Class tokens
 // ══════════════════════════════════════════════════════════════════
-// Written once each, base token first and its hand-written `dark:` twin
-// appended, so dark mode cannot drift between two copies of the same surface.
-// Tailwind's `darkMode: 'class'` means nothing here is derived automatically —
-// every colour, border and shadow below needs its twin spelled out.
+// Written once each, so a surface cannot drift between two copies of itself.
+// They name classes from the dashboard's design system (./dashboard.css —
+// DEMO_DASH's oat-sheet vocabulary). There is no dark twin any more: the
+// dashboard is one visual world and the workspace sheet is always oat.
 
-const CARD = 'bg-white/80 backdrop-blur-sm rounded-3xl border border-onextap-primary/15 p-8 shadow-lg shadow-onextap-dark/5 dark:bg-onextap-night-surface/80 dark:border-onextap-primary-light/20 dark:shadow-[0_12px_40px_rgba(0,0,0,0.45)]';
+const CARD = 'ws-panel';
 
-const JOB_CARD = 'bg-white/70 backdrop-blur-sm border border-onextap-primary/15 rounded-2xl p-5 group hover:bg-white/90 hover:shadow-md transition-all duration-200 dark:bg-onextap-night-card/70 dark:border-onextap-primary-light/20 dark:hover:bg-onextap-night-card dark:hover:shadow-[0_8px_28px_rgba(0,0,0,0.35)]';
+const JOB_CARD = 'ws-card';
 
-// `text-white` keeps its explicit `dark:` twin: the dark background under it is
-// also dark, so white is right in both themes — spelled out so the next reader
-// knows that is a decision and not an omission.
-const BTN_PRIMARY = 'bg-onextap-dark text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-onextap-dark/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-md shadow-onextap-dark/20 dark:bg-onextap-primary dark:text-white dark:hover:bg-onextap-primary-dark dark:shadow-[0_6px_20px_rgba(0,0,0,0.4)]';
+const BTN_PRIMARY = 'btn btn-solid btn-sm';
 
-const BTN_GHOST = 'text-xs font-medium px-2.5 py-1.5 rounded-lg border border-onextap-primary/20 text-onextap-primary hover:bg-onextap-primary/10 transition-colors dark:border-onextap-primary-light/30 dark:text-onextap-olive-pale dark:hover:bg-onextap-primary/25';
+const BTN_GHOST = 'btn btn-ghost btn-xs';
 
-const BADGE = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold leading-none text-onextap-primary bg-onextap-primary/10 border border-onextap-primary/20 dark:text-onextap-olive-pale dark:bg-onextap-primary/25 dark:border-onextap-primary-light/30';
+const BADGE = 'chip chip-accent';
 
-const FIELD = 'w-full px-4 py-3 border border-onextap-primary/20 rounded-xl text-sm bg-white/80 focus:outline-none focus:border-onextap-primary/40 focus:ring-2 focus:ring-onextap-primary/10 transition-all text-onextap-dark dark:bg-onextap-night-card dark:text-[#E8EFD8] dark:border-onextap-primary-light/25 dark:focus:border-onextap-primary-light/50 dark:focus:ring-onextap-primary/20';
+const FIELD = 'field-input';
 
-const SKELETON = 'h-10 animate-pulse rounded-xl bg-onextap-primary/10 dark:bg-onextap-primary-light/15';
+const SKELETON = 'skel';
 
-const AMBER_BOX = 'rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700/40 dark:bg-amber-900/20 dark:text-amber-200';
+const AMBER_BOX = 'notice notice-warn';
 
-const RED_BOX = 'rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-700/40 dark:bg-red-900/20 dark:text-red-300';
+const RED_BOX = 'notice notice-danger';
 
-const HEADING = 'text-lg font-semibold text-onextap-dark dark:text-[#E8EFD8]';
-const SUBTEXT = 'text-sm text-onextap-secondary dark:text-[#9AB07A]';
-const MUTED = 'text-xs text-onextap-muted dark:text-[#9AB07A]';
-const FIELD_LABEL = 'mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-onextap-muted dark:text-[#9AB07A]';
+const HEADING = 'ws-panel-title';
+const SUBTEXT = 'ws-sub';
+const MUTED = 'ws-muted';
+const FIELD_LABEL = 'field-k block mb-1.5';
 
 /** The emphasised first line of a box or a list row. */
-const STRONG_TEXT = 'font-medium text-onextap-dark dark:text-[#E8EFD8]';
+const STRONG_TEXT = 'ws-strong';
 
 /** "This one item is degraded" pill — re-upload needed, low detail, not evidenced. */
-const AMBER_PILL = 'inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold leading-none text-amber-700 dark:border-amber-700/40 dark:bg-amber-900/25 dark:text-amber-200';
+const AMBER_PILL = 'chip chip-warn';
 
 /** Muted pill, for a fact about a card that is not a warning. */
-const MUTED_PILL = 'inline-flex items-center gap-1 rounded-full border border-onextap-primary/20 bg-onextap-primary/5 px-2 py-0.5 text-[10px] font-semibold leading-none text-onextap-muted dark:border-onextap-primary-light/20 dark:bg-white/[0.04] dark:text-[#9AB07A]';
+const MUTED_PILL = 'chip chip-muted';
 
 /** Centred "there is nothing to show, and that is not an error" panel. */
-const EMPTY_BOX = 'rounded-2xl border border-onextap-primary/15 bg-onextap-primary/[0.04] px-5 py-8 text-center dark:border-onextap-primary-light/20 dark:bg-white/[0.03]';
+const EMPTY_BOX = 'ws-empty is-center';
 
 /** Spinner-plus-label row shown while a request is in flight. */
-const BUSY_ROW = 'flex items-center gap-2 text-sm font-medium text-onextap-primary dark:text-onextap-olive-pale';
+const BUSY_ROW = 'busy';
 
 /** One row of the explanation panel's strengths / gaps / suggestions lists. */
-const PANEL_ITEM = 'rounded-xl border border-onextap-primary/15 bg-white/60 px-3 py-2 dark:border-onextap-primary-light/20 dark:bg-white/[0.03]';
+const PANEL_ITEM = 'ws-list-item';
 
 /** As PANEL_ITEM, tinted — strengths read as positive, gaps as neutral. */
-const PANEL_ITEM_ACCENT = 'rounded-xl border border-onextap-primary/15 bg-onextap-primary/[0.04] px-3 py-2 dark:border-onextap-primary-light/20 dark:bg-white/[0.03]';
+const PANEL_ITEM_ACCENT = 'ws-list-item is-accent';
 
 /** Section heading inside the explanation panel. */
-const PANEL_HEADING = 'mb-2 text-sm font-semibold text-onextap-dark dark:text-[#E8EFD8]';
+const PANEL_HEADING = 'ws-list-heading';
 
 /** Text-only "Try again" button that lives inside an already-coloured notice. */
-const INLINE_RETRY = 'text-sm font-medium underline hover:no-underline';
+const INLINE_RETRY = 'btn-link';
 
 // ══════════════════════════════════════════════════════════════════
 // Constants
@@ -405,24 +402,16 @@ function isSnippet(job) {
  */
 function coverageBadgeClass(met, total) {
   const value = total > 0 ? Math.round((met / total) * 100) : 0;
-  if (value >= SCORE_BAND_STRONG) {
-    return 'text-onextap-primary bg-onextap-primary/12 border-onextap-primary/30 dark:text-onextap-olive-pale dark:bg-onextap-primary/30 dark:border-onextap-primary-light/40';
-  }
-  if (value >= SCORE_BAND_FAIR) {
-    return 'text-amber-700 bg-amber-100 border-amber-300 dark:text-amber-200 dark:bg-amber-900/30 dark:border-amber-700/50';
-  }
-  return 'text-onextap-muted bg-onextap-primary/5 border-onextap-primary/15 dark:text-[#9AB07A] dark:bg-white/[0.04] dark:border-onextap-primary-light/20';
+  if (value >= SCORE_BAND_STRONG) return 'strong';
+  if (value >= SCORE_BAND_FAIR) return 'fair';
+  return 'weak';
 }
 
 /** Severity pill for one explain gap. */
 function severityClass(severity) {
-  if (severity === 'blocking') {
-    return 'text-red-700 bg-red-50 border-red-200 dark:text-red-300 dark:bg-red-900/25 dark:border-red-700/40';
-  }
-  if (severity === 'significant') {
-    return 'text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-200 dark:bg-amber-900/25 dark:border-amber-700/40';
-  }
-  return 'text-onextap-primary bg-onextap-primary/10 border-onextap-primary/20 dark:text-onextap-olive-pale dark:bg-onextap-primary/25 dark:border-onextap-primary-light/30';
+  if (severity === 'blocking') return 'chip chip-danger';
+  if (severity === 'significant') return 'chip chip-warn';
+  return 'chip chip-accent';
 }
 
 /**
@@ -628,18 +617,19 @@ const SourceFilters = ({ sources, loading, selected, onToggle }) => {
           {available.map((source) => (
             <label
               key={source.id}
-              className="inline-flex items-center gap-2 rounded-lg border border-onextap-primary/20 bg-white/70 px-3 py-1.5 text-xs font-medium text-onextap-dark transition-colors hover:bg-onextap-primary/[0.06] dark:border-onextap-primary-light/25 dark:bg-onextap-night-card dark:text-[#E8EFD8] dark:hover:bg-white/[0.06]"
+              className="chip chip-toggle"
+              style={{ gap: 8 }}
             >
               <input
                 type="checkbox"
                 checked={selected.includes(source.id)}
                 onChange={() => onToggle(source.id)}
-                className="h-3.5 w-3.5 accent-onextap-primary dark:accent-onextap-primary-light"
+                className="h-3.5 w-3.5"
               />
               {source.id}
               <span className={MUTED}>{finiteOr(source.count, 0)}</span>
               {/* A source that failed its last collection run says so here too. */}
-              {source.lastError && <AlertTriangle size={11} className="text-amber-600 dark:text-amber-400" />}
+              {source.lastError && <AlertTriangle size={11} style={{ color: 'var(--i6)' }} />}
             </label>
           ))}
         </div>
@@ -672,7 +662,8 @@ const EvidenceMeter = ({ coverage }) => {
   const { met, total } = coverage;
   return (
     <span
-      className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold leading-none ${coverageBadgeClass(met, total)}`}
+      className="score"
+      data-band={coverageBadgeClass(met, total)}
       title={`This role lists ${total} things; your resume evidences ${met}.`}
     >
       {met} of {total} matched
@@ -740,10 +731,10 @@ const JobCard = ({ entry, missingTerms, coverage, explaining, onExplain }) => {
     <article className={JOB_CARD}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate font-semibold text-onextap-dark dark:text-[#E8EFD8]">
+          <h3 className="ws-card-title">
             {job.title || 'Untitled role'}
           </h3>
-          <div className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 ${SUBTEXT}`}>
+          <div className="ws-card-meta">
             {job.company && (
               <span className="inline-flex items-center gap-1">
                 <Building2 size={12} /> {job.company}
@@ -879,13 +870,14 @@ const RunTransparency = ({ result, meta, returnedCount, open, onToggle, onRetryM
   const timings = result?.meta?.timings;
 
   return (
-    <div className="mt-6 border-t border-onextap-primary/15 pt-4 dark:border-onextap-primary-light/20">
+    <div className="ws-disclosure">
       <button
         type="button"
         onClick={onToggle}
-        className={`flex w-full items-center justify-between gap-2 ${MUTED} hover:text-onextap-primary dark:hover:text-onextap-olive-pale transition-colors`}
+        className="ws-disclosure-toggle"
+        aria-expanded={open}
       >
-        <span className="font-semibold uppercase tracking-[0.08em]">How this run worked</span>
+        <span className="label">How this run worked</span>
         <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
@@ -1035,7 +1027,7 @@ const TailoringAdvice = ({ suggestions }) => (
         // An older shape sent bare strings; both still render.
         if (typeof item === 'string') {
           return (
-            <li key={`suggestion-${idx}`} className={`${PANEL_ITEM} text-sm text-onextap-dark dark:text-[#E8EFD8]`}>
+            <li key={`suggestion-${idx}`} className={PANEL_ITEM}>
               {item}
             </li>
           );
@@ -1049,7 +1041,7 @@ const TailoringAdvice = ({ suggestions }) => (
               <div className="mb-2">
                 <p className={MUTED}>Your current wording</p>
                 {/* A blockquote, because it is a quotation of the user, not a proposal. */}
-                <blockquote className="mt-0.5 border-l-2 border-onextap-primary/25 pl-2 text-sm italic text-onextap-secondary dark:border-onextap-primary-light/30 dark:text-[#9AB07A]">
+                <blockquote className="ws-quote">
                   {item.currentText}
                 </blockquote>
               </div>
@@ -1057,7 +1049,7 @@ const TailoringAdvice = ({ suggestions }) => (
             {item?.suggestedAngle && (
               <div className="mb-2">
                 <p className={MUTED}>Angle to take</p>
-                <p className="mt-0.5 text-sm text-onextap-dark dark:text-[#E8EFD8]">{item.suggestedAngle}</p>
+                <p className="mt-0.5 text-sm">{item.suggestedAngle}</p>
               </div>
             )}
             {item?.reason && (
@@ -1089,7 +1081,7 @@ const ExplanationBody = ({ data, snippet }) => {
       {data.fitAnalysis && (
         <div className="space-y-2">
           {String(data.fitAnalysis).split(/\n{2,}/).filter(Boolean).map((paragraph, idx) => (
-            <p key={idx} className="text-sm leading-relaxed text-onextap-dark dark:text-[#E8EFD8]">{paragraph}</p>
+            <p key={idx} className="text-sm leading-relaxed">{paragraph}</p>
           ))}
         </div>
       )}
@@ -1117,7 +1109,7 @@ const ExplanationBody = ({ data, snippet }) => {
                 <div className="flex flex-wrap items-center gap-2">
                   <p className={`text-sm ${STRONG_TEXT}`}>{item?.requirement || 'Gap'}</p>
                   {item?.severity && (
-                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-none ${severityClass(item.severity)}`}>
+                    <span className={severityClass(item.severity)}>
                       {item.severity}
                     </span>
                   )}
@@ -1159,10 +1151,11 @@ const ExplanationBody = ({ data, snippet }) => {
  * @param {() => void} props.onRetry
  */
 const ExplanationPanel = ({ entry, state, onClose, onRetry }) => (
-  <section className={CARD}>
+  <section className={CARD} data-accent="" aria-live="polite">
     <div className="mb-4 flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <h2 className={HEADING}>Your fit</h2>
+        <p className="label ws-eyebrow"><span className="ws-num">D</span>Analysis</p>
+        <h2 className={HEADING}>Your <em>fit</em></h2>
         <p className={`mt-1 truncate ${SUBTEXT}`}>
           {entry?.job?.title || 'This role'}
           {entry?.job?.company ? ` · ${entry.job.company}` : ''}
@@ -1898,13 +1891,16 @@ const JobMatchesPage = ({ showToast }) => {
   // ── Render ────────────────────────────────────────────────────────
 
   return (
-    <div className="animate-fade-in max-w-3xl mx-auto space-y-6">
+    <>
 
       {/* ══ 1 — YOUR RESUME ══════════════════════════════════════ */}
-      <section className={CARD}>
-        <div className="mb-4 flex items-center gap-2">
-          <Briefcase size={18} className="text-onextap-primary dark:text-onextap-olive-pale" />
-          <h2 className={HEADING}>Your resume</h2>
+      <section className={CARD} data-accent="">
+        <div className="ws-panel-head" style={{ marginBottom: 14 }}>
+          <div>
+            <p className="label ws-eyebrow"><span className="ws-num">A</span>Resume</p>
+            <h2 className={HEADING}>Your <em>resume</em></h2>
+          </div>
+          <Briefcase size={18} aria-hidden="true" />
         </div>
 
         {resumeLoading ? (
@@ -1919,23 +1915,18 @@ const JobMatchesPage = ({ showToast }) => {
             {!resume ? (
               <div
                 {...resumeDropProps}
-                className={`mt-4 rounded-2xl border border-dashed px-5 py-8 text-center transition-colors ${
-                  resumeDragging
-                    ? 'border-onextap-primary bg-onextap-primary/10 dark:border-onextap-primary-light dark:bg-onextap-primary/20'
-                    : 'border-onextap-primary/25 bg-onextap-primary/[0.04] dark:border-onextap-primary-light/25 dark:bg-white/[0.03]'
-                }`}
+                className={`${EMPTY_BOX} mt-4`}
+                data-dragging={resumeDragging ? '' : undefined}
               >
                 {dropUploading ? (
                   <>
-                    <Activity size={22} className="mx-auto mb-3 animate-spin text-onextap-primary dark:text-onextap-olive-pale" />
+                    <div className="ws-empty-icon"><Activity size={22} className="animate-spin" /></div>
                     <p className={STRONG_TEXT}>Parsing resume...</p>
                     <p className={`mt-1 ${SUBTEXT}`}>Reading the file and pulling out your skills and experience.</p>
                   </>
                 ) : (
                   <>
-                    {resumeDragging
-                      ? <UploadCloud size={22} className="mx-auto mb-3 text-onextap-primary dark:text-onextap-olive-pale" />
-                      : <Sparkles size={22} className="mx-auto mb-3 text-onextap-primary dark:text-onextap-olive-pale" />}
+                    <div className="ws-empty-icon">{resumeDragging ? <UploadCloud size={22} /> : <Sparkles size={22} />}</div>
                     <p className={STRONG_TEXT}>
                       {resumeDragging ? 'Drop to upload' : 'Drop a resume here, or use the picker above'}
                     </p>
@@ -1945,7 +1936,7 @@ const JobMatchesPage = ({ showToast }) => {
                     <p className={`mt-2 text-xs ${SUBTEXT}`}>PDF or image, up to {MAX_RESUME_LABEL}.</p>
                   </>
                 )}
-                {dropError && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{dropError}</p>}
+                {dropError && <div className={`${RED_BOX} mt-3`} role="alert">{dropError}</div>}
               </div>
             ) : (
               <ResumeSummary resume={resume} profile={resumeProfile} />
@@ -1964,7 +1955,12 @@ const JobMatchesPage = ({ showToast }) => {
             must not have, and the two buttons mean different things.
           */}
           <section className={CARD} onKeyDown={onFilterKeyDown}>
-            <h2 className={`${HEADING} mb-4`}>Filters</h2>
+            <div className="ws-panel-head">
+              <div>
+                <p className="label ws-eyebrow"><span className="ws-num">B</span>Filters</p>
+                <h2 className={HEADING}>Narrow the <em>search</em></h2>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <SelectField
@@ -2045,7 +2041,7 @@ const JobMatchesPage = ({ showToast }) => {
             />
 
             {/* ── Apply ─────────────────────────────────────────────── */}
-            <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-onextap-primary/10 pt-4 dark:border-onextap-primary-light/15">
+            <div className="mt-5 flex flex-wrap items-center gap-3 border-t pt-4" style={{ borderColor: 'var(--bone-line)' }}>
               <button
                 type="button"
                 onClick={applyFilters}
@@ -2102,8 +2098,10 @@ const JobMatchesPage = ({ showToast }) => {
               </div>
             )}
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-baseline gap-3">
-                <h2 className={HEADING}>Ranked jobs</h2>
+              <div>
+                <p className="label ws-eyebrow"><span className="ws-num">C</span>Matches</p>
+                <div className="flex items-baseline gap-3">
+                <h2 className={HEADING}>Ranked <em>jobs</em></h2>
                 {/* Safe alongside a failed refresh: the list, this count and
                     the footer all describe the same previous run. */}
                 {!ranking && result && (
@@ -2115,6 +2113,7 @@ const JobMatchesPage = ({ showToast }) => {
                     {visibleJobs.length} {visibleJobs.length === 1 ? 'match' : 'matches'}
                   </span>
                 )}
+                </div>
               </div>
               {/*
                 The server caches a rank by resume hash and filters, so without
@@ -2232,7 +2231,7 @@ const JobMatchesPage = ({ showToast }) => {
               // The NORMAL state before the first ingest run. It is not a bug,
               // and it must not read like one.
               <div className={EMPTY_BOX}>
-                <Clock size={22} className="mx-auto mb-3 text-onextap-primary dark:text-onextap-olive-pale" />
+                <div className="ws-empty-icon"><Clock size={22} /></div>
                 <p className={STRONG_TEXT}>
                   Job listings are still being collected. Check back tomorrow.
                 </p>
@@ -2325,7 +2324,7 @@ const JobMatchesPage = ({ showToast }) => {
           )}
         </>
       )}
-    </div>
+    </>
   );
 };
 

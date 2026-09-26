@@ -58,15 +58,27 @@ popup codebase.
 │   │   │   ├── PopupView.jsx
 │   │   │   └── WhatToFillSection.jsx
 │   │   └── dashboard/         # Web dashboard only
-│   │       ├── DashboardView.jsx      # Owns auth + tab state for the dashboard
+│   │       ├── DashboardView.jsx      # Auth boundary: session, credits, premium,
+│   │       │                          #   account actions; renders the landing
+│   │       │                          #   page or the shell
+│   │       ├── dashboard.css          # DEMO_DASH design system, scoped to .oxd
+│   │       ├── shell/                 # The signed-in layout (DEMO_DASH port)
+│   │       │   ├── DashboardShell.jsx #   top bar, home hero, dock, oat sheet,
+│   │       │   │                      #   #/<slug> routing, dialogs' open state
+│   │       │   ├── config.js          #   workspace registry + plan copy
+│   │       │   ├── SettingsMenu.jsx   #   credits, avatar, plan, tour, log out
+│   │       │   ├── Dialogs.jsx        #   subscription + delete-account windows
+│   │       │   ├── useDock.js         #   dock left/right/float, drag, resize
+│   │       │   ├── Cursor.jsx         #   citrine trailing cursor (fine pointers)
+│   │       │   ├── ShellToast.jsx
+│   │       │   ├── motion.jsx         #   RiseWords, runTransition
+│   │       │   └── icons.jsx
 │   │       ├── ProfilesPage.jsx
 │   │       ├── VaultPage.jsx
 │   │       ├── CoverLetterPage.jsx
 │   │       ├── JobMatchesPage.jsx     # Resume → ranked jobs, filters, run footer
-│   │       ├── OverviewPage.jsx
 │   │       ├── PublicLandingPage.jsx
-│   │       ├── AccountSettingsModal.jsx
-│   │       ├── PremiumModal.jsx
+│   │       ├── PremiumModal.jsx       # used by the signed-out landing page only
 │   │       └── TourOverlay.jsx        # also named-exports TOUR_STEPS
 │   ├── matching/              # PURE SANDBOX — imports nothing outside itself
 │   │   ├── index.js           #   barrel; MATCHER_VERSION lives here
@@ -80,6 +92,7 @@ popup codebase.
 │   ├── corpus.js              # Addressable CV items (`exp.0.bullet.1`) — the
 │   │                          #   grounding the validator diffs against
 │   ├── resumeStore.js         # Local resume library (`onextap_resumes`)
+│   ├── avatarStore.js         # Dashboard avatar, on this device only
 │   ├── resumeParse.js         # Upload transport: base64 → PARSE_RESUME → parse
 │   ├── jobsApi.js             # Job ranking / explain / pool API client
 │   ├── config.js              # API_URL, DASHBOARD_URL, extension id, model name
@@ -158,8 +171,10 @@ src/popup.jsx ──► src/components/OnextapDashboard.jsx        (App root)
                         ├──► src/components/popup/PopupView.jsx
                         └──► src/components/dashboard/DashboardView.jsx
 
-DashboardView ──► the nine other dashboard/ components
-              └──► shared/Toast.jsx
+DashboardView ──► the other dashboard/ components, incl. shell/DashboardShell
+              └──► shared/Toast.jsx          (signed-out landing only)
+shell/*       ──► dashboard/TourOverlay.jsx, src/{config,creditManager,storage,logger}.js
+workspace pages ──► shared/{ProfileSwitcher,ResumeSwitcher,CoverLetterPanel,FabricationNotice}.jsx
 PopupView     ──► popup/WhatToFillSection.jsx
               └──► shared/{Toast,ProfileSwitcher,CoverLetterPanel}.jsx
 
@@ -167,6 +182,7 @@ Leaf modules, imported by the components above:
 
   src/auth.js ──► src/supabaseClient.js
   src/creditManager.js ──► src/auth.js
+  src/avatarStore.js  ──► src/storage.js
   src/profileStore.js ──► src/storage.js
   src/resumeStore.js  ──► src/storage.js
                      └──► src/corpus.js ──► src/matching/normalize.js

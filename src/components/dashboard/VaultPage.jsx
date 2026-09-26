@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Crown, Plus, Sparkles, Trash2, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, Crown, PenTool, Plus, Sparkles, Trash2, Zap } from 'lucide-react';
 import { AI_TIMEOUT_SEC, ANSWER_STYLE_INSTRUCTIONS, ANSWER_STYLE_OPTIONS, CREDIT_API_TIMEOUT_MS, EXTENSION_SCRAPE_TIMEOUT_MS, withTimeout } from '../../answerStudio';
 import { getAccessToken } from '../../auth';
 import { ANSWER_STUDIO_MODEL, API_URL } from '../../config';
@@ -426,49 +426,38 @@ const VaultPage = ({ showToast, user }) => {
     }
   };
 
+  const creditsChip = credits === null ? null : premiumStatus ? (
+    <span className="chip chip-ink chip-label"><Crown size={11} /> Premium</span>
+  ) : Number.isFinite(credits) && credits <= 0 ? (
+    <span className="chip chip-danger"><Zap size={11} /> 0 credits left</span>
+  ) : (
+    <span className="chip chip-accent"><Zap size={11} /> {Number.isFinite(credits) ? credits : '—'} credits left</span>
+  );
+  const vault = profile.vault || [];
+
   return (
-    <div className="animate-fade-in max-w-3xl mx-auto space-y-6">
-      <ProfileSwitcher onProfileChange={reloadVaultProfile} />
-      {/* Header card */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-onextap-primary/15 p-8 shadow-lg shadow-onextap-dark/5 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-onextap-primary/10 to-transparent rounded-full blur-2xl" />
-        
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="font-bold text-2xl text-onextap-dark tracking-tight mb-1">Answer Studio</h2>
-              <p className="text-onextap-dark/60 text-sm">Create and improve your job application answers</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Credits badge */}
-              {credits !== null && (
-                <div className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl text-sm font-medium border shadow-sm ${
-                  premiumStatus 
-                    ? 'bg-gradient-to-r from-amber-50 to-amber-100/50 text-amber-700 border-amber-200'
-                    : credits === 0 
-                      ? 'bg-red-50 text-red-600 border-red-200'
-                      : 'bg-onextap-primary/10 text-onextap-dark border-onextap-primary/20'
-                }`}>
-                  {premiumStatus ? (
-                    <><Crown size={14} /> Premium</>
-                  ) : (
-                    <><Zap size={14} /> {credits} credits left</>
-                  )}
-                </div>
-              )}
-              {user && !premiumStatus && (
-                <div className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium bg-gradient-to-r from-onextap-primary/15 to-onextap-primary/5 text-onextap-primary border border-onextap-primary/25 shadow-sm">
-                  <Sparkles size={14} />
-                  Standard AI
-                </div>
-              )}
-            </div>
+    <>
+      <div className="ws-bar">
+        <div className="ws-toolbar-grow"><ProfileSwitcher compact onProfileChange={reloadVaultProfile} /></div>
+        {creditsChip}
+        {user && !premiumStatus && <span className="chip chip-muted"><Sparkles size={11} /> Standard AI</span>}
+      </div>
+
+      {/* ══ A — EDITOR ══════════════════════════════════════════ */}
+      <section className="ws-panel" data-accent="">
+        <div className="ws-panel-head">
+          <div>
+            <p className="label ws-eyebrow"><span className="ws-num">A</span>Editor</p>
+            <h3 className="ws-panel-title">{activeVaultItemId ? <>Editing a <em>saved</em> answer</> : <>Draft an <em>answer</em></>}</h3>
           </div>
-          
-          <div className="bg-gradient-to-br from-white to-onextap-bg-light p-6 rounded-2xl border border-onextap-primary/15 shadow-sm">
-            <input 
-              className="w-full px-4 py-3 mb-3 border border-onextap-primary/20 rounded-xl text-sm bg-white/80 focus:outline-none focus:border-onextap-primary/40 focus:ring-2 focus:ring-onextap-primary/10 transition-all placeholder:text-onextap-dark/40" 
-              placeholder="Question (e.g. Why do you want to work here?)"
+        </div>
+
+        <div className="ws-stack">
+          <label className="field">
+            <span className="field-k">Question</span>
+            <input
+              className="field-input"
+              placeholder="e.g. Why do you want to work here?"
               value={tempItem.question}
               onChange={e => {
                 setTempItem({ ...tempItem, question: e.target.value });
@@ -479,121 +468,162 @@ const VaultPage = ({ showToast, user }) => {
                 }
               }}
             />
-            <input
-              className="w-full px-4 py-3 mb-3 border border-onextap-primary/20 rounded-xl text-sm bg-white/80 focus:outline-none focus:border-onextap-primary/40 focus:ring-2 focus:ring-onextap-primary/10 transition-all placeholder:text-onextap-dark/40"
-              placeholder="Company (optional, manual override)"
-              value={manualCompany}
-              onChange={e => { setManualCompany(e.target.value); setGenerateError(''); }}
-            />
+          </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="field">
+              <span className="field-k">Company (optional, manual override)</span>
+              <input
+                className="field-input"
+                placeholder="Company name"
+                value={manualCompany}
+                onChange={e => { setManualCompany(e.target.value); setGenerateError(''); }}
+              />
+            </label>
+            <label className="field">
+              <span className="field-k">Answer style</span>
+              <select
+                className="field-input"
+                value={answerStyle}
+                onChange={e => { setAnswerStyle(e.target.value); setGenerateError(''); }}
+              >
+                {ANSWER_STYLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className="field">
+            <span className="field-k">Job description (optional — used for tailoring when provided)</span>
             <textarea
-              className="w-full px-4 py-3 mb-3 border border-onextap-primary/20 rounded-xl text-sm h-24 bg-white/80 focus:outline-none focus:border-onextap-primary/40 focus:ring-2 focus:ring-onextap-primary/10 transition-all resize-none placeholder:text-onextap-dark/40"
-              placeholder="Paste job description here (optional). If provided, this is used for tailoring."
+              className="field-input"
+              rows={4}
+              placeholder="Paste the job description here."
               value={manualJobDescription}
               onChange={e => { setManualJobDescription(e.target.value); setGenerateError(''); }}
             />
-            <select
-              className="w-full px-4 py-3 mb-3 border border-onextap-primary/20 rounded-xl text-sm bg-white/80 focus:outline-none focus:border-onextap-primary/40 focus:ring-2 focus:ring-onextap-primary/10 transition-all"
-              value={answerStyle}
-              onChange={e => { setAnswerStyle(e.target.value); setGenerateError(''); }}
-            >
-              {ANSWER_STYLE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-            <textarea 
-              className="w-full px-4 py-3 border border-onextap-primary/20 rounded-xl text-sm h-28 bg-white/80 focus:outline-none focus:border-onextap-primary/40 focus:ring-2 focus:ring-onextap-primary/10 transition-all resize-none placeholder:text-onextap-dark/40" 
-              placeholder="Your answer (optional). Click Improve to generate or refine with AI."
+          </label>
+          <label className="field">
+            <span className="field-k">Your answer (optional — Generate writes one, Improve refines yours)</span>
+            <textarea
+              className="field-input"
+              rows={7}
+              placeholder="Write a draft, or leave empty and generate one with AI."
               value={tempItem.answer}
               onChange={e => setTempItem({...tempItem, answer: e.target.value})}
             />
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button 
-                disabled={!tempItem.question || !tempItem.answer}
-                onClick={handleAdd}
-                className="bg-onextap-dark text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-onextap-dark/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-md shadow-onextap-dark/20 hover:shadow-lg transition-all duration-200"
-              >
-                <Plus size={16} /> Add to Vault
-              </button>
-              <button 
-                type="button"
-                disabled={!canImprove || isGenerating}
-                onClick={handleImproveWithAI}
-                className="px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 bg-gradient-to-r from-onextap-primary/15 to-onextap-primary/5 text-onextap-dark border border-onextap-primary/25 hover:from-onextap-primary/25 hover:to-onextap-primary/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
-              >
-                {isGenerating ? <Activity className="animate-spin" size={16} /> : <Sparkles size={16} />}
-                {isGenerating
-                  ? (tempItem.answer?.trim() ? 'Improving…' : 'Generating…')
-                  : (!tempItem.answer?.trim() ? 'Generate answer' : hasAutoGeneratedOnce ? 'Improve answer' : 'Generate answer')}
-              </button>
-              <span className="text-xs text-onextap-dark/50">
-                Mode: {premiumStatus ? 'High Quality (Premium)' : 'Standard (Faster)'}
-              </span>
-              {!premiumStatus && (
-                <span className="text-xs text-onextap-dark/50">
-                  Free improvements left on this answer: {remainingImprovements}
-                </span>
-              )}
-            </div>
-            <div className="mt-3 text-xs text-onextap-dark/55 bg-onextap-primary/5 px-3 py-2 rounded-lg border border-onextap-primary/15">
-              Credit rules: 1 credit generates 1 answer and includes 3 free improvements for that saved answer. Free improvements persist per saved answer across page reloads.
-            </div>
-            {creditsError && (
-              <div className="mt-3 text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
-                Couldn't load credits: {creditsError}
-                <p className="text-xs mt-1">
-                  Check the message above, then: server running (<code className="text-[11px]">npm run dev</code> in <code className="text-[11px]">server/</code>),
-                  <code className="text-[11px]"> VITE_API_URL</code> pointing at it, and <code className="text-[11px]">SUPABASE_URL</code> + <code className="text-[11px]">SUPABASE_SERVICE_ROLE_KEY</code> in <code className="text-[11px]">server/.env</code>.
+          </label>
+        </div>
+
+        <div className="ws-card-actions">
+          <button
+            type="button"
+            disabled={!tempItem.question || !tempItem.answer}
+            onClick={handleAdd}
+            className="btn btn-solid btn-sm"
+          >
+            <Plus size={14} /> {activeVaultItemId ? 'Save changes' : 'Add to vault'}
+          </button>
+          <button
+            type="button"
+            disabled={!canImprove || isGenerating}
+            onClick={handleImproveWithAI}
+            className="btn btn-accent btn-sm"
+          >
+            {isGenerating ? <Activity className="animate-spin" size={14} /> : <Sparkles size={14} />}
+            {isGenerating
+              ? (tempItem.answer?.trim() ? 'Improving…' : 'Generating…')
+              : (!tempItem.answer?.trim() ? 'Generate answer' : hasAutoGeneratedOnce ? 'Improve answer' : 'Generate answer')}
+          </button>
+          <span className="ws-muted">
+            Mode: {premiumStatus ? 'High Quality (Premium)' : 'Standard (Faster)'}
+          </span>
+          {!premiumStatus && (
+            <span className="ws-muted">
+              Free improvements left on this answer: <span className="mono">{remainingImprovements}</span>
+            </span>
+          )}
+        </div>
+
+        <div className="ws-stack" style={{ marginTop: 16 }}>
+          <p className="notice">
+            Credit rules: 1 credit generates 1 answer and includes 3 free improvements for that saved answer. Free improvements persist per saved answer across page reloads.
+          </p>
+          {creditsError && (
+            <div className="notice notice-warn notice-row" role="alert">
+              <AlertTriangle size={15} />
+              <div>
+                <p><strong>Couldn&rsquo;t load credits:</strong> {creditsError}</p>
+                <p className="ws-muted" style={{ color: 'inherit' }}>
+                  Check the message above, then: server running (<code>npm run dev</code> in <code>server/</code>),
+                  <code> VITE_API_URL</code> pointing at it, and <code>SUPABASE_URL</code> + <code>SUPABASE_SERVICE_ROLE_KEY</code> in <code>server/.env</code>.
                 </p>
-                <button onClick={loadCredits} className="mt-2 text-sm font-medium text-amber-800 underline hover:no-underline">Try again</button>
+                <button type="button" onClick={loadCredits} className="btn-link" style={{ marginTop: 6 }}>Try again</button>
               </div>
-            )}
-            {generateError && <p className="mt-3 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{generateError}</p>}
-            {!isGenerating && <FabricationNotice flags={fabricationFlags} className="mt-3" />}
-            {hasChrome && (
-              <p className="mt-3 text-xs text-onextap-dark/50 bg-onextap-primary/5 px-3 py-2 rounded-lg">
-                <Sparkles size={10} className="inline mr-1" />
-                AI uses pasted JD first, otherwise it tries current/recent job tabs and your saved profile strengths.
-              </p>
-            )}
+            </div>
+          )}
+          {generateError && <p className="notice notice-danger notice-row" role="alert"><AlertTriangle size={15} /><span>{generateError}</span></p>}
+          {!isGenerating && <FabricationNotice flags={fabricationFlags} />}
+          {hasChrome && (
+            <p className="notice notice-accent notice-row">
+              <Sparkles size={14} />
+              <span>AI uses pasted JD first, otherwise it tries current/recent job tabs and your saved profile strengths.</span>
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* ══ B — SAVED ANSWERS ═══════════════════════════════════ */}
+      <section className="ws-panel">
+        <div className="ws-panel-head">
+          <div>
+            <p className="label ws-eyebrow"><span className="ws-num">B</span>Vault</p>
+            <h3 className="ws-panel-title">Saved answers <span className="mono" style={{ fontSize: 13, color: 'var(--ash-deep)' }}>({vault.length})</span></h3>
           </div>
         </div>
-      </div>
-
-      {/* Saved answers */}
-      {profile.vault && profile.vault.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="font-bold text-lg text-onextap-dark px-1">Saved Answers ({profile.vault.length})</h3>
-          <div className="space-y-3">
-            {profile.vault.map(item => (
-              <div key={item.id} className="bg-white/70 backdrop-blur-sm border border-onextap-primary/15 rounded-2xl p-5 relative group hover:bg-white/90 hover:shadow-md transition-all duration-200">
-                <button 
-                  onClick={() => saveVault(profile.vault.filter(i => i.id !== item.id))} 
-                  className="absolute top-4 right-4 p-2 text-onextap-dark/30 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                >
-                  <Trash2 size={16} />
-                </button>
-                <h4 className="font-bold text-onextap-dark text-sm mb-2 pr-10">{item.question}</h4>
-                <p className="text-onextap-dark/60 text-sm leading-relaxed">{item.answer}</p>
-                <div className="mt-3 flex items-center justify-between gap-2">
+        {vault.length === 0 ? (
+          <div className="ws-empty">
+            <div className="ws-empty-icon"><PenTool size={22} /></div>
+            <h3>No saved answers</h3>
+            <p>Draft one above and add it to the vault. Autofill drops saved answers into matching application questions.</p>
+          </div>
+        ) : (
+          <div className="ws-stack">
+            {vault.map(item => (
+              <article key={item.id} className="ws-card" aria-current={item.id === activeVaultItemId ? 'true' : undefined}>
+                <div className="flex items-start justify-between gap-3">
+                  <h4 className="ws-card-title" style={{ fontSize: '1.25rem' }}>{item.question}</h4>
+                  <button
+                    type="button"
+                    onClick={() => saveVault(profile.vault.filter(i => i.id !== item.id))}
+                    className="icon-btn-oat is-danger"
+                    aria-label="Delete saved answer"
+                    title="Delete"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+                <p className="ws-sub" style={{ marginTop: 8, whiteSpace: 'pre-line' }}>{item.answer}</p>
+                <div className="ws-card-actions">
                   {!premiumStatus && (
-                    <span className="text-xs text-onextap-dark/50">
-                      Free improvements left: {Math.max(0, Number(item.aiImprovementsLeft || 0))}
+                    <span className="ws-muted">
+                      Free improvements left: <span className="mono">{Math.max(0, Number(item.aiImprovementsLeft || 0))}</span>
                     </span>
                   )}
                   <button
                     type="button"
                     onClick={() => loadVaultItemToEditor(item)}
-                    className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-onextap-primary/20 text-onextap-primary hover:bg-onextap-primary/10 transition-colors"
+                    className="btn btn-ghost btn-xs"
+                    style={{ marginLeft: 'auto' }}
                   >
                     Use in editor
                   </button>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </section>
+    </>
   );
 };
 

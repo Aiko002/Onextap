@@ -98,6 +98,10 @@ exercised the path in the browser. Say so plainly when you have not.
   `extension/logger.js` (service worker), and an inline one at the top of
   `public/content.js` (that file cannot import). Their redaction key lists
   mirror each other — a change to one usually belongs in the others.
+- The signed-in dashboard's look is `src/components/dashboard/dashboard.css`
+  (the DEMO_DASH design), every selector under `.oxd`. Tailwind's `onextap-*`
+  colours are `rgb(var(--ox-*, <original hex>))`; only `.oxd` sets `--ox-*`.
+  Setting one anywhere else restyles the landing page and the popup.
 - Every server response carries `X-Request-Id`. It is the correlation key
   between a user's report and a log line; the service worker logs it on
   failed calls.

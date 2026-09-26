@@ -18,9 +18,12 @@ of four states, decided at load:
 | `?mode=extension-bridge` | `ExtensionBridge` | Renders nothing; postMessage RPC. **No caller in this repo.** |
 | `chrome.runtime.id` present, no `?mode=dashboard` | `PopupView` | Forces a 400×600 document |
 | Otherwise, signed out | `PublicLandingPage` | Marketing + auth section |
-| Otherwise, signed in | `DashboardView` | Sidebar shell, full width |
+| Otherwise, signed in | `DashboardView` → `DashboardShell` | Home hero, then a dock beside an oat workspace sheet |
 
-`?view=vault` / `?view=cover` deep-links the dashboard to a tab.
+The signed-in dashboard routes by hash: `#/` (home), `#/job-matches`,
+`#/my-profiles`, `#/answer-studio`, `#/cover-letter`. The popup's older
+`?view=jobs|profiles|vault|cover` deep links still work — the shell reads
+`?view=` once, opens that workspace and rewrites the URL to its hash route.
 `?extensionId=<id>` tells the dashboard which extension to message.
 A splash screen shows for 2s on dashboard boot only.
 
@@ -157,7 +160,7 @@ rather than after a 90-second upload.
 
 ### 3.3 Switching profiles
 
-`ProfileSwitcher` (dashboard sidebar and popup header) creates, renames,
+`ProfileSwitcher` (the workspace toolbar in the dashboard, the popup header) creates, renames,
 deletes and switches. Every mutation writes the store *and* re-mirrors the
 active profile into `user_profile`, so the content script always reads the
 one the user last selected.
@@ -232,7 +235,7 @@ filled.
 ## 5. Answer Studio
 
 ```text
-Dashboard ──► Answer Studio  (or popup ──► "Open Answer Studio" ──► ?view=vault)
+Dashboard ──► Answer Studio  (#/answer-studio; or popup ──► "Open Answer Studio" ──► ?view=vault)
         │
         ├─ load profile + vault (aiImprovementsLeft normalised to a number)
         └─ loadCredits(): isPremium() then getCreditsWithStatus()
@@ -386,7 +389,8 @@ Unresolvable users are logged and skipped — the webhook still returns
 
 ### Cancellation
 
-Account Settings → Cancel subscription → `POST /api/cancel-subscription` →
+Settings menu → Manage subscription → Switch to Standard → Cancel Premium →
+`POST /api/cancel-subscription` →
 Dodo `subscriptions.update(status: 'cancelled')` → local `is_premium = false`,
 `status = cancelled`, `cancelled_at = now()`. Immediate; no proration.
 
@@ -395,20 +399,33 @@ Dodo `subscriptions.update(status: 'cancelled')` → local `is_premium = false`,
 ## 8. Account settings
 
 ```text
-Avatar / Settings ──► AccountSettingsModal
-        ├─ verifyPremium() + getCreditsWithStatus()
-        ├─ Credits: number, or ∞ for premium, or an inline error with "Try again"
-        ├─ Subscription: upgrade, or cancel
-        └─ Danger zone: type DELETE
-                └─ clears local storage, signs out, reloads
-                   ⚠ does NOT delete the Supabase auth user or profiles row
+Login ──► verifyPremium() ──► then getCreditsWithStatus()   (plan tag, credits)
+
+Gear (top bar) ──► SettingsMenu            (re-reads GET /api/credits on open)
+        ├─ Signed in as <email>; credits: number, ∞ for premium, or "Retry"
+        ├─ Change avatar ──► downscaled to 256px, stored on this device only
+        │                    (avatarStore.js, `onextap_avatar:<userId>`)
+        ├─ Manage subscription ──► SubscriptionDialog
+        │       ├─ status line from GET /api/me ("Premium since …")
+        │       ├─ Standard ──► Upgrade ──► POST /api/create-checkout-session ──► Dodo
+        │       └─ Premium  ──► Switch to Standard ──► confirm ──► POST /api/cancel-subscription
+        ├─ Take the tour ──► home view, TourOverlay
+        ├─ Log out ──► supabase signOut, profile keys removed ──► landing page
+        └─ Delete account ──► type DELETE
+                └─ signs out (server-side), clears local storage, reloads
+                   ⚠ does NOT delete the Supabase auth user or profiles row,
+                     and does not cancel Premium — the dialog says so
 ```
+
+There is no billing-portal route on the server, so the design's "Billing &
+invoices" button is not rendered.
 
 ---
 
 ## 9. Application types
 
-Selecting a type (popup header or dashboard sidebar) persists to
+Selecting a type (popup header; the dashboard's picker is parked — see
+`shell/DashboardShell.jsx`) persists to
 `onextap_application_type` and immediately:
 
 | Type | Cover-letter label | Studio label |

@@ -1,7 +1,8 @@
 # Onextap — UI / UX Design
 
 The design system and interaction model as implemented at commit `9b01adb`
-(2026-09-09). Every token, dimension and behaviour here is read from
+(2026-09-09), with the signed-in dashboard updated for the DEMO_DASH
+integration (2026-09-26; §2.1, §3.2, §3.4, the tour, §6, §9). Every token, dimension and behaviour here is read from
 `tailwind.config.js`, `src/index.css` and the components under
 `src/components/`
 — this is documentation of a built interface, not a proposal.
@@ -54,6 +55,43 @@ The design system and interaction model as implemented at commit `9b01adb`
 
 Semantic colours come from Tailwind defaults: red for errors, amber for
 warnings and Premium, green for success.
+
+These are the landing page's and the popup's tokens. Each one is written as
+`rgb(var(--ox-<name>, <this hex>) / <alpha-value>)`, so everywhere the
+variable is unset it resolves to exactly the hex above.
+
+### 2.1 Signed-in dashboard (`src/components/dashboard/dashboard.css`)
+
+The dashboard is ported from **UncannySteel/DEMO_DASH** and uses that
+design's own palette and faces, scoped under the `.oxd` root so nothing leaks
+into the landing page or the popup. One committed visual world — not a
+light/dark theme: forest-black chrome, an oat workspace sheet, citrine as the
+one loud note.
+
+| Token | Hex | Role |
+|---|---|---|
+| `--ink` | `#0C1710` | Top bar, dock, hero stage; solid buttons |
+| `--ink-2` / `--moss` | `#121E14` / `#223019` | Raised surfaces on ink |
+| `--moss-line` | `#31432A` | Hairlines on ink |
+| `--bone` / `--bone-2` | `#E9E4D4` / `#DDD7C4` | The workspace sheet; one step down |
+| `--bone-line` | `#C8C1AC` | Hairlines and field borders on oat |
+| `--citrine` / `--citrine-deep` | `#C6DA43` / `#9FB52C` | Active nav thumb, accents, numerals |
+| `--ash` / `--ash-deep` | `#8C9585` / `#5E6858` | Secondary type on ink / on oat |
+| `--i1`…`--i6` (+ `bg`) | olive, clay, slate, plum, teal, amber | Muted tints: chips and notices; clay is "danger" |
+
+| Face | Variable | Use |
+|---|---|---|
+| Archivo (condensed, 62%) | `--display` | Uppercase display: user name, workspace titles, prices |
+| Instrument Serif | `--voice` | Card labels, panel titles, tagline (italic) |
+| Instrument Sans | `--ui` | Everything else |
+| DM Mono | `--mono` | Field labels, numerals, credits, the dialog address bar |
+
+The shell loads these from Google Fonts when it mounts. Inside `.oxd` the
+`--ox-*` variables are set to this palette, which is how the shared
+components rendered in a workspace (profile and resume switchers, the
+cover-letter panel, the fabrication notice) take it on without a prop.
+**Never set an `--ox-*` variable outside `.oxd`** — that would restyle the
+landing page and popup.
 
 ### Typography
 
@@ -122,31 +160,45 @@ in a contrasting green is the recurring headline device.
   actually appears to contain; cover letter additionally requires a saved
   template.
 
-### 3.2 Dashboard — sidebar shell
+### 3.2 Dashboard — home hero and docked workspaces
 
 ```text
-┌── 288px ──────┬─────────────────────────────────────────────┐
-│ [icon] Onextap│                                             │
-│               │        (max-w-3xl, centred)                 │
-│ Profile   ▾   │   ┌─────────────────────────────────────┐   │
-│ App type  ▾   │   │  Welcome to Onextap                 │   │
-│               │   │  Signed in as … [👑]                │   │
-│ ▸ Overview    │   └─────────────────────────────────────┘   │
-│ ▸ My Profiles │   ┌────────┐ ┌────────┐ ┌────────┐          │
-│ ▸ Answer …    │   │Profiles│ │ Studio │ │ Cover  │          │
-│ ▸ Cover Lett… │   └────────┘ └────────┘ └────────┘          │
-│               │                                             │
-│ ─────────────  │                                             │
-│ [avatar] [🌙] │                                             │
-└───────────────┴─────────────────────────────────────────────┘
+Home (#/)                                  Workspace (#/<slug>)
+┌ ONEXTAP ─────────────────────── ⚙ ┐      ┌ ONEXTAP ───────────────────────── ⚙ ┐
+│                                   │      │ ⠿      ▢ ▣ ▢ │ ─────────────────────── │
+│             ( AL )                │      │ (AL) ADA …   │ 01 WORKSPACE             │
+│         ADA LOVELACE              │      │      STANDARD│    JOB MATCHES           │
+│           [STANDARD]              │      │ ──────────── │    Roles from the live … │
+│  Welcome back, Ada. Pick up …     │      │ ▢ Overview   │  ┌ A · RESUME ─────────┐ │
+│ ┌01────┐┌02────┐┌03────┐┌04────┐ │      │█ Job Matches█│  │ Your resume         │ │
+│ │ Job  ││ My   ││Answer││Cover │ │      │ ▢ My Profiles│  └─────────────────────┘ │
+│ │Match…││Prof… ││Studio││Letter│ │      │ ▢ Answer …   │  ┌ B · FILTERS ────────┐ │
+│ └──────┘└──────┘└──────┘└──────┘ │      │ ▢ Cover …    │  …                       │
+├ CONTACT US ─────── PRIVACY POLICY ┤      └──────────────┴──────────────────────────┘
 ```
 
-- Sidebar: fixed, `w-72` (288px), translucent cream with `backdrop-blur-md`,
-  right border only. Nav items carry `data-tour` anchors.
-- Content: centred at `max-w-3xl` — narrow on purpose, because every screen
-  is a form or a list, not a dashboard of widgets.
-- Nav is filtered by the application type's feature flags.
-- Footer holds the avatar (opens Account Settings) and the theme toggle.
+- **Home** is the hero: avatar (device-stored upload, else the OAuth
+  picture, else initials), the name in condensed display type rising word
+  by word, the verified plan tag, and one card per enabled workspace.
+  Hovering a card lifts it, wipes a citrine edge along its top and rolls
+  its label into citrine italic.
+- **Opening a workspace** turns the same profile block and cards into a
+  **dock**: left, right, or floating (drag the grip bar; drop near an edge
+  to re-dock; double-click to toggle). Its inner edge resizes it (200–480px,
+  arrow keys / Home / End when focused; double-click resets). The layout
+  persists through `src/storage.js` as `onextap_dashboard_dock`. A citrine
+  thumb slides to the open workspace.
+- **The sheet** is oat, with a chapter head (numbered label, display title,
+  one-line description) and the content column aligned to the title.
+  Content is built from `ws-panel` cards with a lettered eyebrow and a serif
+  title, `field` / `field-input` controls (mono label above, white field,
+  citrine focus ring), pill buttons, `chip`s and `notice`s. Long forms get a
+  sticky pill toolbar (profile switcher + Save).
+- Route changes run in a View Transition where available: the sheet is dealt
+  in from home, dealt over the previous one between workspaces, and slid away
+  on the way home.
+- Workspaces are filtered by the application type's feature flags; a route
+  to a disabled one falls back home.
 
 ### 3.3 Landing page
 
@@ -164,13 +216,16 @@ with a "Most Popular" chip), 6 accordion FAQs, and an inline auth panel at
 
 ### 3.4 Modals
 
-| Modal | Purpose | Notable |
-|---|---|---|
-| `PremiumModal` | $5/month upsell | Gradient header, 4 benefit ticks, "Secure payment powered by Dodo Payments" |
-| `AccountSettingsModal` | Account, credits, subscription, deletion | Sticky header; credits show `∞` for premium; danger zone requires typing `DELETE` |
+| Modal | Surface | Purpose | Notable |
+|---|---|---|---|
+| `PremiumModal` | Landing page | $5/month upsell | Gradient header, 4 benefit ticks, "Secure payment powered by Dodo Payments" |
+| `SettingsMenu` | Dashboard | Email, live credits, account actions | A small ink window under the gear; rows rise in on a stagger; full arrow-key / Home / End / Escape handling |
+| `SubscriptionDialog` | Dashboard | Current plan, both plans, upgrade or cancel | Native `<dialog>` dressed as an oat window under a browser bar; cancel needs an in-panel confirm |
+| `DeleteAccountDialog` | Dashboard | Local wipe + sign-out | Requires typing `DELETE`; says plainly that the server account and any Premium subscription remain |
 
-Both: `bg-black/50` scrim, click-outside to close, `stopPropagation` on the
-panel, `max-h-[90vh]` with internal scroll.
+`PremiumModal`: `bg-black/50` scrim, click-outside to close. The dashboard's
+dialogs are native `<dialog>`s opened with `showModal()`, so focus is trapped,
+Escape closes them, and focus returns to the opener.
 
 ---
 
@@ -204,9 +259,10 @@ button. Nothing is swallowed and nothing is a dead end.
 
 ### Guided tour
 
-Four steps, anchored by `data-tour` attributes: sidebar nav → My Profiles →
-Answer Studio → dark mode toggle. A spotlight overlay computes the target's
-rect and positions a card beside it.
+Four steps on the home view, anchored by `data-tour` attributes: the
+workspace cards → My Profiles → Answer Studio → the settings gear. A citrine-
+ringed spotlight marks the target and a small ink window sits beside it;
+Escape skips. "Take the tour" in the settings menu replays it.
 
 It fires **only** for accounts created within the last 2 minutes and only if
 `onextap_tutorial_seen` is unset; existing accounts get the flag set silently
@@ -227,7 +283,8 @@ so a returning user is never interrupted.
 | `animate-fade-in` | 0.3s fade + rise | Page and tab transitions |
 | `reveal` / `reveal-scale` / `reveal-left` | Scroll-triggered entrance | Landing sections |
 | `stagger-1…7` | 50ms increments | Card grids |
-| `sidebar-enter` / `main-content-enter` | Slide-in on mount | Dashboard shell |
+| `oxd-word-rise` / `[data-rise]` | Masked words rise; blocks rise on a stagger | Dashboard names and chapter heads |
+| View Transitions (`html[data-vt]`) | Sheet dealt in / over / away | Dashboard routing |
 | `feature-card-hover` | Lift + shadow | Feature and shortcut cards |
 | `animate-soft-pulse` | 2.5s pulse | Attention accents |
 | `toastSlideIn` / `toastFadeOut` | 0.3s / 0.2s | Toasts |
@@ -256,6 +313,11 @@ black at higher opacity. Scrollbar thumbs have their own dark variants.
 
 The landing page carries its own copy of the toggle so a signed-out visitor
 can switch themes.
+
+The signed-in dashboard does not use it: it is DEMO_DASH's single visual
+world. While the shell is mounted it removes `dark` from `<html>` (so shared
+components on the oat sheet take their light variants) and puts it back on
+unmount, leaving the stored preference untouched for the landing page.
 
 ---
 
@@ -307,11 +369,9 @@ can switch themes.
 | Surface | Breakpoints |
 |---|---|
 | Popup | Fixed 400×600. No breakpoints; content capped at 360px |
-| Dashboard | Sidebar fixed at 288px; content `max-w-3xl`. **Not adapted below tablet** — the sidebar does not collapse |
+| Dashboard | Home fits one screen down to ~540px tall; cards go 4 → 2 columns under 760px. In a workspace, the dock collapses to a 64px icon rail under 760px and floating is disabled |
 | Landing | Fully responsive: `md:` switches hero, features, steps and pricing from 1 to 2–3 columns; a hamburger replaces the nav on mobile |
 
-The dashboard's desktop-only assumption is reasonable for an extension
-companion, but should be stated rather than discovered.
 
 ---
 
@@ -322,7 +382,7 @@ companion, but should be stated rather than discovered.
 | U1 | Section toggles do not affect the fill | The UI implies a partial fill; `autofill()` ignores the `sections` payload |
 | U2 | Premium benefits listed in the modal and pricing card are not differentiated in code | "Two-pass rewrites", "priority processing" — the generation path is identical for both tiers |
 | U3 | The credit model is never explained in the UI | One credit buys a generation plus three improvements; only the counter hints at it |
-| U4 | The dashboard has no mobile layout | The 288px sidebar is always fixed |
+| U4 | ~~The dashboard has no mobile layout~~ **Resolved** | The DEMO_DASH shell collapses the dock to an icon rail under 760px |
 | U5 | ~~`OnextapDashboard.jsx` holds every screen in ~4.4k lines~~ **Resolved** | Split into 15 files; components rendered by both surfaces now live in `src/components/shared/` and are reusable |
-| U6 | Modal focus management is absent | See §8 |
+| U6 | Modal focus management is absent on the landing page's `PremiumModal` | The dashboard's dialogs are native `<dialog>`s; see §8 |
 | U7 | Landing copy advertises unbuilt features | "Smart field mapping", "encrypted cloud backup & sync" — see [`prd.md` §11](prd.md#11-known-divergences) |

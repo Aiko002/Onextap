@@ -155,7 +155,8 @@ npm run server:dev
 ## Development
 
 ```bash
-npm run dev              # Vite dev server at localhost:5173
+npm run dev              # The website at localhost:5173: landing at /, dashboard at /app/
+npm run dev:extension    # The extension's CRXJS dev server (also on 5173; not both at once)
 npm run server:dev       # Backend with auto-reload
 npm run build            # Extension build → dist/
 npm run build:dashboard  # Web build → dist-dashboard/: dashboard at /app/, landing at /

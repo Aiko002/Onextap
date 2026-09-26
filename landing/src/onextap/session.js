@@ -5,7 +5,7 @@
    sessionStorage flag 'onextap:landing' the dashboard sets when it finds no
    one signed in and sends the reader back here, and they cannot share code:
    this file, the inline script at the top of landing/index.html (it has to
-   run before any module can), and WebLandingRedirect in
+   run before any module can), and
    src/components/dashboard/PublicLandingPage.jsx (the dashboard's side).
    =========================================================================== */
 export var APP_PATH = '/app/';

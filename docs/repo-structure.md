@@ -83,7 +83,8 @@ popup codebase.
 │   │       ├── CoverLetterPage.jsx
 │   │       ├── JobMatchesPage.jsx     # Resume → ranked jobs, filters, run footer
 │   │       ├── OverviewPage.jsx
-│   │       ├── PublicLandingPage.jsx
+│   │       ├── PublicLandingPage.jsx  # Signed out: hands over to the landing site;
+│   │       │                          #   no UI of its own (the React landing is gone)
 │   │       ├── AccountSettingsModal.jsx
 │   │       ├── PremiumModal.jsx
 │   │       └── TourOverlay.jsx        # also named-exports TOUR_STEPS
@@ -154,6 +155,7 @@ popup codebase.
 ├── vite.config.js             # Extension build     → dist/
 ├── vite.dashboard.config.js   # Dashboard build     → dist-dashboard/app/ (runs first, empties)
 ├── vite.landing.config.js     # Landing build       → dist-dashboard/     (runs second)
+├── scripts/dev-web.mjs        # `npm run dev`: landing at /, dashboard at /app/, one port
 ├── vercel.json                # Runs both web builds; /app/* → the dashboard,
 │                              #   /api/* → api/index.js, the rest → the landing site
 ├── tailwind.config.js
@@ -334,13 +336,18 @@ landing/src/onextap/*  ──► src/{auth,supabaseClient,logger,extensionClient
 
     The hand-over between the two is a contract in three places that cannot
     share code — the inline script in `landing/index.html`,
-    `landing/src/onextap/session.js`, and `WebLandingRedirect` in
+    `landing/src/onextap/session.js`, and
     `dashboard/PublicLandingPage.jsx`: the dashboard lives at `/app/`, a
     stored Supabase session (`sb-<project>-auth-token`) or auth tokens in the
     URL send `/` there, and the one-shot sessionStorage flag
     `onextap:landing` keeps a stale session from bouncing between them.
-    Change one, change all three. The extension build never defines
-    `__ONEXTAP_WEB_LANDING__`, so its pages keep the React landing.
+    Change one, change all three. There is no React landing page any more:
+    the extension build never defines `__ONEXTAP_WEB_LANDING__`, and there a
+    signed-out dashboard page hands over to the website, `DASHBOARD_URL`.
+
+    `npm run dev` (`scripts/dev-web.mjs`) serves the same layout on one port,
+    each half from its own Vite dev server; the extension's CRXJS dev server
+    is `npm run dev:extension`.
 
     Feedback on `/contact/` goes by `mailto:` to the support inbox — there is
     no server route for it. A real one belongs in `server/index.js`, then in

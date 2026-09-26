@@ -22,6 +22,9 @@ export default defineConfig({
   root: here('./landing'),
   envDir: here('.'),            // VITE_SUPABASE_* come from the root .env
   publicDir: here('./public'),  // /icon.png for the favicon in dev
+  // Its own pre-bundle cache: `npm run dev` runs this beside the dashboard's
+  // dev server, and two servers sharing node_modules/.vite race each other.
+  cacheDir: here('./node_modules/.vite-landing'),
   css: { postcss: {} },
   // Four real pages and nothing else: no fallback to the landing page for
   // unknown paths in dev, where /app/ (the dashboard) does not exist and the

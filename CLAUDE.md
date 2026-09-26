@@ -60,7 +60,8 @@ Layout and import rules: `docs/repo-structure.md`.
 - Install: `npm install && npm run server:install`
 - Build extension → `dist/`: `npm run build`
 - Build dashboard + landing → `dist-dashboard/`: `npm run build:dashboard`
-- Dev server (dashboard only): `npm run dev`; landing site: `npm run dev:landing`
+- Dev server, the website (landing `/`, dashboard `/app/`): `npm run dev`;
+  extension (CRXJS): `npm run dev:extension`; landing only: `npm run dev:landing`
 - Backend with reload: `npm run server:dev`
 - Health check: `curl localhost:3001/api/health`
 - Verbose server logs: `LOG_LEVEL=debug npm run server:dev`

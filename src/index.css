@@ -304,26 +304,6 @@ html.dark .splash-text {
 .stagger-6 { transition-delay: 0.3s; }
 .stagger-7 { transition-delay: 0.35s; }
 
-/* ===== SIDEBAR ENTRANCE ===== */
-
-@keyframes sidebarSlideIn {
-  from { opacity: 0; transform: translateX(-40px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-.sidebar-enter {
-  animation: sidebarSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
-}
-
-@keyframes mainContentFadeIn {
-  from { opacity: 0; transform: translateY(16px) scale(0.99); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.main-content-enter {
-  animation: mainContentFadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
-}
-
 /* ===== FEATURE CARD HOVER TILT ===== */
 
 .feature-card-hover {
@@ -335,17 +315,6 @@ html.dark .splash-text {
   transform: translateY(-6px);
 }
 
-/* ===== NAV ITEMS STAGGER ===== */
-
-@keyframes navItemSlide {
-  from { opacity: 0; transform: translateX(-12px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-.nav-item-enter {
-  animation: navItemSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -354,7 +323,6 @@ html.dark .splash-text {
   .splash-text { animation: none; opacity: 1; }
   .splash-bar, .splash-bar-fill { animation: none; }
   .reveal, .reveal-scale, .reveal-left { opacity: 1; transform: none; transition: none; }
-  .sidebar-enter, .main-content-enter, .nav-item-enter { animation: none; opacity: 1; }
 }
 
 /* Scrollbar Polishing */

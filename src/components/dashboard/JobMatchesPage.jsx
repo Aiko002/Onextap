@@ -210,8 +210,9 @@ function sameFilters(a, b) {
 /**
  * ═══ THE RANK THAT SURVIVES LEAVING THE PAGE ═══
  *
- * Module scope, deliberately. DashboardView renders exactly one page at a time
- * (`switch (activeNav)`), so navigating to My Profile UNMOUNTS this component
+ * Module scope, deliberately. The dashboard shell renders exactly one workspace
+ * at a time (DashboardView's `renderWorkspace`, keyed by route), so navigating
+ * to My Profiles UNMOUNTS this component
  * and every useState in it is gone. On the way back the ranking effect saw a
  * fresh mount, no result, and a resume — and ran a ranking run nobody asked
  * for. From the user's side that is a spinner and a re-shuffled list as the

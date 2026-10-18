@@ -20,8 +20,8 @@ Run batch B<N> of docs/plans/active/completion-plan.md.
 | B1 | Server split ∥ website fixes ∥ extension protocol | no | L | done 2026-10-17 (checkpoint 11) | see `git log --grep "checkpoint 11"` |
 | B2 | Server: charging, billing, AI quality | no | L | done 2026-10-17 (checkpoint 12) | see `git log --grep "checkpoint 12"` |
 | B3 | Extension 1.0.4: job-page button, popup, wipe, release tooling; Explain spends first (B3-D) | no | L | done 2026-10-18 (checkpoint 13) | see `git log --grep "checkpoint 13"` |
-| B4 | Owner session A: real services on the dev project | yes, ~90 min | M | not started | |
-| B5 | Docs, deploy checklist, final review | no | M | not started | |
+| B4 | Owner session A: real services on the dev project | yes, ~90 min | M | prep and the no-owner checks done 2026-10-18 (checkpoint 14); the owner's checks are queued into B5's session (owner's call) | see `git log --grep "checkpoint 14"` |
+| B5 | Docs, deploy checklist, final review; plus B4's queued owner checks | yes, ~90 min (B4's checks) | M | not started | |
 | B6 | Owner session B: release-candidate build | yes, ~20 min | S | not started | |
 
 Order: `B0 → B1 → B2 and B3 (either order, or both at once, see B3's note) → B4 → B5 → B6`.
@@ -163,6 +163,29 @@ know) go here, newest last:
   the cover-letter field's bottom-right corner (under the field it covered
   the next field's label). Done in the answers commit; B4 checks where it
   lands on real boards.
+- **B4: the owner's checks moved into B5's session.** At the start of B4
+  the owner chose to queue every check that needs them and do them during
+  B5. B4 did the rest: the key check (all pass, dev project, Dodo
+  `test_mode`, `CLIENT_URL` on localhost; `server/.env` also holds
+  `VITE_API_URL` and `VITE_DASHBOARD_URL`, harmless since it is never
+  bundled); baseline lint 0/0, `npm test` 994/0/2; check 20 (`build:release`
+  refuses with the dev `.env`); the rank chain (`GEMINI_RANK_MODELS` unset,
+  so the code default applies, and all five ids are on the dev Gemini key);
+  `npm run evals` without `RUN_LLM_EVALS` 8/0/2. A read-only probe found the
+  dev project with **0 accounts** and **007 not applied**. There is no 008
+  (B2 needed none). Still to do, with the owner: apply 007 to dev, then
+  checks 1 to 18 and the rest of 19 (Improve against Groq, three rank
+  timings). Open owner questions: is Google sign-in configured on the dev
+  project (checks 2, 14), and the go-ahead for check 7. B4's helper scripts
+  (key check, 007 probe, check 7's concurrency script, the rank-model check)
+  print pass/fail or counts only and live outside the repo, in the session
+  notes folder B5's session is given, with a resume order.
+- **B4, for B5:** a new Cloudflare quick tunnel gets a new address, so the
+  owner re-points Dodo's test webhook (edit the endpoint's URL, which keeps
+  its signing secret). Run check 9 by restarting the API with
+  `GENERATE_LIMIT_PER_HOUR=2` in the shell environment (dotenv doesn't
+  override it), never by editing `server/.env`. Run the e2e suites before the
+  dev servers start, or stop them first: one port 5173.
 
 ---
 
@@ -897,7 +920,8 @@ drives everything else and watches the logs and the database.
 
 1. Key check (`dotenv`, pass/fail): both env files on the dev project, Dodo
    in `test_mode`, `CLIENT_URL` on localhost.
-2. **The owner applies 007 (and 008) to the dev project** in the SQL Editor.
+2. **The owner applies 007 to the dev project** in the SQL Editor (there
+   is no 008: B2 needed none).
    The lead verifies with a read-only query through the server's service
    client and updates the migrations README.
 3. Start `npm run server:dev`, a Cloudflare quick tunnel for Dodo's webhooks
@@ -942,7 +966,10 @@ call.
 
 ### B5 — Docs, deploy checklist, final review (checkpoint 15)
 
-**Needs:** B4. **Owner:** not needed.
+**Needs:** B4. **Owner:** at the keyboard for B4's queued checks (B4's
+table, and the B4 notes in Status); B5's own work needs no owner. B5-A's
+docs and the HANDOVER refresh take those checks' results, so they land
+after them.
 
 **B5-A: docs.**
 - **Owns:** `docs/app-flow.md`, `docs/extension-protocol.md` (final),
@@ -961,7 +988,7 @@ call.
   GET requests only, refuses anything else), `test/release/smoke.test.js`
   (runs the script against a local server).
 - **Checklist sections:** the order of operations. Production Supabase:
-  migrations 006, then 007, then 008, ask first, with verification queries
+  migrations 006, then 007 (there is no 008), ask first, with verification queries
   and the ledger; Redirect URLs for `/dashboard/` and `/reset-password/`,
   keeping the `chromiumapp.org` entry. Vercel's environment variable names.
   Dodo live: webhook, key, customer portal. How the deploy happens (merging

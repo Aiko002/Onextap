@@ -1092,6 +1092,55 @@ Open a new session and paste: `Run batch B4 of
 docs/plans/active/completion-plan.md.` It applies migration 007 to the dev
 project first.
 
+### Checkpoint 14 (2026-10-18, session 11): B4, prep only; the owner's checks move to B5
+
+At the start, the owner chose to queue every check that needs them and run
+them during B5's session. This checkpoint is B4's prep and the checks that
+need no owner. Nothing was applied to any project, and no code changed.
+
+**Done and verified:**
+- Key check (`dotenv`, pass/fail only): both env files on the same project,
+  not `itqaozltgsyvjhlcllic`; a `sb_secret_` service key and an
+  `sb_publishable_` anon key; Dodo `test_mode`, its key, webhook key and
+  product set, no base URL; `CLIENT_URL` exactly `http://localhost:5173`; the
+  `VITE_*` URLs on localhost; Groq and Gemini keys set. `server/.env` also
+  holds `VITE_API_URL` and `VITE_DASHBOARD_URL`: harmless, since that file is
+  never bundled. `GENERATE_LIMIT_PER_HOUR` and `GEMINI_RANK_MODELS` are unset
+  there (code defaults: 30 an hour, and the five-model chain).
+- Baseline on `60b2e4e`: lint 0 errors / 0 warnings; `npm test` 994/0/2.
+- The dev project, by a read-only probe through the service client:
+  `profiles`, `credit_transactions` and `generation_rate_limit` answer, with
+  **0 accounts**; `generation_allowances` answers `PGRST205`, so **007 is
+  not applied there**. There is no 008 (B2 needed none; the plan's mentions
+  are corrected).
+- Check 20: `npm run build:release` with the dev `.env` refuses at step 1
+  (three URL lines fail, the key line asks for a check by hand), nothing
+  zipped.
+- Check 19, the rank chain: all five ids of the default
+  `GEMINI_RANK_MODELS` are on the dev Gemini key (models.list, read-only).
+  `npm run evals` without `RUN_LLM_EVALS`: 8 pass, 0 fail, 2 skipped (the LLM
+  evals). "HTML" matching "HTML5" is unit-covered
+  (`test/matching/versionedNames.test.js`).
+- `npm run build`: `dist/` is 1.0.4 with dev values. The API answered
+  `/api/health` 200 with an `X-Request-Id`, directly and through a Cloudflare
+  quick tunnel; an unsigned `POST /api/webhook` through the tunnel got 400.
+  The servers and the tunnel were then stopped.
+
+**Not verified (queued for B5's session, with the owner):** applying 007 to
+dev, then checks 1 to 18 of the plan's B4 table and the rest of 19 (Improve
+against Groq, three rank timings from a signed-in rank). Nothing in §5 or §7
+changes until they run.
+
+**Open questions for the owner (asked, not yet answered):**
+1. Does the dev project have the Google provider on, with
+   `http://localhost:5173/dashboard/` in its Redirect URLs (checks 2 and 14)?
+2. The go-ahead for check 7: N+1 concurrent charges at the dev database for
+   a free test account holding N credits.
+
+**Next:** batch B5, with B4's checks in the same session. Open a new session
+and paste: `Run batch B5 of docs/plans/active/completion-plan.md.` The plan's
+Status notes say how to resume B4's checks.
+
 ---
 
 ## 1. What was asked, and what was decided

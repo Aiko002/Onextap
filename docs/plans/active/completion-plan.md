@@ -21,8 +21,8 @@ Run batch B<N> of docs/plans/active/completion-plan.md.
 | B2 | Server: charging, billing, AI quality | no | L | done 2026-10-17 (checkpoint 12) | see `git log --grep "checkpoint 12"` |
 | B3 | Extension 1.0.4: job-page button, popup, wipe, release tooling; Explain spends first (B3-D) | no | L | done 2026-10-18 (checkpoint 13) | see `git log --grep "checkpoint 13"` |
 | B4 | Owner session A: real services on the dev project | yes, ~90 min | M | prep and the no-owner checks done 2026-10-18 (checkpoint 14); the owner's checks are queued into B5's session (owner's call) | see `git log --grep "checkpoint 14"` |
-| B5 | Docs, deploy checklist, final review; plus B4's queued owner checks | yes, ~90 min (B4's checks) | M | not started | |
-| B6 | Owner session B: release-candidate build | yes, ~20 min | S | not started | |
+| B5 | Docs, deploy checklist, final review; plus B4's queued owner checks | yes, ~90 min (B4's checks) | M | done 2026-10-20 (checkpoint 15), B4's owner checks included | see `git log --grep "checkpoint 15"` |
+| B6 | Owner session B: branding (B6-0, added at checkpoint 15), then the release-candidate build | yes, ~20 min plus B6-0's dashboard settings | M | not started | |
 
 Order: `B0 → B1 → B2 and B3 (either order, or both at once, see B3's note) → B4 → B5 → B6`.
 
@@ -186,6 +186,33 @@ know) go here, newest last:
   `GENERATE_LIMIT_PER_HOUR=2` in the shell environment (dotenv doesn't
   override it), never by editing `server/.env`. Run the e2e suites before the
   dev servers start, or stop them first: one port 5173.
+- **B5: B4's owner checks ran in B5's session (2026-10-20), all twenty
+  pass** (HANDOVER §5 and §0 checkpoint 15). 007 is applied on the dev
+  project. The dev project's Google provider was off; the owner turned it
+  on with `docs/google-sign-in-setup.md`. Read every owner answer against
+  the database and the API log: three "done"s had not reached the server.
+- **B5, the owner's product call:** an answer's credit grants two free
+  improvements, not three (`ANSWER_FREE_IMPROVEMENTS`). Cover letters
+  unchanged.
+- **B5, fixes found by the real run:** the rank's cut-off reply (the parser
+  now keeps a cut-off array's finished entries); the scrapers on application
+  pages (a candidate holding a textarea or a file input is the form; a
+  form-only page gives no description and the dashboard asks for it); the
+  popup's dropdown behind its tabs; "New answer" focuses the question.
+- **B5: baseline for B6.** `npm run lint` 0 errors, 0 warnings; `npm test`
+  1058/0/2; `test:e2e` 203 pass / 10 skipped; `test:e2e:extension` 13 of 13
+  (3 `cover-handoff` + 1 form-only page, 6 `extension`, 3 `legacy`);
+  `build:release` refuses the dev `.env`. `dist/` is 1.0.4 with dev values.
+- **B5, for B6:** B6-0 (above, in B6) comes before the release build: its
+  icons change what the zip ships. The final review's eleven findings were
+  applied at the owner's request (HANDOVER §7 items 32 to 39): the stale
+  activation and `verify-premium`'s `on_hold` (billing), the rank budget
+  (6,500 tokens), the unsaved answer's improvements, and smaller ones. The
+  billing two are unit-tested only: worth a look against Dodo's test mode
+  in B6 if the owner is there anyway.
+- **B5, for B6 and the deploy:** `docs/deploy-checklist.md` has a marked
+  blank for the zip's SHA-256 from B6's run, and starts the production
+  Supabase steps with the owner's private runbook (kept outside the repo).
 
 ---
 
@@ -379,7 +406,7 @@ From the interview on 2026-10-16. IDs are referenced below.
 | D4 | **The letter goes back into the form through the popup** (Cover tab → saved versions → Fill), as today. No dashboard-to-page fill. |
 | D5 | **No popup sign-in** (item 27 stays option a). |
 | D6 | **Popup templates become read-only** (item 28 option a): no Upload, Add, Edit or Delete there; "Manage templates on the dashboard" instead. |
-| D7 | **Item 25: charging moves to the server**, as designed in `docs/plans/active/server-side-generation-charging.md`, with its defaults: charge every call, `POST /api/credits/deduct` becomes a no-op, granted follow-ups last 30 days, the server imports `src/coverLetterCredits.js`. Prices and amounts don't change. Charging becomes atomic everywhere, "Explain my fit" included. |
+| D7 | **Item 25: charging moves to the server**, as designed in `docs/plans/completed/server-side-generation-charging.md` (moved there at checkpoint 15), with its defaults: charge every call, `POST /api/credits/deduct` becomes a no-op, granted follow-ups last 30 days, the server imports `src/coverLetterCredits.js`. Prices and amounts don't change. Charging becomes atomic everywhere, "Explain my fit" included. |
 | D8 | **Billing hardening: race-proof subscription linking, and cancelling a linked on-hold subscription when a new one replaces it.** Not in: automatic refund of duplicates (stays manual in Dodo), items 5 and 6. |
 | D9 | **Landing copy rewritten to match the product** (item 14). |
 | D10 | **Extras in:** AI quality (item 32); deleting the account also wipes the extension's local copy (item 10); the release build drops the localhost entries from the manifest. |
@@ -691,7 +718,7 @@ before/after); anything odd found in the split.
 **Needs:** B1 (the split). **Owner:** not needed; B4 applies the migrations.
 Can run alongside B3 (see B3's note).
 
-**Read first:** `docs/plans/active/server-side-generation-charging.md`
+**Read first:** `docs/plans/completed/server-side-generation-charging.md` (in `active/` until checkpoint 15)
 (B2-A reads all of it).
 
 **B2-A: server-side charging (item 25, D7).**
@@ -1016,7 +1043,37 @@ after them.
 
 ### B6 — Owner session B: release candidate (checkpoint 16)
 
-**Needs:** B5. **Owner:** about 20 minutes.
+**Needs:** B5. **Owner:** about 20 minutes, plus the dashboard settings in
+B6-0.
+
+**B6-0: branding, from the owner at checkpoint 15 (2026-10-20).** Before the
+release build, since (c) changes what the zip ships:
+
+- **(a) The confirmation email is Onextap's, not Supabase's filler.** The
+  repo gets branded HTML for Supabase's auth emails (confirm sign-up, reset
+  password, magic link, change email) in `supabase/templates/`, in the
+  site's palette and type, with the `{{ .ConfirmationURL }}`-style variables
+  Supabase fills. The owner pastes them in (Authentication → Emails →
+  Templates) on dev first, then production, and sets the sender's name and
+  address (custom SMTP: Supabase's built-in sender can't be renamed and is
+  rate-limited). The deploy checklist gets the step.
+- **(b) Google's sign-in screen names Onextap, not `<ref>.supabase.co`.**
+  Not code. On production's Google OAuth client: the consent screen's app
+  name "Onextap", the logo, onextap.com as home, privacy (`/privacy/`) and
+  authorized domain, then Google's brand verification (days). Showing
+  onextap's domain instead of supabase.co also needs a Supabase custom
+  domain (e.g. `auth.onextap.com`, a paid add-on): the owner's call. The
+  deploy checklist gets both; `docs/google-sign-in-setup.md` covers dev.
+- **(c) The browser-tab icon and the extension icon are the transparent
+  mark** the landing (`web/src/features/nav/nav.html`) and the dashboard
+  topbar (`web/dashboard/index.html`) draw as an inline SVG. Today both
+  sites' favicon and the extension's `default_icon` are `icon.png`, an
+  opaque 128×128 image (`public/icon.png`, `web/public/icon.png`). Make a
+  transparent favicon (SVG plus a PNG fallback) and the extension's icon
+  sizes (16, 32, 48, 128) from that mark; the manifest's `icons` and
+  `action.default_icon` point at them (an asset change, no permission
+  change; `build:release`'s manifest check must still pass). Rebuild and
+  have the owner look at the toolbar and a tab before the release build.
 
 1. The owner puts production's `VITE_*` values into `.env` from their backup.
    Claude doesn't see them.

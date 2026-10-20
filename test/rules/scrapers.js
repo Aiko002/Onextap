@@ -66,12 +66,19 @@ function attr(el, name) {
  * form of selector extends this stub instead of silently matching nothing.
  */
 function matches(el, selector) {
+  // A selector list matches when any part does. None of the forms below
+  // holds a comma of its own.
+  if (selector.includes(',')) return selector.split(',').some((part) => matches(el, part.trim()));
   let m;
   if ((m = /^\[([\w-]+)\*="([^"]+)" i\]$/.exec(selector))) {
     return attr(el, m[1]).toLowerCase().includes(m[2].toLowerCase());
   }
   if ((m = /^([a-z]+)\[([\w:-]+)="([^"]+)"\]$/.exec(selector))) {
     return el.tag === m[1] && attr(el, m[2]) === m[3];
+  }
+  // tag:not([attr="value"]): an element without the attribute matches too.
+  if ((m = /^([a-z]+):not\(\[([\w:-]+)="([^"]+)"\]\)$/.exec(selector))) {
+    return el.tag === m[1] && attr(el, m[2]) !== m[3];
   }
   if ((m = /^\.([\w-]+)$/.exec(selector))) return attr(el, 'class').split(/\s+/).includes(m[1]);
   if ((m = /^#([\w-]+)$/.exec(selector))) return el.id === m[1];
@@ -80,15 +87,29 @@ function matches(el, selector) {
 }
 
 /**
- * A document with querySelector over a flat list of elements in document
- * order. Each element states its own innerText (descendants included, as a
- * browser would report it).
+ * One stub element and the ones nested in it (`children`, stub elements too,
+ * such as an application form's controls). matches() tests the element
+ * itself; querySelector() searches its descendants, as a browser's does.
+ */
+function stubElement(spec) {
+  const el = { tag: 'div', innerText: '', ...spec };
+  el.children = (spec.children ?? []).map(stubElement);
+  el.descendants = el.children.flatMap((child) => [child, ...child.descendants]);
+  el.matches = (selector) => matches(el, selector);
+  el.querySelector = (selector) => el.descendants.find((d) => matches(d, selector)) ?? null;
+  return el;
+}
+
+/**
+ * A document with querySelector over its elements in document order: each
+ * top-level element, then the ones nested in it. Each element states its own
+ * innerText (descendants included, as a browser would report it).
  *
  * @param {{ title?: string, body?: string|null, elements?: object[] }} page
- *   elements: { tag = 'div', id, className, attrs, innerText, content }
+ *   elements: { tag = 'div', id, className, attrs, innerText, content, children }
  */
 export function stubDocument({ title = '', body = '', elements = [] } = {}) {
-  const els = elements.map((e) => ({ tag: 'div', innerText: '', ...e }));
+  const els = elements.map(stubElement).flatMap((el) => [el, ...el.descendants]);
   return {
     title,
     body: body === null ? null : { innerText: body },

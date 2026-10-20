@@ -7,6 +7,7 @@ import { getProfile, updateProfile, requireAuth } from '../supabase.js';
 import { log } from '../logger.js';
 import { apiErrorMessage } from '../lib/errors.js';
 import { dodo, createDodoCheckoutSession } from '../lib/dodo.js';
+import { endsPremium } from '../subscriptionGuard.js';
 
 const router = express.Router();
 
@@ -45,8 +46,9 @@ router.get('/api/verify-premium', requireAuth, async (req, res) => {
     if (profile.dodo_subscription_id) {
       try {
         const sub = await dodo.subscriptions.retrieve(profile.dodo_subscription_id);
-        const isActive = ['active', 'trialing'].includes(sub.status);
-        if (!isActive) {
+        // Ended, not merely on hold: the webhook keeps Premium through Dodo's
+        // payment retry, and so does this (endsPremium()).
+        if (endsPremium(sub.status)) {
           await updateProfile(req.userId, {
             is_premium: false,
             subscription_status: sub.status,

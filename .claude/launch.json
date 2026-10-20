@@ -23,6 +23,20 @@
       "port": 3001
     },
     {
+      "name": "api-debug",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/index.js"],
+      "env": { "LOG_LEVEL": "debug" },
+      "port": 3001
+    },
+    {
+      "name": "api-limit2",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/index.js"],
+      "env": { "LOG_LEVEL": "debug", "GENERATE_LIMIT_PER_HOUR": "2" },
+      "port": 3001
+    },
+    {
       "name": "web-preview",
       "runtimeExecutable": "node",
       "runtimeArgs": [

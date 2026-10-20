@@ -33,6 +33,19 @@ export const STALLED_SUBSCRIPTION_STATUSES = new Set(
 );
 
 /**
+ * Whether the linked subscription's status ends Premium, for GET
+ * /api/verify-premium: only once it can no longer bill (cancelled, failed,
+ * expired). On hold or past due, Dodo is still retrying the payment, and the
+ * webhook keeps Premium on (`subscription.on_hold`); the page must not
+ * switch it off behind the webhook's back.
+ * @param {string|null|undefined} status
+ * @returns {boolean}
+ */
+export function endsPremium(status) {
+  return typeof status === 'string' && status !== '' && !BILLABLE_SUBSCRIPTION_STATUSES.has(status);
+}
+
+/**
  * Whether a webhook is about a subscription other than the account's own.
  *
  * Such an event must not move the account: a stray subscription being
@@ -221,14 +234,15 @@ export async function cancelSubscriptionNow(subscriptions, subscriptionId) {
  * the old one to be cancelled by hand: a redelivery finds the new one linked
  * and has nothing left to retry.
  *
- * A redelivered activation reads its own subscription as linked, writes the
- * same link again and asks Dodo nothing.
+ * A redelivered activation reads its own subscription as linked and asks
+ * Dodo whether it is still in force: if it has ended, nothing is written
+ * ('ended'); otherwise the same link is written again, premium_since kept.
  *
  * @param {{userId: string, newId: string, values: object}} activation
  *   `values`: the profile columns to set along with the link.
  * @param {{store: {read: Function, link: Function}, subscriptions: object, log: object}} deps
  *   `store`: supabaseLinkStore(); `subscriptions`: Dodo's resource.
- * @returns {Promise<{outcome: 'linked'|'replaced'|'duplicate'|'no_account', linkedId?: string|null, replacedId?: string}>}
+ * @returns {Promise<{outcome: 'linked'|'replaced'|'duplicate'|'ended'|'no_account', linkedId?: string|null, replacedId?: string}>}
  * @throws when the account cannot be read or written, a duplicate cannot be
  *   cancelled, Dodo cannot be asked about a link written under it, or the
  *   link moved under it MAX_LINK_ATTEMPTS times. The event
@@ -242,7 +256,24 @@ export async function activateSubscription({ userId, newId, values }, { store, s
     const expectedId = current.linkedId;
     const linkedId = expectedId || null;
     let linkedStatus = null;
-    if (linkedId && linkedId !== newId) {
+    let write = values;
+    if (linkedId && linkedId === newId) {
+      // A redelivery, or a resend from Dodo's log: it may arrive after the
+      // subscription ended (the 500 above makes Dodo redeliver), and must not
+      // switch Premium back on for one that is over. When Dodo can't be
+      // asked, it re-links as before. Either way the first premium_since stays.
+      try {
+        const status = (await subscriptions.retrieve(newId))?.status ?? null;
+        if (status && !LIVE_SUBSCRIPTION_STATUSES.has(status)) {
+          log.info(`[Dodo] subscription.active for ${newId} (user ${userId}) ignored: it is ${status} now`, { userId, subscriptionId: newId });
+          return { outcome: 'ended', linkedId };
+        }
+      } catch (err) {
+        log.warn(`[Dodo] subscription.active: could not check ${newId} again, re-linking it`, { errName: err?.name, status: err?.status });
+      }
+      const { premium_since: _first, ...rest } = values || {};
+      write = rest;
+    } else if (linkedId) {
       try {
         linkedStatus = (await subscriptions.retrieve(linkedId))?.status ?? null;
       } catch (err) {
@@ -286,7 +317,7 @@ export async function activateSubscription({ userId, newId, values }, { store, s
     }
 
     // The link moved between the read and the write: look again.
-    if (!(await store.link(userId, { expectedId, newId, values }))) continue;
+    if (!(await store.link(userId, { expectedId, newId, values: write }))) continue;
 
     if (action === 'replace') {
       try {

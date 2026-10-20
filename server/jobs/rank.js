@@ -131,8 +131,14 @@ export const RANK_CONCURRENCY = envInt('RANK_CONCURRENCY', 1, 1, 8);
  * smaller answer but a TRUNCATED one — the JSON array stops mid-object, the
  * parse recovers what it can, and the rest of the batch silently falls to the
  * keyword scorer. This must be raised alongside BATCH_SIZE, never after.
+ *
+ * 5,000 was not enough: in B5's real run (2026-10-20) a rich profile's
+ * 30-job reply stopped at 5,000 with 29 entries done, so ~5,200 was needed
+ * (more matched signals per job). 6,500 leaves room for that without
+ * inviting a reply long enough to approach GEMINI_RANK_TIMEOUT_MS (25 s; the
+ * cut-off 5,000-token replies took 14 to 22 s).
  */
-export const RANK_MAX_TOKENS = envInt('RANK_MAX_TOKENS', 5000, 512, 16000);
+export const RANK_MAX_TOKENS = envInt('RANK_MAX_TOKENS', 6500, 512, 16000);
 
 /**
  * Zero, because this is a CLASSIFICATION task and every point of sampling

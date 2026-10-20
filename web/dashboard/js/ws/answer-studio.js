@@ -20,8 +20,9 @@ const log = baseLog.child('ui');
 // /api/answer-vault/generate (Groq), with the same prompt, tone presets and
 // fabrication check (the active resume's corpus goes along when there is one).
 //
-// Credit rule, unchanged: one credit buys the FIRST generation for an answer
-// and three follow-up improvements to it, which are free for 30 days. Premium
+// Credit rule: one credit buys the FIRST generation for an answer and two
+// follow-up improvements to it (three until 2026-10-20, the owner's call),
+// which are free for 30 days. Premium
 // never pays. The server charges, inside the generate call (kind 'answer'):
 // it grants the improvements as an allowance, whose id this page sends back
 // on the next call, and answers with `charge` — the balance and the
@@ -59,6 +60,27 @@ export function mount(body, ctx) {
   let creditsError = '';
   let premium = false;
   let flags = [];
+
+  // An unsaved answer and the improvements its credit bought, kept for this
+  // tab (sessionStorage, on the device: CLAUDE.md rule 8) so a reload does
+  // not lose what was paid for. A saved answer keeps its own allowance
+  // (aiAllowanceId); starting another answer drops this one.
+  const DRAFT_KEY = 'onextap_answer_draft';
+  const readDraft = () => {
+    try {
+      const d = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null');
+      return d && typeof d === 'object' && typeof d.allowanceId === 'string' && d.allowanceId ? d : null;
+    } catch {
+      return null;
+    }
+  };
+  const writeDraft = (draft) => {
+    try {
+      if (draft) sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      else sessionStorage.removeItem(DRAFT_KEY);
+    } catch { /* storage unavailable: nothing is kept */ }
+  };
+  let restoreDraft = true;  // the first load() only
 
   // ---------- the editor ----------
   const question = input({ placeholder: 'e.g. Why do you want to work here?' });
@@ -102,6 +124,7 @@ export function mount(body, ctx) {
       generatedOnce = false;
       improvementsLeft = 0;
       allowanceId = null;
+      writeDraft(null);
     }
     refreshControls();
   });
@@ -140,7 +163,7 @@ export function mount(body, ctx) {
   function renderMessages() {
     fill(messages,
       !premium && h('p.editor-rule', null,
-        '1 credit writes an answer and includes 3 free improvements to it, for 30 days. Improvements left are kept with each saved answer.'),
+        '1 credit writes an answer and includes 2 free improvements to it, for 30 days. Improvements left are kept with each saved answer.'),
       creditsError && note('amber',
         h('p', null, `Couldn’t load your credits: ${creditsError}`),
         h('button.link-btn', { type: 'button', onclick: loadCredits }, 'Try again')),
@@ -166,6 +189,7 @@ export function mount(body, ctx) {
   }
 
   function resetEditor() {
+    writeDraft(null);
     activeId = null;
     question.value = '';
     answer.value = '';
@@ -177,9 +201,12 @@ export function mount(body, ctx) {
     refreshControls();
     renderMessages();
     renderSaved();
+    // Generate and Save wait for a question: show where it goes.
+    question.focus();
   }
 
   function loadIntoEditor(item) {
+    writeDraft(null);
     activeId = item.id;
     question.value = String(item.question || '');
     answer.value = String(item.answer || '');
@@ -243,6 +270,8 @@ export function mount(body, ctx) {
   }
 
   async function load() {
+    const draft = restoreDraft ? readDraft() : null;
+    restoreDraft = false;
     await loadProfileStore();
     const saved = await getActiveLegacyProfile();
     if (!alive) return;
@@ -250,6 +279,16 @@ export function mount(body, ctx) {
       ? { ...DEFAULT_PROFILE, ...saved, vault: normalizeVault(saved.vault ?? DEFAULT_PROFILE.vault) }
       : { ...DEFAULT_PROFILE, vault: normalizeVault(DEFAULT_PROFILE.vault) };
     resetEditor();
+    if (draft) {
+      // The page was reloaded on an unsaved answer: it and its allowance come back.
+      question.value = String(draft.question || '');
+      answer.value = String(draft.answer || '');
+      allowanceId = draft.allowanceId;
+      improvementsLeft = Math.max(0, Number(draft.improvementsLeft) || 0);
+      generatedOnce = true;
+      writeDraft(draft);
+      refreshControls();
+    }
   }
 
   async function persist(nextProfile) {
@@ -419,6 +458,7 @@ export function mount(body, ctx) {
 
       // The server already charged (or spent the allowance); take its word.
       applyCharge(result?.charge);
+      if (!activeId) writeDraft(allowanceId && !premium ? { question: q, answer: improved, allowanceId, improvementsLeft } : null);
       if (!premium) {
         try {
           await persistActive(improved);

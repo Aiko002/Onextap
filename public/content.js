@@ -618,8 +618,10 @@ if (!window.__onextapAutofillLoaded) {
    * Company is resolved in priority order: og:site_name → known job-board
    * selectors, then school / university / organization ones → the last
    * segment of document.title split on | - — or " at ". Description picks
-   * whichever candidate selector yields the most text, falling back to
-   * document.body, then collapses whitespace and caps at 8000 chars.
+   * whichever candidate selector yields the most text, skipping any that is
+   * or holds a form control; falls back to document.body only on a page with
+   * no form controls (else ''); then collapses whitespace and caps at 8000
+   * chars.
    *
    * NOTE: scrapeJobPage() in extension/background.js does the same job for
    * the service worker, which cannot call into this file — it must be a
@@ -666,6 +668,11 @@ if (!window.__onextapAutofillLoaded) {
         '[class*="personal-statement" i]',
         '[class*="essay" i]',
       ],
+      // A description candidate that is or holds one of these is the
+      // application form, not the description: an application asks for
+      // prose or a file. A search box, a filter or a newsletter field does
+      // not make a page a form.
+      formControls: 'textarea, input[type="file"]',
     };
 
     let company = '';
@@ -685,17 +692,25 @@ if (!window.__onextapAutofillLoaded) {
       if (parts.length > 1) company = parts[parts.length - 1].trim();
     }
 
+    // A candidate holding form controls is the application form: on a page
+    // with the ad and the form together, the container of both is longer
+    // than the ad (Greenhouse's <main>). Nor is the body a fallback on a page
+    // with controls, or the form's questions become the description (Lever's
+    // /apply page matches no candidate at all); there it is left empty.
+    const isForm = (el) => el.matches(SELECTORS.formControls) || !!el.querySelector(SELECTORS.formControls);
     let description = '';
     let bestLen = 0;
     for (const sel of [...SELECTORS.description, ...SELECTORS.descriptionAcademic]) {
       const el = document.querySelector(sel);
-      const text = (el?.innerText || '').trim();
+      if (!el || isForm(el)) continue;
+      const text = (el.innerText || '').trim();
       if (text.length > bestLen) {
         bestLen = text.length;
         description = text;
       }
     }
-    description = (description || document.body?.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 8000);
+    const hasForm = !!document.querySelector(SELECTORS.formControls);
+    description = (description || (!hasForm && document.body?.innerText) || '').replace(/\s+/g, ' ').trim().slice(0, 8000);
     return { company, description };
   }
 

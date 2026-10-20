@@ -8,7 +8,7 @@ import { supabaseAdmin, requireAuth } from '../supabase.js';
 import { log } from '../logger.js';
 import { createGenerateLimitStore, consumeGeneration, limitMessage } from '../generateLimit.js';
 import { spendGeneration, undoGeneration } from '../lib/credits.js';
-import { CLIENT_KINDS, freeFollowUps, subjectKeyFor } from '../lib/generationSpend.js';
+import { CLIENT_KINDS, freeFollowUps, jobDescriptionOf, subjectKeyFor } from '../lib/generationSpend.js';
 import {
   getGroq,
   groqAssistantMessageText,
@@ -307,6 +307,10 @@ router.post('/api/answer-vault/generate', requireAuth, async (req, res) => {
     // Before the spend: a server with no Groq key fails without charging.
     const groq = getGroq();
 
+    // A cover letter with no description has nothing to key its re-run to:
+    // every such letter would share applicationKey(''), so it grants none.
+    const keyless = charging.kind === 'cover_letter' && !jobDescriptionOf(jobContext).trim();
+
     try {
       spend = await spendGeneration({
         userId: req.userId,
@@ -314,7 +318,7 @@ router.post('/api/answer-vault/generate', requireAuth, async (req, res) => {
         kind: charging.kind,
         allowanceId: charging.allowanceId,
         subject: subjectKeyFor(charging.kind, jobContext),
-        free: charging.free,
+        free: keyless ? 0 : charging.free,
         description: charging.description,
       });
     } catch (spendError) {

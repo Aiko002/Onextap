@@ -40,9 +40,9 @@ async function rejectsWith(promise, code) {
   });
 }
 
-test('the amounts are the product’s: 3 improvements, 1 re-run, nothing for explain or an old client', () => {
-  assert.equal(ANSWER_FREE_IMPROVEMENTS, 3);
-  assert.equal(freeFollowUps('answer'), 3);
+test('the amounts are the product’s: 2 improvements, 1 re-run, nothing for explain or an old client', () => {
+  assert.equal(ANSWER_FREE_IMPROVEMENTS, 2);
+  assert.equal(freeFollowUps('answer'), 2);
   assert.equal(freeFollowUps('cover_letter'), COVER_LETTER_FREE_RERUNS);
   assert.equal(freeFollowUps('cover_letter'), 1);
   assert.equal(freeFollowUps('explain'), 0);

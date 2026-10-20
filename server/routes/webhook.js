@@ -96,7 +96,7 @@ export async function handleWebhook(req, res) {
           }, { store: linkStore, subscriptions: dodo.subscriptions, log });
           if (outcome === 'no_account') {
             log.info(`[Dodo] activate premium: no profile for user ${userId}, account already deleted`);
-          } else if (outcome !== 'duplicate') {
+          } else if (outcome !== 'duplicate' && outcome !== 'ended') {
             log.info(`[Dodo] Premium activated for user: ${userId}`);
           }
         } catch (err) {
@@ -246,6 +246,12 @@ async function resolveUserId(data) {
     }
   }
 
-  log.warn('[Dodo] Could not resolve user for webhook:', JSON.stringify(data).slice(0, 200));
+  // Ids only: the payload carries the customer's email and name, which a
+  // stringified dump would print past the logger's key-based redaction.
+  log.warn('[Dodo] Could not resolve user for webhook', {
+    subscriptionId: data?.subscription_id || null,
+    customerId: customerId || null,
+    hasEmail: Boolean(email),
+  });
   return null;
 }

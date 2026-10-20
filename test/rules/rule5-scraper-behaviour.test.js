@@ -169,6 +169,95 @@ both(
   { description: 'from-job-details' },
 );
 
+// ── Application pages: the form is not the description ───────────────────
+// Measured on real boards on 2026-10-20. A page with the ad and the form
+// together has a container holding both, longer than the ad alone, and its
+// body is every question on the form.
+
+const input = (type) => ({ tag: 'input', attrs: type ? { type } : {} });
+const FORM = { tag: 'form', children: [input('text'), input('file'), { tag: 'textarea' }, { tag: 'select' }] };
+
+both(
+  'a main holding the application form loses to a shorter description with no controls (Greenhouse)',
+  {
+    elements: [
+      {
+        tag: 'main',
+        innerText: `${long('posting')} ${long('question')}`,
+        children: [{ className: 'job__description', innerText: long('posting') }, FORM],
+      },
+    ],
+    body: `${long('posting')} ${long('question')}`,
+  },
+  { description: long('posting') },
+);
+
+both(
+  'a page with form controls and no description candidate has no description, not the body text (Lever /apply)',
+  { elements: [FORM], body: 'Cookie notice. Full name. Email. Resume/CV. SUBMIT APPLICATION' },
+  { description: '' },
+);
+
+both(
+  'a page with form controls and only form candidates has no description',
+  { elements: [{ tag: 'article', innerText: long('question'), children: [FORM] }], body: long('question') },
+  { description: '' },
+);
+
+// An application asks for prose or a file. Found in B5's review: counting any
+// input made a job ad with a site search box in its <main> (or anywhere on
+// the page) lose its description.
+for (const [label, control] of [
+  ['a textarea', { tag: 'textarea' }],
+  ['a file input', input('file')],
+]) {
+  both(`${label} anywhere on the page turns the body fallback off`, { elements: [control], body: 'Body text' }, { description: '' });
+}
+
+for (const [label, control] of [
+  ['a search form', { tag: 'form', children: [input('search')] }],
+  ['a select', { tag: 'select' }],
+  ['a text input', input('text')],
+  ['an input with no type', input()],
+  ['an email field', input('email')],
+]) {
+  both(`${label} alone does not make the page a form: the body fallback stays`, { elements: [control], body: 'Body text' }, { description: 'Body text' });
+}
+
+both(
+  'a job ad whose main holds a search box is still the description',
+  { elements: [{ tag: 'main', innerText: long('posting'), children: [{ tag: 'form', children: [input('search')] }] }] },
+  { description: long('posting') },
+);
+
+both(
+  'a page with no form controls keeps the body fallback; a hidden input is not one',
+  { elements: [{ className: 'site-header', innerText: 'Jobs' }, input('hidden')], body: '  The   job ad ' },
+  { description: 'The job ad' },
+);
+
+both(
+  'a hidden input inside a candidate does not make it a form',
+  {
+    elements: [
+      { className: 'job-description', innerText: long('posting'), children: [input('hidden')] },
+      { tag: 'main', innerText: 'short main' },
+    ],
+  },
+  { description: long('posting') },
+);
+
+both(
+  'a candidate that is itself a control is skipped',
+  {
+    elements: [
+      { tag: 'textarea', className: 'description-field', innerText: long('typed') },
+      { tag: 'article', innerText: 'the job ad' },
+    ],
+  },
+  { description: 'the job ad' },
+);
+
 // ── The intended difference ───────────────────────────────────────────────
 
 const ACADEMIC_COMPANY = [
@@ -210,3 +299,18 @@ for (const kind of ['personal-statement', 'essay']) {
     assert.equal(runScraper(SCRAPERS.scrapeJobPage, page).description, 'Body');
   });
 }
+
+// The academic candidates are held to the same rule: an essay prompt beside
+// its textarea is read, a container holding the textarea is the form.
+test('scrapePageContext: an essay prompt beside its textarea is the description', () => {
+  const page = { elements: [{ className: 'essay-prompt', innerText: long('prompt') }, { tag: 'textarea' }], body: 'Body' };
+  assert.equal(runScraper(SCRAPERS.scrapePageContext, page).description, long('prompt'));
+});
+
+test('scrapePageContext: an essay container holding its textarea is skipped like any candidate', () => {
+  const page = {
+    elements: [{ className: 'essay-question', innerText: long('prompt'), children: [{ tag: 'textarea' }] }],
+    body: 'Body',
+  };
+  assert.equal(runScraper(SCRAPERS.scrapePageContext, page).description, '');
+});

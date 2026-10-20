@@ -11,7 +11,7 @@
     <p class="lede sub-hero__lede" data-rise>
       The plain version: what Onextap keeps on your device, what leaves it when you ask for
       something and who handles it, and what your account holds. Written down, not left to
-      inference. Last updated September 2026.
+      inference. Last updated October 2026.
     </p>
   </div>
 </section>
@@ -25,8 +25,9 @@
         <p class="sub-copy" data-rise>
           Your details, saved answers, cover letters and resumes are kept in the browser's own
           storage — <span class="mono-chip">chrome.storage.local</span> in the extension, local
-          storage on the dashboard — and never in our database. The dashboard hands your profile to
-          the extension on your own machine. Autofill uses only that local copy: filling a form
+          storage on the dashboard — and never in our database. When you save, the dashboard hands
+          your profile straight to the Onextap extension in the same browser, if one is installed,
+          without going through our servers. Autofill uses only that local copy: filling a form
           sends nothing anywhere. Stored locally is not the same as never sent, though; the next
           two sections say exactly what goes out, and when.
         </p>
@@ -144,7 +145,11 @@
           device, so clearing them in Onextap or uninstalling the extension removes them.
           <strong>Delete account</strong>, in the dashboard's settings, cancels any subscription and
           deletes your account and everything stored with it; until then, we keep account data only
-          while the account exists. For a copy of your account data, or to have the records in 03
+          while the account exists. It also clears your profiles, answers, cover letters and resumes
+          from the browser you delete it in: the dashboard's copy, and the extension's copy when the
+          extension there is version 1.0.4 or later. An older version keeps its copy until you
+          remove the extension, and other browsers keep theirs until you clear them there; the
+          dashboard says which before you confirm. For a copy of your account data, or to have the records in 03
           removed, write to <a href="mailto:mazzah70@gmail.com">mazzah70@gmail.com</a> or
           <a href="/contact/">ask us</a>.
         </p>

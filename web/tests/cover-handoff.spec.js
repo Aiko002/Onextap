@@ -235,6 +235,36 @@ test.describe('the cover-letter handoff, with the extension loaded', () => {
     await expect(tab.getByPlaceholder('Company or organisation')).toHaveValue('');
   });
 
+  // Lever's /apply page, as B5 met it: the form and no job ad. The scrapers
+  // send no description rather than the form's own text.
+  test('an application form with no job ad on it hands over no description, and the dashboard asks for one', async ({ context, page, serviceWorker }) => {
+    await stubAuth(context);
+    await stubApi(context);
+    const apply = 'http://localhost:3001/e2e-apply/';
+    await context.route(apply, (route) => route.fulfill({
+      contentType: 'text/html',
+      body: '<!doctype html><html><head><title>Kestrel - Platform Engineer</title>'
+        + '<meta property="og:site_name" content="Kestrel"></head><body><main>'
+        + '<h2>Platform Engineer</h2><form>'
+        + '<label for="nm">Full name</label><input id="nm" type="text">'
+        + '<label for="cl">Cover letter</label><textarea id="cl" rows="8"></textarea>'
+        + `<p>${'We are an equal opportunity employer. '.repeat(30)}</p>`
+        + '<button type="submit">Submit application</button></form></main></body></html>',
+    }));
+    await signIn(page);
+
+    const job = await context.newPage();
+    await job.goto(apply);
+    await job.bringToFront();
+    expect(await mountFromWorker(serviceWorker, apply)).toEqual({ success: true, mounted: true });
+    const [dashboard] = await Promise.all([context.waitForEvent('page'), clickCustomize(job)]);
+    await dashboard.waitForURL(/\/dashboard\/.*#\/cover-letter$/);
+
+    await expect(dashboard.getByText('which has no job description on it. Paste the description below to personalise.', { exact: false })).toBeVisible();
+    await expect(dashboard.getByPlaceholder('Company or organisation')).toHaveValue('Kestrel');
+    await expect(dashboard.getByPlaceholder('Paste the job description — the letter is rewritten around what it asks for.')).toHaveValue('');
+  });
+
   test('the button stays off a page without a cover-letter field, and off the Onextap site', async ({ context, serviceWorker }) => {
     const plain = 'http://localhost:3001/e2e-plain/';
     await context.route(plain, (route) => route.fulfill({

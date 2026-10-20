@@ -10,6 +10,7 @@ import {
   supabaseLinkStore,
   activateSubscription,
   MAX_LINK_ATTEMPTS,
+  endsPremium,
 } from '../../server/subscriptionGuard.js';
 
 // One account, one subscription (server/subscriptionGuard.js). What matters:
@@ -190,6 +191,14 @@ function activate(newId, { db, dodo, log = spyLog(), userId = 'u1' }) {
 // ------------------------------------------------------------------
 // The link: one conditional write
 // ------------------------------------------------------------------
+
+// verify-premium and the webhook agree (B5's review): Premium ends when the
+// subscription can no longer bill, not while Dodo retries a payment.
+test('endsPremium: ended statuses end Premium; on hold, past due and the rest keep it', () => {
+  for (const status of ['cancelled', 'failed', 'expired']) assert.equal(endsPremium(status), true, status);
+  for (const status of ['active', 'trialing', 'on_hold', 'past_due', 'paused', 'pending']) assert.equal(endsPremium(status), false, status);
+  for (const status of [undefined, null, '']) assert.equal(endsPremium(status), false, 'an unknown status ends nothing');
+});
 
 test('linking is one conditional update on the link the account had when it was read', async () => {
   const db = fakeProfiles({ u1: { dodo_subscription_id: null }, u2: { dodo_subscription_id: 'sub_A' } });
@@ -385,8 +394,35 @@ test('the same activation delivered twice: linked once, nothing cancelled the se
 
   assert.deepEqual(await activate('sub_B', { db, dodo }), { outcome: 'linked', linkedId: 'sub_B' });
   assert.equal(db.row('u1').dodo_subscription_id, 'sub_B');
-  assert.deepEqual(dodo.calls.slice(before), [], 'the redelivery asks Dodo nothing');
+  assert.deepEqual(dodo.calls.slice(before), [['retrieve', 'sub_B']], 'the redelivery only asks whether it is still in force');
   assert.deepEqual(db.updates[1].filters, [['eq', 'id', 'u1'], ['eq', 'dodo_subscription_id', 'sub_B']]);
+});
+
+// Found in B5's review: the webhook's 500 makes Dodo redeliver, so an
+// activation can land after its subscription was cancelled (or be resent by
+// hand from Dodo's log).
+test('a redelivered activation of a subscription that has since ended changes nothing', async () => {
+  const db = fakeProfiles({ u1: { dodo_subscription_id: 'sub_B', is_premium: false, subscription_status: 'cancelled' } });
+  const dodo = fakeDodo({ sub_B: 'cancelled' });
+  const log = spyLog();
+  assert.deepEqual(await activate('sub_B', { db, dodo, log }), { outcome: 'ended', linkedId: 'sub_B' });
+  assert.deepEqual(db.updates, []);
+  assert.equal(db.row('u1').is_premium, false);
+  assert.ok(log.lines.some((l) => l.level === 'info' && /ignored: it is cancelled now/.test(l.msg)));
+});
+
+test('a redelivery keeps the first premium_since; Dodo unreachable, it still re-links', async () => {
+  const db = fakeProfiles({ u1: { dodo_subscription_id: 'sub_B', premium_since: 'first' } });
+  const dodo = fakeDodo({ sub_B: 'active' }, { unreachable: true });
+  const log = spyLog();
+  const out = await activateSubscription(
+    { userId: 'u1', newId: 'sub_B', values: { ...PREMIUM, premium_since: 'second' } },
+    { store: supabaseLinkStore(db.client), subscriptions: dodo.subscriptions, log },
+  );
+  assert.deepEqual(out, { outcome: 'linked', linkedId: 'sub_B' });
+  assert.equal(db.row('u1').premium_since, 'first');
+  assert.equal(db.row('u1').is_premium, true);
+  assert.ok(log.lines.some((l) => l.level === 'warn' && /could not check sub_B again/.test(l.msg)));
 });
 
 test('a returning customer whose old subscription ended is linked to the new one, nothing cancelled', async () => {

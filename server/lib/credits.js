@@ -20,6 +20,9 @@ import { supabaseSpendStore, SpendError, MIGRATION_FILE } from './generationSpen
 
 const creditLog = log.child('credits');
 
+/** The spends undoGeneration() has given back (see there). */
+const undoneSpends = new WeakSet();
+
 let store = null;
 function spendStore() {
   if (!store) store = supabaseSpendStore(supabaseAdmin);
@@ -90,6 +93,15 @@ export async function spendGeneration({ userId, userEmail = null, kind, allowanc
  */
 export async function undoGeneration(userId, spend, description) {
   if (!spend?.allowanceId) return;
+  // Once per spend. A charge's refund is gated in the database (its
+  // allowance row is the receipt), but undo_generation() gives a free
+  // follow-up its use back each time it is called: a second undo of the
+  // same spend, on another error path, would grant a use the charge never did.
+  if (undoneSpends.has(spend)) {
+    creditLog.error('a spend was given back twice; the second undo was not sent', { charged: spend.charged });
+    return;
+  }
+  undoneSpends.add(spend);
   try {
     const result = await spendStore().undo(userId, spend, description);
     if (result?.undone !== true) {

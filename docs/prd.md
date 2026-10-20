@@ -152,7 +152,7 @@ A vault of question/answer pairs per profile, plus AI rewriting.
   no headings or bullets, and never to invent employer facts or numbers.
 
 **Credit rule:** one credit buys the first generation for an answer *and*
-three follow-up improvements on it. Credits are deducted **after** a
+two follow-up improvements on it (three until 2026-10-20). Credits are deducted **after** a
 successful generation, so a failed call is free. Premium accounts are never
 charged and get no improvement counter.
 
@@ -199,7 +199,7 @@ Dodo is unreachable the local flag is trusted — degrade in the user's favour.
 | Autofill | Unlimited | Unlimited |
 | Profiles | Unlimited | Unlimited |
 | Cover-letter templates | 10 per profile | 10 per profile |
-| AI generations | 3 credits, each buying 1 generation + 3 improvements | Unlimited |
+| AI generations | 3 credits, each buying 1 generation + 2 improvements (3 until 2026-10-20) | Unlimited |
 
 Cancellation is immediate: the server cancels at Dodo and clears
 `is_premium` in the same request. There is no proration and no grace period.

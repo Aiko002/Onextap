@@ -207,7 +207,10 @@ const PopupView = ({ onLaunchDashboard, onLaunchAnswerStudio, onLaunchJobMatches
         <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-onextap-primary/[0.08] blur-2xl dark:bg-onextap-primary/[0.15]" />
       </div>
 
-      <header className="relative z-10 shrink-0 px-4 pt-3 pb-2 space-y-2">
+      {/* Above the content (z-10) below it: the profile switcher's dropdown
+          opens over the tabs' buttons, and a dropdown cannot rise above its
+          own header's stacking context. */}
+      <header className="relative z-20 shrink-0 px-4 pt-3 pb-2 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <img src={getIconUrl()} alt="Onextap" className="h-8 w-8 shrink-0 rounded-xl shadow-sm ring-1 ring-black/[0.06] dark:ring-white/10" />

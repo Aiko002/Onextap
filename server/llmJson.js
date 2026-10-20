@@ -109,6 +109,57 @@ function dropTrailingCommas(candidate) {
 }
 
 /**
+ * The finished elements of an array whose closing bracket never came: a reply
+ * cut off at the output-token limit. Each object or array element is parsed on
+ * its own; the unfinished tail, and any element that does not parse, is
+ * dropped.
+ *
+ * @param {string} text Starts with the array's `[`.
+ * @returns {any[]} Possibly empty.
+ */
+function finishedElements(text) {
+  const out = [];
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  let elementStart = -1;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === '{' || ch === '[') {
+      depth += 1;
+      if (depth === 2) elementStart = i;
+    } else if (ch === '}' || ch === ']') {
+      if (depth === 2 && elementStart >= 0) {
+        try {
+          out.push(JSON.parse(dropTrailingCommas(text.slice(elementStart, i + 1))));
+        } catch {
+          // One malformed element costs that element, not its neighbours.
+        }
+        elementStart = -1;
+      }
+      depth -= 1;
+      if (depth <= 0) break;
+    }
+  }
+
+  return out;
+}
+
+/**
  * Parse a model response expected to contain a JSON object.
  * @param {unknown} raw
  * @returns {any}
@@ -144,6 +195,21 @@ export function parseJsonArrayLenient(raw) {
       // here: a balanced [...] that does not parse is often an array nested in
       // an object whose own braces the walk never reached.
     }
+  }
+
+  // An array opened before any object and never closed is a reply cut off at
+  // the output-token limit: keep the entries it finished. The recovery below
+  // must not see it, because it would parse the first finished entry as the
+  // wrapper and return a list nested inside that entry (seen on real Gemini
+  // ranks in B5: 30 of 30 jobs keyword scored).
+  // With nothing finished there is nothing nested to mistake for the answer,
+  // so the recovery below still gets its turn (a bracketed aside before a
+  // wrapped array, say).
+  const open = stripped.indexOf('[');
+  const brace = stripped.indexOf('{');
+  if (open >= 0 && (brace < 0 || open < brace)) {
+    const finished = finishedElements(stripped.slice(open));
+    if (finished.length) return finished;
   }
 
   const wrapped = parseJsonLenient(stripped);

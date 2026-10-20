@@ -2,8 +2,8 @@
  * What personalising a cover letter costs.
  *
  * One credit buys a personalisation plus COVER_LETTER_FREE_RERUNS free re-runs
- * of it: Answer Studio's rule (one credit buys an answer plus three
- * improvements), with one re-run instead of three. Premium never pays. The
+ * of it: Answer Studio's rule (one credit buys an answer plus two
+ * improvements, three until 2026-10-20), with one re-run instead. Premium never pays. The
  * credit itself is the server's: POST /api/answer-vault/generate charges
  * inside the generation (kind 'cover_letter') and grants the re-run as an
  * allowance (server/lib/generationSpend.js, migration 007). Nothing here

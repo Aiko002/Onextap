@@ -2,14 +2,26 @@
 
 Every user-facing path through the product, traced to the code that runs it.
 Rewritten on 2026-10-03 for the website (landing page and dashboard under
-`web/`) that replaced the React landing page and dashboard. The popup's
-flows (§1, §4) were traced at commit `9b01adb` and are unchanged by that
-work. Traced from code and exercised against stubs, **not yet against real
-services** (`HANDOVER.md` §7 item 2).
+`web/`); brought up to date on 2026-10-20 for extension 1.0.4 and
+server-side charging (completion plan, batches B1 to B5).
+
+**Checked against real services** on 2026-10-20 (the completion plan's B4
+checks, run in B5): the dev Supabase project, Dodo in test mode, real Groq
+and Gemini, extension 1.0.4 loaded unpacked, and store 1.0.2 in another
+Chrome profile. That run covered sign-up and sign-in, profile sync, resume
+parsing, Answer Studio, cover letters and the job-page button, Explain my
+fit and ranking, the hourly ceiling, billing (checkout, a double checkout,
+cancellation) and account deletion; the sections say what it found, and
+mark what it did not reach ("Not checked on real services"). Autofill
+itself, the password reset and the feedback form were not part of it. The
+rest of the time the paths are exercised against stubs (`npm test`, the e2e
+suites).
 
 **Related:** [`repo-structure.md`](repo-structure.md) ·
+[`extension-protocol.md`](extension-protocol.md) ·
 [`../HANDOVER.md`](../HANDOVER.md) · [`../README.md`](../README.md) ·
-[`backend-schema.md`](backend-schema.md)
+[`backend-schema.md`](backend-schema.md) ·
+[`google-sign-in-setup.md`](google-sign-in-setup.md)
 
 ---
 
@@ -24,14 +36,18 @@ One origin serves the site and the API (`vercel.json`):
 | `/reset-password/` | Where the password-reset email's link opens | `web/reset-password/`, `web/src/pages/reset-password/` |
 | `/dashboard/` | Dashboard | `web/dashboard/index.html`, `web/dashboard/js/main.js` |
 | `/dashboard/contact/` `/dashboard/privacy/` | The dashboard's company pages | `web/dashboard/site/` |
-| `/api/*` | Express app | `api/index.js` → `server/index.js` |
+| `/api/*` | Express app | `api/index.js` → `server/index.js` → `server/app.js` (middleware order), `server/routes/` |
 | `/privacy-policy`, `/privacy-policy.html` | 308 → `/privacy/` | `vercel.json` |
 
 The extension has three: the popup (`index.html` → `src/popup.jsx` → `App` in
 `OnextapDashboard.jsx` → `PopupView`), the service worker
-(`extension/background.js`), and the content script (`public/content.js`,
-injected on demand). Opened outside the extension, or with the old
-`?mode=dashboard`, the popup's page redirects to the web dashboard.
+(`extension/background.js`, every message routed by
+`extension/messages/registry.js`), and the content script
+(`public/content.js`, injected on demand into the active tab's top frame:
+when the popup opens over an http(s) page, on Autofill, and on Fill). Opened
+outside the extension, or with the old `?mode=dashboard`, the popup's page
+redirects to the web dashboard. The messages between them and the website
+are in [`extension-protocol.md`](extension-protocol.md).
 
 **Arriving at the landing page** (`web/index.html`, a script in `<head>`,
 before anything paints): `?extensionId=`, `?view=`, `?payment=`, `?code=` or
@@ -49,8 +65,9 @@ only point inside `/dashboard/`.
 
 | Parameter | Effect |
 |---|---|
-| `?extensionId=<id>` | Which extension to sync profiles to (`src/extensionClient.js`) |
+| `?extensionId=<id>` | Which extension to talk to, on `localhost` and `127.0.0.1` only (an unpacked build's); elsewhere always the published extension's ID (`resolveExtensionId()` in `src/extensionClient.js`) |
 | `?view=vault\|cover\|jobs\|profiles` | Opens that workspace (`legacyViews` in `js/config.js`) |
+| `?handoff=<id>` | A job from the extension's job-page button (§6.1): kept in the tab's `sessionStorage` before the sign-in check, and opens the Cover Letter workspace |
 | `?upgrade=1` | Opens the plan panel |
 | `?payment=success\|cancelled` | Back from checkout (§8) |
 | `#/` · `#/<workspace>` | Home · `job-matches`, `my-profiles`, `answer-studio`, `cover-letter` |
@@ -114,10 +131,20 @@ Sign-in window
         │      └─ "Check your email." — the same words whether or not the address
         │         has an account; too soon after the last → "Wait a minute…"
         │
-        └─ Google ──► supabase.auth.signInWithOAuth, redirectTo = <site>/dashboard/
+        └─ Google ──► supabase.auth.signInWithOAuth, redirectTo = <site> + (?next, else /dashboard/)
                       (off the redirect allowlist, Supabase falls back to the
                        site root, and the forwarding script passes it on)
 ```
+
+**Google** works only once the Supabase project has the provider switched on
+with a Google OAuth client ([`google-sign-in-setup.md`](google-sign-in-setup.md));
+until then Supabase answers "Unsupported provider: provider is not enabled",
+which is how the dev project first answered on 2026-10-20. Set up, it landed
+on `/dashboard/` signed in. Google's account chooser names the Supabase
+project's domain, not Onextap, until the consent screen is brand-verified
+(the completion plan's B6-0). A dev project's Redirect URLs need
+`http://localhost:5173/**`: the address sign-in returns to can carry a query
+string (§6.1).
 
 **The reset page** (`/reset-password/`) reads its address before Supabase's
 client loads: the email's link carries the recovery session in the hash
@@ -145,17 +172,18 @@ date.
 
 **In the popup**, the session would live in `chrome.storage.local` (the
 adapter in `src/supabaseClient.js`), but **nothing in the popup signs in**
-(HANDOVER.md §7 item 27): signing in on the website leaves the extension
-signed out. So the popup's Cover Letter tab sends people to the dashboard to
-personalise (§6).
+(completion plan D5): signing in on the website leaves the extension signed
+out, and the popup never spends credits. Its Answers and Cover tabs are
+read-only and send people to the dashboard to write (§5, §6).
 `src/auth.js` keeps an extension Google flow
 (`chrome.identity.launchWebAuthFlow`, needing
 `https://<extension-id>.chromiumapp.org/` on Supabase's allowlist) that no
 screen calls; its last caller was the old in-extension dashboard.
 
 **On the database side**, `on_auth_user_created` inserts a `profiles` row
-with 3 credits and an `initial` credit transaction. If that trigger is
-missing, `getProfile()` backfills the row on the first API call.
+with 3 credits and an `initial` credit transaction (seen on every sign-up in
+the real run). If that trigger is missing, `getProfile()` backfills the row
+on the first API call.
 
 **First run of the dashboard:** the guided tour shows only on the home view,
 and only to accounts created in the last 2 minutes; everyone else gets
@@ -172,26 +200,39 @@ Dashboard ──► My Profiles ──► edit fields ──► Save
                                                 │
                                     saveLegacyUserProfile(profile)   (this browser)
                                                 │
-                                    ONEXTAP_SYNC_DATA ──► the extension, if this
-                                                │         page can reach it
-                     ┌──────────────────────────┼──────────────────────────┐
-                 confirmed                 no reply                no extension here
-                     │                          │                          │
-     "Saved and synced to the      "Saved here — the extension    "Saved on this device"
-      extension"                    didn't confirm the sync"
+                                    getExtensionInfo(): ONEXTAP_HELLO
+                                                │
+         ┌───────────────────┬──────────────────┴───┬────────────────────┐
+      current              current                legacy (1.0.2)       absent
+      confirmed            not confirmed          sync sent anyway     nothing sent
+         │                    │                      │                    │
+ "Saved and synced     "Saved here — the      "Saved — the extension  "Saved on this
+  to the extension"     extension didn't       is out of date:         device"
+                        confirm the sync"      update it" (store link)
 ```
 
-A failed sync is reported, never fatal: the local save already happened. The
-page can reach the extension only from an origin in its `externally_connectable`
-(`https://www.onextap.com`, `https://onextap.com`, `http://localhost:5173`),
-with the extension's ID: from `?extensionId=` (opened from the popup), else
-the published extension's.
+`current` and `legacy` both get `ONEXTAP_SYNC_DATA`; only a `current`
+extension with `profile-sync` that confirmed it counts as synced, because
+1.0.2 says success to every sync. A failed sync is reported, never fatal:
+the local save already happened.
 
-**In the extension** (`extension/background.js`, `extension/profileSync.js`),
-the payload is filed into the profile store the popup reads
-(`onextap_profiles`): matched by id, then by name, else added under the
-dashboard's id; it becomes the active profile, and the `user_profile` mirror
-is rebuilt from it. The extension's other profiles are left alone.
+**Which extension.** The page can reach one only from an origin in its
+`externally_connectable` (`https://www.onextap.com`, `https://onextap.com`,
+and `http://localhost:5173` in dev builds and store 1.0.2; the 1.0.4 release
+manifest drops it), by ID. In production that is always the published
+extension's. On localhost an unpacked build is reached only through
+`?extensionId=`, which the popup's "Open Dashboard" adds: a tab opened another way (the confirmation email's link, in the real
+run) messages the store's ID, finds nothing, and says "Saved on this
+device"; reopened from the popup, the same save said "Saved and synced to
+the extension" and the popup showed the edit.
+
+**In the extension** (1.0.4: `extension/messages/syncData.js`,
+`extension/profileSync.js`), the payload is filed into the profile store the
+popup reads (`onextap_profiles`): matched by id, then by name, else added
+under the dashboard's id; it becomes the active profile, and the
+`user_profile` mirror is rebuilt from it. The extension's other profiles are
+left alone. Store 1.0.2 writes `user_profile` only, which its popup reads
+until it has made its own store on its first open, and ignores after.
 
 ### 3.2 From a resume
 
@@ -217,7 +258,9 @@ mergeParsedResumeIntoProfile (src/resumeToProfile.js): over the form, never repl
 ```
 
 The pre-flight to `/api/me` is there so an expired token fails in a second
-rather than after a long upload.
+rather than after a long upload. The upload never goes through the extension,
+so 1.0.2 installed changes nothing (the real run parsed a resume through the
+API in about 16 s with 1.0.2 present).
 
 ### 3.3 Switching profiles
 
@@ -270,6 +313,9 @@ AUTOFILL_TRIGGERED { profile, sections }
         │
         ▼
    { success: true, filled: N }  ──►  "Filled N fields"  (resets after 2s)
+        │
+        └─ then the "Customize cover letter" button, if the page has a
+           cover-letter field (§6.1)
 ```
 
 **Ordering rules that make matching work:** `first name` before `full name`;
@@ -278,7 +324,7 @@ AUTOFILL_TRIGGERED { profile, sections }
 bare `company`. Bare `name` is deliberately never an intent keyword — it
 would hit company-name and school-name fields.
 
-**Known gap (still true on 2026-10-03):** `sections` is sent but `autofill()`
+**Known gap (still true on 2026-10-20):** `sections` is sent but `autofill()`
 ignores it. Toggling a section off changes the button label only; every
 matching field is still filled.
 
@@ -296,104 +342,200 @@ matching field is still filled.
 ```text
 Answer Studio (or the popup's "Open Answer Studio" ──► ?view=vault)
         │
-        ├─ the active profile's saved answers (each with aiImprovementsLeft)
+        ├─ the active profile's saved answers (each with aiAllowanceId, aiImprovementsLeft)
         └─ GET /api/credits: balance + Premium flag
         │
         ▼
 Question (+ optional draft), tone, optional company and pasted job description
         │
-   ┌────┴─────────────────────────────────────────────────────┐
-   │ consumesCredit = !premium && improvementsLeft ≤ 0        │
-   │ consumesCredit && credits ≤ 0 → "No credits remaining.   │
-   │   Premium makes answers unlimited."  (no AI call)        │
-   └────┬─────────────────────────────────────────────────────┘
+   ┌────┴──────────────────────────────────────────────────────────┐
+   │ free here = Premium, or this answer's allowance has some left  │
+   │ not free && credits ≤ 0 → "No credits remaining. Premium       │
+   │   makes answers unlimited."  (no request is sent)              │
+   └────┬──────────────────────────────────────────────────────────┘
         ▼
-POST /api/answer-vault/generate (question, draft, job context ≤6000 chars, profile
-     context, saved answers, task and style hints, model, resume corpus if any)
-        │   Groq primary → fallback; empty, too short or cut-off answers rejected
+POST /api/answer-vault/generate { kind: 'answer', allowanceId?, question, draft,
+     job context ≤6000 chars, profile context, saved answers, task and style
+     hints, model, resume corpus if any }
+        │
+        ├─ past the hourly ceiling → 429, nothing charged
+        ├─ the spend, before the model (spend_generation(), migration 007), in order:
+        │     the allowance named, if it has an improvement left → free
+        │     Premium → free
+        │     1 credit → a new allowance: 2 free improvements, for 30 days
+        │     no credit → 403 "No credits remaining"; no migration 007 → 503
+        ▼
+   Groq primary → fallback; empty, too short or cut-off answers rejected
    ┌────┴────┐
  fail      success
-   │          ├─ the answer replaces the editor; fabrication flags shown (advisory)
- no charge    ├─ Premium → done
-              └─ else: consumesCredit → POST /api/credits/deduct
-                         ok   → improvements = 3
-                         fail → improvements = 0, a warning; the answer stays
-                       not consuming → improvements − 1
-                       → saved on the answer being edited
+   │          ├─ an Improve (a draft given, with a resume corpus) whose answer has
+ the spend    │  more unbacked claims than the draft → asked once more, same request, free
+ given back   ├─ the answer replaces the editor; fabrication flags shown (advisory)
+ (undo_       └─ charge: { charged, premium, allowanceId, followUpsLeft, credits }
+ generation)       → the balance and "Free improvements on this answer: N" shown,
+                     the allowance id kept with the saved answer
 ```
+
+**Credit rule:** one credit buys an answer plus two free improvements of it,
+for 30 days (three until 2026-10-20, the owner's call); Premium never pays.
+The rule line under the balance says so. The server decides every charge
+(`server/lib/generationSpend.js`, `ANSWER_FREE_IMPROVEMENTS`); the page only
+mirrors its count, and refuses early at a balance of 0. Each step of the
+spend is one conditional statement in the database, so two presses holding
+the last credit cannot both spend it: four concurrent spends against three
+credits in the real run charged three and refused one, and the balance never
+went below 0. A request without `kind` (an old client) is charged a credit
+and granted nothing.
+
+An answer's improvements belong to the answer: a saved answer keeps its
+allowance (`aiAllowanceId`), and an unsaved one is kept with its question in
+`sessionStorage` for the tab, so a reload brings both back (since 2026-10-20;
+before, the reload lost the improvements). Saving it, "New answer", a new
+question or another profile drops the unsaved one.
 
 **Hourly ceiling:** the generate route refuses an account's drafts past
 `GENERATE_LIMIT_PER_HOUR` (default 30, Premium included) with a 429 and when
-to try again, before the model is called (`server/generateLimit.js`; it fails
-open if its table is missing). Cover letters count against the same ceiling.
+to try again, before the spend and the model (`server/generateLimit.js`; it
+fails open if its table is missing). Cover letters count against the same
+ceiling. With the ceiling at 2 the real run got 200, 200, 429, 429, and the
+refusals charged nothing.
 
-**Credit rule:** one credit buys an answer plus three improvements of it.
-The page charges after the fact; see `HANDOVER.md` §7 item 25 and
-`docs/plans/active/server-side-generation-charging.md`. The dashboard has no
-access to the job page: the description is pasted (the popup can read it).
+The dashboard has no access to the job page: the description is pasted.
 
 Saving de-duplicates against existing questions *and* answers
 (case-insensitive) when adding; editing updates in place. Every save writes
-the store and syncs to the extension.
+the store and syncs to the extension. "New answer" clears the editor and
+puts the cursor in the Question field.
 
 ---
 
-## 6. Cover letters (dashboard and popup)
+## 6. Cover letters (dashboard, popup and the job page)
+
+Written on the dashboard, filled from the popup:
 
 ```text
-Templates: up to 10 per profile, typed, pasted or uploaded (.txt/.md)
+Templates: up to 10 per profile, typed, pasted or uploaded (.txt/.md), on the dashboard
         │
         ▼
 Select a template ──► company, role, job description
-        │   (dashboard: pasted · popup: read from the open page, else pasted)
+        │   (pasted, or filled in by the job-page button: §6.1)
         │
-        ├─ no template body / no description → says which
-        ├─ credit check (src/coverLetterCredits.js):
+        ├─ no template body / no description → says which; Personalise stays off
+        ├─ cost (src/coverLetterCredits.js, mirrored for the hint):
         │     free if Premium, or a re-run: same template, same description
         │     (its first 6000 characters, case and spacing aside)
         │     otherwise 1 credit; at 0 → "No credits remaining. Premium makes
-        │     cover letters unlimited." (no AI call)
+        │     cover letters unlimited." (no request is sent)
         ▼
-POST /api/answer-vault/generate
+POST /api/answer-vault/generate { kind: 'cover_letter', allowanceId? }
    question: "<label> for this application", draft: the template body,
+   job context: "Organization: …\nRole: …\n\n<description>",
    taskHint: rewrite for this opportunity, keep the voice, name the company
    and role, weave in 2–4 requirements, ±10% of the original length
         │
+        ├─ the server spends as for answers (§5), with the allowance keyed to
+        │  the description it was sent (not the company or role lines): a
+        │  charge grants 1 free re-run for that description, for 30 days
         ▼
 Result beside the original
-        ├─ paid → POST /api/credits/deduct → one free re-run stored on the template
-        │         (aiRerunsLeft, aiRerunKey); a failed deduct stores none
-        ├─ re-run → its allowance used up
-        ├─ Copy · Save version (company, role, description excerpt, body)
-        └─ popup only: Fill page → FILL_COVER_LETTER into the best text field
+        ├─ the template keeps the server's allowance (aiAllowanceId; aiRerunsLeft
+        │  and aiRerunKey mirror it for the hint)
+        └─ Copy · Save version (company, role, description excerpt, body)
+                    │
+                    ▼  ONEXTAP_SYNC_DATA (coverLetters, with the profile)
+Popup ▸ Cover ▸ Saved versions ─► Fill ─► FILL_COVER_LETTER into the open page
 ```
 
-Beside the button, the next press's cost is spelled out: a free re-run,
-"Uses 1 credit, which includes one free re-run", or no credits left.
-Personalising stamps `lastUsed` on the template.
+Beside the button, the next press's cost is spelled out: "This one is a free
+re-run.", "Uses 1 credit, which includes one free re-run.", or no credits
+left. Personalising stamps `lastUsed` on the template. In the real run: a
+personalisation charged, the same description's re-run was free, another
+description was charged again.
 
-**In the popup**, all of this needs a session the popup cannot get yet (§2,
-HANDOVER.md §7 item 27). Signed out, which today is everyone, the tab keeps
-its templates and saved versions but, in place of the target fields and the
-button, says personalising is on the dashboard:
+**The popup's Cover tab is read-only** (completion plan D6;
+`src/components/shared/CoverLetterPanel.jsx`): the active profile's saved
+versions, newest first, each with Open (the whole text), Copy and Fill, and
+"Manage templates on the dashboard", which opens
+`<site>/dashboard/?extensionId=<id>&view=cover`. No Upload, Add, Edit or
+Delete, no personalising, no credits: the popup has no sign-in (§2).
+
+### 6.1 The job-page button (extension 1.0.4)
 
 ```text
-Popup ▸ Cover Letter (signed out)
+User on a job posting or application page opens the popup
         │
         ▼
-"Personalize on the dashboard" ──► <site>/dashboard/?extensionId=<id>&view=cover
+PopupView: inject content.js ──► MOUNT_COVER_BUTTON (also after AUTOFILL_TRIGGERED)
         │
         ▼
-Dashboard: personalise ─► Save version ─► ONEXTAP_SYNC_DATA (coverLetters)
+content.js: a cover-letter field (by its keywords; not the Onextap site)?
+        │   no → nothing
+        ▼   yes
+"Customize cover letter" inside the field's bottom-right corner
+        │   click
+        ▼
+scrapePageContext() + scrapeRole() + the page's url ──► OPEN_COVER_CUSTOMIZER
         │
         ▼
-Popup ▸ Saved versions ─► Fill ─► FILL_COVER_LETTER into the open page
+Worker: job sanitised and capped, kept in chrome.storage.session for 30 minutes,
+        dashboard opened next to the job tab:
+        <site>/dashboard/?view=cover&handoff=<uuid>&extensionId=<runtime id>
+        │
+        ▼
+Dashboard: handoff id → this tab's sessionStorage, before the sign-in check
+        ├─ signed out → sign in (email or Google) → back to /dashboard/
+        ▼
+Cover Letter workspace, once the account is confirmed:
+   ONEXTAP_HELLO says current + cover-handoff → GET_COVER_HANDOFF { id } (read once)
+        ├─ job with a description → company, role, description filled:
+        │     "Filled from the job page: check it before personalising"
+        ├─ job with no description (an application form with no ad on it)
+        │     → company and role filled: "…which has no job description on
+        │       it. Paste the description below to personalise."
+        ├─ expired or already read → "The job page's details have expired…"
+        └─ no extension that can answer → "The extension couldn't be reached
+              for the job page's details. Paste the description below instead."
+        │
+        ▼
+Personalise (the user's click, §6) ─► Save version ─► popup ▸ Cover ▸ Fill
 ```
 
-A template made in the popup is replaced at the next dashboard save
-(HANDOVER.md §7 item 28). The signed-in path above is kept for when the
-popup gets a sign-in; `npm run test:e2e:extension` drives both, the signed-in
-one with a session put in place.
+**What the page gives.** Both scrapers (`scrapeJobPage()` in the worker and
+`scrapePageContext()` in `content.js`) take the longest description
+candidate that is not an application control and holds none
+(`SELECTORS.formControls`: a textarea or a file input; a search box or a
+filter doesn't count), and fall back to the page's text only on a page with
+no such control; an application form with no job ad outside it gives an
+empty description. Capped at 8,000
+characters.
+
+**In the real run** (dev project, 1.0.4 unpacked, 2026-10-20):
+
+- Greenhouse, a posting on `job-boards.greenhouse.io`: the button sat in the
+  cover-letter field's corner; the dashboard opened filled in; a saved
+  version came back to the popup and Fill put it in the field.
+- Lever, an `/apply` page: the button and the company and role were right,
+  but the description was the whole page (a cookie notice, the form's
+  questions). Greenhouse's description also carried the form's questions
+  (its `<main>`, holding the form, outran the description). Both are what
+  the form-controls rule above fixes; it came after the run and is covered
+  by unit tests and `web/tests/cover-handoff.spec.js` (a form-only apply
+  page), not re-run on the real boards.
+- MyGreenhouse (`my.greenhouse.io`, the job seekers' portal): no button,
+  most likely because its form is not in the tab's top frame, where
+  `content.js` is injected only: `activeTab` reaches the tab's own origin,
+  and an embedded form would need host permissions for the board, which the
+  extension does not ask for (an escalation). An open question for the
+  owner.
+- Signed out: the job survived an email sign-in and the dashboard filled
+  in.
+
+*Not checked on real services:* Ashby, Workday and LinkedIn; the handoff
+through Google sign-in (Google was off on the dev project at the time; the
+id waits in the tab's `sessionStorage`, which Google's redirect back to the
+same tab keeps). A cover-letter field inside a modal `<dialog>`, a popover
+or an iframe gets no button (`docs/extension-protocol.md`, "The button's
+known limits").
 
 ---
 
@@ -416,15 +558,27 @@ AI-scored, filters broadened, the hourly limit, a thin pool)
         ├─ Sort: re-orders what is in hand, no re-rank
         ├─ Refresh: the one way to ask the same question again
         └─ Explain my fit ──► POST /api/jobs/explain
-                 the server spends a credit first (403 at 0, 503 without
-                 migration 007), refunds if the analysis fails; reopening an
-                 explained job is free
+                 the server spends a credit before the analysis (kind
+                 'explain': a "Job fit analysis" credit row and a receipt row
+                 with no follow-ups; Premium free; 403 at 0, 503 without
+                 migration 007), refunds it once if the analysis fails;
+                 reopening an explained job is free
 ```
 
 The last result is kept in memory, keyed by the resume and the applied
 filters, so leaving the page and coming back does not re-rank (a reload
 does). Only the parsed fields the ranker needs, and for Explain the resume
 corpus, leave the device, as request bodies.
+
+**Rank budget.** A rank sends jobs to Gemini in batches of up to 30
+(`RANK_BATCH_SIZE`), each reply capped at `RANK_MAX_TOKENS` (6,500 since
+2026-10-20; the owner's profile needed ~5,200 for 30 jobs, and 5,000 cut
+it off). With a richer profile a reply can still run out before its last jobs: the
+parser keeps every entry the reply finished (`server/llmJson.js`; before
+2026-10-20 a cut-off reply lost all 30) and the rest are keyword-scored,
+which the cards say ("partly AI-scored"). A clean result is cached for 6 hours, a mostly scored one
+for 30 minutes, a keyword-only one not at all. Real-run timings: 8 to 23 s a
+rank, about 0.4 s from the cache; one "Explain my fit" took 6 s.
 
 ---
 
@@ -466,17 +620,43 @@ Pro without dates (Dodo could not be reached).
 
 | Webhook event | Effect on `profiles` |
 |---|---|
-| `subscription.active` | `is_premium = true`, subscription and customer ids, `status = active`, `premium_since = now()` |
+| `subscription.active` | Linked (below): `is_premium = true`, subscription and customer ids, `status = active`, `premium_since = now()` |
 | `subscription.renewed` | `is_premium = true`, `status = active` |
 | `subscription.on_hold` | `status = on_hold`, `payment_failed = true`, `last_failed_payment = now()` |
 | `subscription.cancelled` | `is_premium = false`, `status = cancelled`, `cancelled_at = now()` |
 | `subscription.failed` | `is_premium = false`, `status = failed` |
 | `payment.failed` | `payment_failed = true`, `last_failed_payment = now()` |
 
-Unresolvable users are logged and skipped; the webhook still answers
-`{ received: true }` so Dodo does not retry forever. Once per visit, as the
-dashboard boots, `verify-premium` re-checks Premium against Dodo, and a
-Premium that has lapsed comes back to a real balance.
+**One account, one subscription** (`server/subscriptionGuard.js`). Checkout
+refuses an account already Pro, but two checkouts can both be paid before the
+first webhook lands (two tabs, a double click). `subscription.active` links
+with one conditional write and decides:
+
+| The account's linked subscription | `subscription.active` for a new one |
+|---|---|
+| none, or one that has ended | linked; Pro on |
+| the same one again (a redelivery or a resend) | Dodo asked first: still in force, linked again (the first `premium_since` kept); ended, nothing written; Dodo unreachable, linked again |
+| one in force (`active`, `trialing`) | a duplicate: cancelled at Dodo at once, a warning naming both ids ("refund its payment in Dodo": refunds stay manual), Pro stays on |
+| one stalled (`on_hold`, `paused`, `past_due`, `pending`) | linked, and the stalled one cancelled |
+| one Dodo cannot be asked about | linked |
+
+Every other event about a subscription that is not the linked one is
+ignored and logged, so a duplicate's `subscription.cancelled` cannot switch
+Pro off. A `subscription.active` the server could not finish answers 500, and
+Dodo delivers it again. In the real run: two paid checkouts linked the first
+and cancelled the second with both ids logged, and its later events were
+ignored as foreign; a resent `subscription.active` for the linked
+subscription changed nothing; Switch to Standard showed the pending end; an
+immediate cancel in Dodo's dashboard turned Premium off through
+`subscription.cancelled`.
+
+Unresolvable users, and accounts already deleted, are logged and skipped;
+the webhook still answers `{ received: true }` so Dodo does not retry
+forever. Once per visit, as the dashboard boots, `verify-premium` re-checks
+Premium against Dodo, and a Premium whose subscription can no longer bill
+(cancelled, failed, expired) comes back to a real balance. On hold or past
+due, Dodo is still retrying the payment, and Premium stays on, as the
+webhook leaves it (since 2026-10-20).
 
 ---
 
@@ -488,14 +668,38 @@ The settings menu (`web/dashboard/js/settings.js`, actions in `main.js`):
   (`onextap_avatar_<user id>`). Without one: the Google photo, else initials.
 - **Manage subscription** — the plan panel (§8).
 - **Log out** — `signOut`, then removes `user_profile` and `onextap_profiles`
-  from this browser (resumes and the avatar stay), and goes to `/`.
-- **Delete account** — type `DELETE`, then `DELETE /api/account`: a billable
-  subscription is cancelled at Dodo first (the deletion stops if Dodo cannot
-  confirm), then the Supabase auth user is deleted, and `profiles`,
-  `credit_transactions`, `rank_cache`, `rank_rate_limit` and
-  `generation_rate_limit` go with it by cascade. Only then is this browser's storage cleared and the session
-  dropped. The extension's copy and other browsers keep their local data, and
-  the dialog says so.
+  from this browser (resumes and the avatar stay), and goes to `/`. The
+  extension's copy is left alone.
+- **Delete account** — type `DELETE`, then `DELETE /api/account`: every
+  subscription of the account's own that can still bill is cancelled at Dodo
+  first (the deletion stops if Dodo cannot confirm), then the Supabase auth
+  user is deleted, and `profiles`, `credit_transactions`,
+  `generation_allowances`, `rank_cache`, `rank_rate_limit` and
+  `generation_rate_limit` go with it by cascade. Only then does the browser
+  side run (`deleteAccount()` in `web/dashboard/js/services.js`):
+
+  ```text
+  DELETE /api/account succeeded
+          │
+          ├─ the extension here is current with wipe-local (1.0.4)
+          │     → ONEXTAP_WIPE_LOCAL: every key in src/localKeys.js removed
+          │       from chrome.storage.local (the popup is back at Welcome)
+          │     → no confirmation within 5 s: an error toast says the account
+          │       is deleted but the extension kept its copy
+          ├─ legacy (1.0.2), or current without wipe-local → not asked
+          └─ absent → not asked
+          │
+          ▼
+  this browser's localStorage cleared ─► signed out ─► /
+  ```
+
+  The dialog says which before you confirm: "The Onextap extension in this
+  browser is cleared too" (1.0.4); "…a version that can't be cleared from
+  here: its copy stays until you remove the extension" (1.0.2); with none
+  found, an extension used elsewhere keeps its copy until removed there.
+  Copies in other browsers always stay. In the real run, with 1.0.2 the
+  dialog showed its "can't be cleared" line, with 1.0.4 the popup was back
+  at Welcome afterwards, and every row of both accounts was gone.
 
 ---
 
@@ -517,13 +721,17 @@ reads as Job.
 | Dashboard boot | `/api/me` unreachable | Session-only view; "Couldn't load your account…" |
 | Sign-in window | Supabase refuses | The reason in plain words; the form kept |
 | Resume upload | Any pre-flight or parse failure | A specific message naming the cause |
-| Answer Studio, cover letters | Generation fails | Inline error; no credit spent |
-| Answer Studio, cover letters | Generation succeeds, deduct fails | The text kept, a warning, no free follow-ups |
-| Answer Studio, cover letters | No credits | Refused before the AI call |
-| Answer Studio, cover letters | Past the hourly ceiling | 429: "That's the limit of N AI drafts an hour. Try again in M minutes." |
+| Answer Studio, cover letters | Generation fails | Inline error; the server gives the credit or the free follow-up back |
+| Answer Studio, cover letters | No credits | The page refuses before sending; the server's own answer is a 403, nothing generated |
+| Answer Studio, cover letters, Explain my fit | The spend cannot be made (migration 007 missing, the database unreachable) | 503: "AI writing is unavailable right now, so nothing was generated or charged." / "Couldn't check your credits, so nothing was generated." |
+| Answer Studio, cover letters | Past the hourly ceiling | 429: "That's the limit of N AI drafts an hour. Try again in M minutes."; nothing charged |
 | Reset page | No link, an expired or refused link | "Open the link from your email." / "This link can't be used." and a new link |
 | Explain my fit | No credits / a failure after the charge | 403 refusal / the credit refunded by the server |
 | Profile save | Extension did not confirm | "Saved here — the extension didn't confirm the sync" |
+| Profile save | Store 1.0.2 installed | "Saved — the extension is out of date: update it" |
+| Cover Letter, from the job page | The handoff expired (30 min) or was already read / no extension that can answer / no description on the page | An amber or clay note saying so, and to paste the description (§6.1) |
+| Job-page button | The page could not be read, the extension was updated since the page loaded, or the dashboard did not open | Said in the button's own UI |
+| Delete account | The extension promised a wipe and did not confirm it | The deletion stands; an error toast says the extension kept its copy and that removing it clears it |
 | Feedback form | `/api/feedback` fails | "That didn't go through. Try again in a moment." |
 | Popup render | Thrown error | `ErrorBoundary` with "Copy diagnostics" |
 | Popup autofill | Restricted page | "Error: Cannot access this page" |
@@ -536,7 +744,7 @@ reads as Job.
 
 | Key | Where | Contents |
 |---|---|---|
-| `onextap_profiles` | extension: `chrome.storage.local`; web: `localStorage` | `{ profiles: { id: { name, isDefault, autofillData, coverLetters, savedAnswers } }, activeProfileId }` |
+| `onextap_profiles` | extension: `chrome.storage.local`; web: `localStorage` | `{ profiles: { id: { name, isDefault, autofillData, coverLetters, savedAnswers } }, activeProfileId }`; saved answers and templates carry the server's `aiAllowanceId` |
 | `user_profile` | same | Flat mirror of the active profile |
 | `onextap_resumes` | same | The resume library (parsed fields and text, never the file) |
 | `onextap_application_type` | extension | `job` (the only live type) |
@@ -544,6 +752,13 @@ reads as Job.
 | `onextap_avatar_<user id>` | web | The avatar chosen on this device |
 | `dashboard.dock` | web | Where the dashboard's dock sits |
 | `sb-<project ref>-auth-token` | web: `localStorage`; extension: `chrome.storage.local` | The Supabase session |
+| `coverHandoff:<uuid>` | extension: `chrome.storage.session` | A job from the job-page button: 30 minutes or one read, whichever first; gone when the browser closes |
+| `onextap_cover_handoff` | web: the tab's `sessionStorage` | That handoff's id, until the Cover Letter workspace takes it |
 | `profiles` row | Postgres | Account, credits, premium and Dodo ids — **never profile content** |
 | `credit_transactions` | Postgres | Every credit movement, written by the server only |
+| `generation_allowances` | Postgres | One row per charge: the free follow-ups it bought, for 30 days, and its receipt for a refund (migration 007) |
 | `generation_rate_limit` | Postgres | Drafts counted in the account's current hour (migration 006) |
+| `rank_cache`, `rank_rate_limit` | Postgres | Job Matches' cached results and hourly rank count (migration 002) |
+
+The extension's keys in `chrome.storage.local` are listed once, in
+`src/localKeys.js`: what the wipe on account deletion removes (§9).

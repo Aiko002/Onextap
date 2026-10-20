@@ -50,7 +50,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const JOB_DESCRIPTION = 'Senior Backend Engineer. Requirements: Python, PostgreSQL.';
 const JOB = `Organization: Norwick Labs\n${JOB_DESCRIPTION}`;
 
-test('a generation is charged before it runs: one credit, the usage row, three improvements granted', async () => {
+test('a generation is charged before it runs: one credit, the usage row, two improvements granted', async () => {
   const who = account({ credits: 2 });
   const before = modelCalls();
   const res = await generate(who, { question: 'Why do you want to work here?', kind: 'answer' });
@@ -58,7 +58,7 @@ test('a generation is charged before it runs: one credit, the usage row, three i
   assert.match(res.body.text, /^Draft number \d+/);
   assert.equal(res.body.charge.charged, true);
   assert.equal(res.body.charge.premium, false);
-  assert.equal(res.body.charge.followUpsLeft, 3);
+  assert.equal(res.body.charge.followUpsLeft, 2);
   assert.equal(res.body.charge.credits, 1);
   assert.match(res.body.charge.allowanceId, UUID);
   assert.equal(store.account(who.id).credits, 1);
@@ -66,11 +66,11 @@ test('a generation is charged before it runs: one credit, the usage row, three i
   assert.equal(modelCalls(), before + 1);
 });
 
-test('an answer’s three improvements are free, then the next one is paid', async () => {
+test('an answer’s two improvements are free, then the next one is paid', async () => {
   const who = account({ credits: 2 });
   const first = await generate(who, { question: 'Why us?', kind: 'answer' });
   let allowanceId = first.body.charge.allowanceId;
-  for (const left of [2, 1, 0]) {
+  for (const left of [1, 0]) {
     const res = await generate(who, { question: 'Why us?', draft: 'My draft.', kind: 'answer', allowanceId });
     assert.equal(res.status, 200);
     assert.equal(res.body.charge.charged, false, `improvement with ${left} left after it`);
@@ -102,6 +102,20 @@ test('a cover letter’s re-run is free for the same job context, and another jo
   assert.equal(rerun.status, 200);
   assert.equal(rerun.body.charge.charged, false);
   assert.equal(rerun.body.charge.followUpsLeft, 0);
+  assert.equal(store.account(who.id).credits, 0);
+});
+
+// B5's review: every empty description shares applicationKey(''), so one such
+// letter's re-run would be free for any other.
+test('a cover letter with no job description is charged and grants no re-run', async () => {
+  const who = account({ credits: 2 });
+  for (const jobContext of ['', 'Organization: Norwick Labs\nRole: Staff Engineer\n\n']) {
+    const res = await generate(who, { question: 'Cover Letter for this application', draft: 'Dear team,', jobContext, kind: 'cover_letter' });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.charge.charged, true);
+    assert.equal(res.body.charge.followUpsLeft, 0);
+    assert.equal(res.body.charge.allowanceId, null);
+  }
   assert.equal(store.account(who.id).credits, 0);
 });
 
@@ -209,9 +223,9 @@ test('a free improvement that fails gets its use back', async () => {
   } finally {
     groq.state.reply = defaultReply;
   }
-  assert.equal(store.allowances.get(allowanceId).remaining, 3);
+  assert.equal(store.allowances.get(allowanceId).remaining, 2);
   const next = await generate(who, { question: 'Why us?', kind: 'answer', allowanceId });
-  assert.equal(next.body.charge.followUpsLeft, 2);
+  assert.equal(next.body.charge.followUpsLeft, 1);
   assert.equal(txFor(who).length, 1, 'one charge, no refund');
 });
 
@@ -253,7 +267,7 @@ for (const [what, reply, message] of AFTER_SPEND_FAILURES) {
     }
     assert.equal(res.status, 502);
     assert.match(res.body.error, message);
-    assert.equal(store.allowances.get(allowanceId).remaining, 3, 'the improvement is back');
+    assert.equal(store.allowances.get(allowanceId).remaining, 2, 'the improvement is back');
     assert.equal(store.account(who.id).credits, 0);
     assert.deepEqual(txFor(who).map((t) => t.type), ['usage'], 'one charge, no refund');
   });
@@ -304,7 +318,7 @@ test('the Improve retry is part of the paid request: two model calls, one charge
   assert.equal(supabase.calls.filter((c) => c.path === '/rest/v1/rpc/spend_generation').length, spendsBefore + 1);
   assert.deepEqual(txFor(who), [{ userId: who.id, amount: -1, type: 'usage', description: 'Answer Studio generation' }]);
   assert.equal(store.account(who.id).credits, 1);
-  assert.deepEqual(res.body.charge, { charged: true, premium: false, allowanceId: res.body.charge.allowanceId, followUpsLeft: 3, credits: 1 });
+  assert.deepEqual(res.body.charge, { charged: true, premium: false, allowanceId: res.body.charge.allowanceId, followUpsLeft: 2, credits: 1 });
   // The retry continues the first answer's conversation.
   const retry = groq.calls.at(-1);
   assert.equal(retry.messages.length, 4);
@@ -353,9 +367,9 @@ test('no profile row yet: it is created with the welcome credits, then charged',
 test('the client cannot choose what a charge grants', async () => {
   const who = account({ credits: 1 });
   const res = await generate(who, { question: 'Why us?', kind: 'answer', free: 99, p_free: 99, followUpsLeft: 99 });
-  assert.equal(res.body.charge.followUpsLeft, 3);
+  assert.equal(res.body.charge.followUpsLeft, 2);
   const spendCall = supabase.calls.filter((c) => c.path === '/rest/v1/rpc/spend_generation').at(-1);
-  assert.equal(spendCall.body.p_free, 3);
+  assert.equal(spendCall.body.p_free, 2);
 });
 
 test('Explain my fit is charged through the same atomic spend', async () => {
@@ -409,4 +423,17 @@ test('refundOneCredit() gives back the charge it is handed, once, and nothing wi
 
 test('nothing in these tests reached past loopback', () => {
   assert.deepEqual(harness.blocked, []);
+});
+
+// B5's review: undo_generation() gives a free follow-up its use back each time
+// it is called, so the server undoes a spend once, whatever asks again.
+test('a spend is given back once, however many error paths ask', async () => {
+  const { spendGeneration, undoGeneration } = await import('../../server/lib/credits.js');
+  const who = account({ credits: 1 });
+  const paid = await spendGeneration({ userId: who.id, kind: 'answer', free: 2, description: 'Answer Studio generation' });
+  const free = await spendGeneration({ userId: who.id, kind: 'answer', allowanceId: paid.allowanceId, free: 2 });
+  assert.equal(store.allowances.get(paid.allowanceId).remaining, 1);
+  await undoGeneration(who.id, free, 'Credit refunded (failed AI generation)');
+  await undoGeneration(who.id, free, 'Credit refunded (failed AI generation)');
+  assert.equal(store.allowances.get(paid.allowanceId).remaining, 2, 'one use back, not two');
 });

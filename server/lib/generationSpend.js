@@ -45,7 +45,7 @@ export const SPEND_KINDS = Object.freeze(['answer', 'cover_letter', 'explain']);
 export const CLIENT_KINDS = Object.freeze(['answer', 'cover_letter']);
 
 /** Free improvements one paid answer buys (Answer Studio's rule). */
-export const ANSWER_FREE_IMPROVEMENTS = 3;
+export const ANSWER_FREE_IMPROVEMENTS = 2;
 
 /** How long granted follow-ups last. The SQL's column default says the same. */
 export const FOLLOW_UP_DAYS = 30;
@@ -53,7 +53,7 @@ export const FOLLOW_UP_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Follow-ups a charge of this kind grants: 3 for an answer, the cover
+ * Follow-ups a charge of this kind grants: 2 for an answer, the cover
  * letter's re-run from src/coverLetterCredits.js, none for anything else.
  * @param {string} kind
  * @returns {number}
@@ -72,7 +72,9 @@ export function freeFollowUps(kind) {
  * line, and only a short one counts as a header: a long first line is part
  * of the description, so a whole other job cannot ride in the company field.
  */
-const CONTEXT_HEADERS = [/^Organization:[^\n]{0,200}\n/, /^Role:[^\n]{0,200}\n/];
+// A header may also end the text: the route trims the context, so a
+// company and role with no description lose their last newline.
+const CONTEXT_HEADERS = [/^Organization:[^\n]{0,200}(?:\n|$)/, /^Role:[^\n]{0,200}(?:\n|$)/];
 
 /**
  * The job description inside a cover letter's job context: the context with

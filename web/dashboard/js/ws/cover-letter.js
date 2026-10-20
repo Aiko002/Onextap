@@ -215,7 +215,10 @@ export function mount(body, ctx) {
     roleIn.value = text(job.role);
     descIn.value = text(job.description);
     if (errorText) { errorText = ''; renderResult(); }
-    showHandoff('olive', 'Filled from the job page: check it before personalising');
+    // An application form with no job ad on it (Lever's /apply page, say):
+    // the scrapers leave the description empty rather than send the form.
+    if (descIn.value.trim()) showHandoff('olive', 'Filled from the job page: check it before personalising');
+    else showHandoff('amber', 'Filled the company and role from the job page, which has no job description on it. Paste the description below to personalise.');
     refreshPersonalize();
   }
 

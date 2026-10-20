@@ -2,12 +2,15 @@
 
 How the website and the popup talk to the extension's service worker: every
 message, who may send it, what it answers, and what store 1.0.2 (the version
-most users have) answers instead. Written in B1 from §3 of
-`docs/plans/active/completion-plan.md`; B3 added its messages.
+most users have) answers instead. Final for extension 1.0.4, protocol 2:
+checked on 2026-10-20 against `extension/messages/`, `public/content.js` and
+§3 of `docs/plans/active/completion-plan.md`, and against a real run on the
+dev project (`docs/app-flow.md` §3.1, §6.1, §9).
 
 The worker's side is `extension/messages/` (one module per message, routed by
 `registry.js`, senders classified by `senders.js`). The website's and the
-popup's side is `src/extensionClient.js`.
+popup's side is `src/extensionClient.js`. A new message is a module there and
+a line in `MESSAGES` (`registry.js`), and a row here.
 
 ## Messages
 
@@ -19,7 +22,7 @@ reads both too). Every reply is `{ success: true, ... }` or
 | --- | --- | --- | --- | --- |
 | `ONEXTAP_SYNC_DATA` | site | `{ payload }`: the active profile, flat `user_profile` shape | `{ success }`. Files the payload into `onextap_profiles` as the active profile (`extension/profileSync.js`) and writes the `user_profile` mirror. No object payload: `{ success: false, error: 'No profile payload' }`. | 1.0.2 |
 | `PARSE_RESUME` | site (old sites only) | `{ data: { fileData, fileName, fileType, token } }` | `{ success, data, text }`, proxied to `POST /api/parse-resume`; a refusal is `{ success: false, error, debug: { status } }`. Kept because today's production website sends it; nothing new does (see Resume parsing). | 1.0.2 |
-| `SCRAPE_ACTIVE_TAB` | site, popup | none | `{ success, context: { company, description } }`, from `scrapeJobPage()` in the active tab; `'Cannot read this page'` for no tab or a page Chrome will not script. | 1.0.2 |
+| `SCRAPE_ACTIVE_TAB` | site, popup | none | `{ success, context: { company, description } }`, from `scrapeJobPage()` in the active tab (see The scrapers: `description` is `''` on an application form with no job ad); `'Cannot read this page'` for no tab or a page Chrome will not script. | 1.0.2 |
 | `GENERATE_IMPROVED_ANSWER` | popup | `{ data: { token, ...body } }` | `{ success, text }`, proxied to `POST /api/answer-vault/generate` with `token` as the bearer header only. | 1.0.2 |
 | `ONEXTAP_HELLO` | site, popup | `{}` | `{ success: true, version, protocol: 2, capabilities }`. `version` is the manifest's. | 1.0.4 |
 | `OPEN_COVER_CUSTOMIZER` | content script only, top frame | `{ job: { company, role, description, url } }`, read off the job page | `{ success: true }`: the job is kept for the dashboard, which opens next to the job's tab. `'No job to hand over'`, `'Only from the top frame'`, `'Could not open the dashboard'`. See the handoff below. | 1.0.4 |
@@ -39,6 +42,16 @@ starts with "Unknown action", so the website cannot take a current build for
 site only): `getExtensionInfo()` is a `src/` module and runs in the popup too,
 and the reply is read-only.
 
+**Who sends them today.** This repo's website sends `ONEXTAP_HELLO`,
+`ONEXTAP_SYNC_DATA`, `GET_COVER_HANDOFF` and `ONEXTAP_WIPE_LOCAL`; the 1.0.4
+popup sends `MOUNT_COVER_BUTTON` (to the content script), and the content
+script `OPEN_COVER_CUSTOMIZER`. Nothing in this repo sends `PARSE_RESUME`,
+`SCRAPE_ACTIVE_TAB` or `GENERATE_IMPROVED_ANSWER` any more. The worker
+still answers all three the 1.0.2 way: today's production website sends
+`PARSE_RESUME` and `SCRAPE_ACTIVE_TAB` (and `ONEXTAP_SYNC_DATA`), the store
+build may ship before the new website deploys, and 1.0.4 answers every
+message 1.0.2 answers (`test/extension/workerCompat.test.js`).
+
 ## Senders
 
 The worker sorts every sender into one of three kinds
@@ -57,8 +70,10 @@ Chrome already refuses external messages from origins outside
 `externally_connectable.matches`; the worker checks again as defence in depth.
 The allowlist is read from the running build's manifest
 (`chrome.runtime.getManifest()`), so a release manifest without the localhost
-entries narrows it with no code change. Today it is `https://www.onextap.com`,
-`https://onextap.com` and `http://localhost:5173`.
+entries narrows it with no code change. In a dev build it is
+`https://www.onextap.com`, `https://onextap.com` and `http://localhost:5173`;
+the release build (`npm run build:release`, `scripts/releaseManifest.js`)
+drops `http://localhost:5173`. Store 1.0.2's manifest still lists it.
 
 Nothing else is accepted: another extension, a page off the list, an internal
 sender with another id.
@@ -68,11 +83,14 @@ sender with another id.
 What `ONEXTAP_HELLO` reports, collected from the registered messages (each
 module may name one):
 
-| Capability | Means | Arrives |
+| Capability | Means | Named by |
 | --- | --- | --- |
-| `profile-sync` | Dashboard edits reach the popup, also after its first open | B1 (`ONEXTAP_SYNC_DATA` into `onextap_profiles`) |
-| `cover-handoff` | The job-page button hands a job to the dashboard's cover-letter workspace | B3 |
-| `wipe-local` | Deleting the account can clear the extension's storage | B3 |
+| `profile-sync` | Dashboard edits reach the popup, also after its first open (`ONEXTAP_SYNC_DATA` into `onextap_profiles`) | `syncData.js` |
+| `cover-handoff` | The job-page button hands a job to the dashboard's cover-letter workspace | `openCoverCustomizer.js`, `getCoverHandoff.js` |
+| `wipe-local` | Deleting the account can clear the extension's storage | `wipeLocal.js` |
+
+All three arrive together in 1.0.4; 1.0.2 has none (it does not answer
+`ONEXTAP_HELLO`).
 
 ## The website's view
 
@@ -117,6 +135,13 @@ a save (My Profiles):
   the store's ID: an unpacked popup messaging it would reach a different
   extension.
 
+So on a dev setup the dashboard reaches an unpacked build only when the
+address carries its ID: the popup's "Open Dashboard" and the handoff's tab
+add it. A tab opened another way (the sign-up confirmation email's link, in
+the real run) asks the store's ID, finds nothing, reads `absent`, and a save
+says "Saved on this device". Production has no such case: the site and the
+store build agree on the ID.
+
 ## Resume parsing (item 31)
 
 `src/resumeParse.js` sends every resume straight to `POST /api/parse-resume`,
@@ -142,7 +167,53 @@ messages, from any sender on either channel, with these differences:
 - It reads `action` before `type`; this build reads `type` first. No sender
   sends both.
 
-## The cover-letter handoff (B3)
+## Popup → content script
+
+`content.js` (`public/content.js`) is injected on demand into the active
+tab's top frame (`chrome.scripting.executeScript({ files: ['content.js'] })`,
+no `allFrames`), and answers the popup over `chrome.tabs.sendMessage`. These
+never pass through the worker, and ship in the same build as the popup that
+sends them, so they are not a compatibility surface with 1.0.2's worker.
+
+| Message | Reply |
+| --- | --- |
+| `AUTOFILL_TRIGGERED { profile }` | `{ success, filled }`; then mounts the cover-letter button |
+| `DETECT_SECTIONS` | `{ success, sections: { personalInfo, education, workExperience, openEnded, coverLetter } }` |
+| `FILL_COVER_LETTER { text }` | `{ success }`, false when no field matched |
+| `MOUNT_COVER_BUTTON` | `{ success, mounted }` (also read from `type`) |
+| `SCRAPE_CONTEXT` | `{ success, context: { company, description } }`, from `scrapePageContext()` |
+
+## The scrapers
+
+`scrapeJobPage()` (`extension/background.js`, serialised into the page for
+`SCRAPE_ACTIVE_TAB`) and `scrapePageContext()` (`public/content.js`, for the
+job-page button) give the same `{ company, description }`; each opens with
+the same `SELECTORS` literal (CLAUDE.md rule 5; `test/rules/rule5-*`), and
+only `scrapePageContext()` also reads the `*Academic` lists.
+
+- **Company:** `og:site_name`, else the first company selector with text,
+  else the last part of the title.
+- **Description:** the longest text among the description candidates (job
+  board classes, `article`, `main`, and in `scrapePageContext()` essay
+  markup) that is not itself an application control and holds none
+  (`SELECTORS.formControls`: `textarea, input[type="file"]`: an
+  application asks for prose or a file; a search box, a filter or a
+  newsletter field does not count). On a page with no such candidate, the
+  page's text, but only if the page has no application control at all;
+  otherwise `''`.
+  Whitespace collapsed, capped at 8,000 characters.
+
+The form-controls rule came from the real run on 2026-10-20: Lever's `/apply`
+page matched no candidate, so the description was the whole page (a cookie
+notice, the form's questions); and on Greenhouse `<main>`, holding the
+application form, outran the description `div` and brought the form's
+questions with it. Now an application form with no job ad outside it gives
+`''`, and the dashboard asks for the description (The cover-letter handoff,
+below). Known trade-offs: an essay container that wraps its own textarea
+gives `''` on college pages, and a job ad whose only candidate (`main`)
+holds a search box would too.
+
+## The cover-letter handoff
 
 A button on the job page takes the job to the dashboard's Cover Letter
 workspace, filled in.
@@ -185,9 +256,10 @@ with an `aria-label` naming Onextap; × hides it until the page loads again.
 - A class toggled on one of the field's ancestors that hides it without
   changing its size is noticed at the next scroll or resize.
 
-**The click.** `scrapePageContext()` reads the company and description, the
-button's own `scrapeRole()` the role (a job-title heading, else the title;
-the worker's `scrapeJobPage()` has no role, so nothing mirrors it), and the
+**The click.** `scrapePageContext()` reads the company and description (The
+scrapers, above: `''` on an application form with no job ad), the button's
+own `scrapeRole()` the role (a job-title heading, else the title; the
+worker's `scrapeJobPage()` has no role, so nothing mirrors it), and the
 page's address is the `url`. Then `OPEN_COVER_CUSTOMIZER`. A failure shows in
 the button's own UI: the page could not be read, the extension was updated
 since the page loaded (reload it), or the dashboard did not open.
@@ -222,9 +294,11 @@ back to it; a waiting handoff opens the Cover Letter workspace even without
 `GET_COVER_HANDOFF` only when `getExtensionInfo()` says `current` with
 `cover-handoff`. It fills company, role and description and says "Filled
 from the job page: check it before personalising"; personalising is still
-the user's click. Expired or used: "The job page's details have expired",
-with what to do. No extension that can answer: it says so, and to paste the
-description.
+the user's click. With an empty description it fills the company and role
+and says the page had no job description on it, to paste one below
+(Personalise stays off until there is one). Expired or used: "The job page's
+details have expired", with what to do. No extension that can answer: it
+says so, and to paste the description.
 
 **Top frame only.** `content.js` is injected into the tab's top frame
 (`activeTab` with `scripting`, no `allFrames`), so a cover-letter field inside
@@ -233,7 +307,10 @@ any other frame. That leaves out a form a careers page embeds from its
 applicant-tracking system's own site: `activeTab` grants the tab's top origin
 only, and reaching the embed would take host permissions for those sites,
 which the extension does not ask for (and a permission change is an
-escalation, CLAUDE.md).
+escalation, CLAUDE.md). The real run most likely met this: MyGreenhouse
+(`my.greenhouse.io`, the job seekers' portal, behind its sign-in) showed no
+button, its form apparently not in the top frame, while a posting on
+`job-boards.greenhouse.io` showed it and handed the job over.
 
 **Tests.** `test/extension/coverHandoff.test.js`: sanitising, the expiry, the
 one-time read, the sender checks, through the registry and through the
@@ -241,10 +318,14 @@ worker, and what can be checked of the button's code without a browser.
 `web/tests/cover-handoff.spec.js` (`npm run test:e2e:extension`): a job page
 with a cover-letter field, the popup, the button, the dashboard filled in,
 personalising (stubbed), saving, the version in the popup's Cover tab, and
-Fill into the page; the same arrival signed out, through sign-in; and no
-button on a page without a cover-letter field, or on the site itself.
+Fill into the page; the same arrival signed out, through sign-in; an
+application form with no job ad, which hands over no description and gets
+the dashboard's "paste the description" note; and no button on a page
+without a cover-letter field, or on the site itself.
+`test/rules/rule5-scraper-behaviour.test.js` runs both scrapers on the same
+stub pages, the form-controls rule included.
 
-## The wipe (B3)
+## The wipe
 
 Deleting the account also clears the extension's copy in this browser (the
 owner's decision, completion plan D10). Logging out does not: it leaves the
@@ -317,6 +398,11 @@ expires on its own; and store 1.0.2's `onextap_dark_mode`, a display setting
   the wipe, and that its key list covers every key the stores write.
 - `test/extension/workerImports.test.js`: the worker reaches into `src/` for
   the key list's two leaf modules only; `content.js` imports nothing.
+- `test/rules/rule5-scraper-selectors.test.js` and
+  `rule5-scraper-behaviour.test.js`: the two scrapers' `SELECTORS` match, and
+  they give the same answers on the same pages;
+  `rule9-scrape-job-page-standalone.test.js`: `scrapeJobPage()` references
+  nothing outside its body.
 - `web/tests/extension.spec.js` and `web/tests/cover-handoff.spec.js` (this
   build), and `web/tests/extension-legacy.spec.js` (store 1.0.2, with
   `E2E_LEGACY_EXTENSION_PATH`): `npm run test:e2e:extension`.

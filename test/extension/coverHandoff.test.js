@@ -295,6 +295,17 @@ test('the site reads the job once: the entry goes on the first read', async () =
   assert.deepEqual(await dispatch({ action: 'GET_COVER_HANDOFF', id }, SITE, 'external', contextFor(chrome)), GONE);
 });
 
+// scrapePageContext() gives '' on an application form with no job text
+// outside it (Lever's /apply page): the rest of the job still goes over, and
+// the dashboard asks for the description to be pasted.
+test('a job with no description is handed over and read back like any other', async () => {
+  const { chrome, state } = fakeChrome();
+  const job = { ...JOB, description: '' };
+  const id = await handedOver(chrome, state, job);
+  assert.match(id, UUID);
+  assert.deepEqual(await dispatch({ action: 'GET_COVER_HANDOFF', id }, SITE, 'external', contextFor(chrome)), { success: true, job });
+});
+
 test('two reads at once: one gets the job, the other nothing', async () => {
   const { chrome, state } = fakeChrome();
   const id = await handedOver(chrome, state);

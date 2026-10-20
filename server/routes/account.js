@@ -49,8 +49,8 @@ router.get('/api/me', requireAuth, async (req, res) => {
 //
 // Then the Supabase auth user goes, and everything keyed to it with it:
 // `profiles` references auth.users ON DELETE CASCADE, and credit_transactions,
-// rank_cache, rank_rate_limit and generation_rate_limit (migration 006) all
-// cascade from `profiles`. Profile content
+// rank_cache, rank_rate_limit, generation_rate_limit (migration 006) and
+// generation_allowances (migration 007) all cascade from `profiles`. Profile content
 // (personal details, answers, cover letters, resumes) was never on the server
 // (rule 8); the dashboard clears the browser's copy after this returns.
 router.delete('/api/account', requireAuth, async (req, res) => {

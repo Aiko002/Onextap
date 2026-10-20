@@ -369,6 +369,22 @@ test('a fenced, prefaced or comma-trailing array still parses', async () => {
   }
 });
 
+// Seen against real Gemini (B5, 2026-10-20): a rich resume made a 30-job reply
+// longer than RANK_MAX_TOKENS, the reply stopped mid-object, and the parser
+// returned the first job's matchedSignals list, so all 30 jobs were keyword
+// scored. The finished entries are the model's work and must be kept.
+test('a reply cut off at the token limit keeps every finished entry; only the cut-off tail is keyword scored', async () => {
+  const jobs = makeJobs(4);
+  const body = goodAnswer(jobs, 72);
+  const cut = body.slice(0, body.indexOf(`"jobId":"${jobs[3].jobId}"`) + 12);
+  for (const reply of [cut, '```json\n' + cut]) {
+    const { results, scoredBy } = await rankBatch({ jobs, resumeProfile: PROFILE, callModel: async () => reply });
+    assert.equal(scoredBy, 'mixed');
+    assert.deepEqual(results.map((r) => r.scoredBy), ['llm', 'llm', 'llm', 'keyword']);
+    assert.ok(results.slice(0, 3).every((r) => r.score === 72));
+  }
+});
+
 test('an array wrapped in an object is recovered rather than lost', async () => {
   const jobs = makeJobs(2);
   const callModel = async () => JSON.stringify({ results: JSON.parse(goodAnswer(jobs, 55)) });

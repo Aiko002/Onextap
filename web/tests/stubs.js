@@ -5,7 +5,7 @@
 // Not a spec file, so Playwright does not run it (testMatch: *.spec.js).
 import { applicationKey } from '../../src/coverLetterCredits.js';
 // The server's own reading of a job context, so the stub keys a re-run as it does.
-import { jobDescriptionOf } from '../../server/lib/generationSpend.js';
+import { freeFollowUps, jobDescriptionOf } from '../../server/lib/generationSpend.js';
 
 // A token that parses as a JWT, for a client that reads its claims.
 function fakeJwt(claims) {
@@ -140,7 +140,7 @@ export async function stubFeedback(page, answer = 'ok') {
                                          charged the way the server charges
                                          (server/lib/generationSpend.js): a
                                          granted follow-up is free, else one
-                                         credit, which grants 3 improvements
+                                         credit, which grants 2 improvements
                                          (kind 'answer') or 1 re-run of the
                                          same job context (kind
                                          'cover_letter'); a call with no kind
@@ -171,7 +171,7 @@ export async function stubApi(page, { credits = 3, deleteAccount = 'ok' } = {}) 
     }
     if (state.credits <= 0) return null;
     state.credits -= 1;
-    const free = kind === 'answer' ? 3 : kind === 'cover_letter' ? 1 : 0;
+    const free = freeFollowUps(kind);
     const id = `00000000-0000-4000-8000-${String(++allowanceSeq).padStart(12, '0')}`;
     allowances.set(id, { kind: kind || 'answer', subject, left: free });
     return { charged: true, premium: false, allowanceId: free > 0 ? id : null, followUpsLeft: free, credits: state.credits };

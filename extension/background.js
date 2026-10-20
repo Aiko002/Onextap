@@ -46,7 +46,7 @@ chrome.runtime.onInstalled.addListener(() => {
 // application types); this one must not.
 //
 // Returns { company, description } — description whitespace-collapsed, capped
-// at 8000 chars.
+// at 8000 chars, and '' on an application form with no job text outside it.
 /* eslint-disable no-undef -- runs in the page, not the worker; test/rules lints it standalone with browser globals */
 function scrapeJobPage() {
   // Identical in scrapePageContext() (public/content.js): change both or
@@ -84,6 +84,11 @@ function scrapeJobPage() {
       '[class*="personal-statement" i]',
       '[class*="essay" i]',
     ],
+    // A description candidate that is or holds one of these is the
+    // application form, not the description: an application asks for
+    // prose or a file. A search box, a filter or a newsletter field does
+    // not make a page a form.
+    formControls: 'textarea, input[type="file"]',
   };
 
   // Derive company name
@@ -117,14 +122,21 @@ function scrapeJobPage() {
     }
   }
 
-  // Derive job description
+  // Derive job description. A candidate holding form controls is the
+  // application form: on a page with the ad and the form together, the
+  // container of both is longer than the ad (Greenhouse's <main>). Nor is the
+  // body a fallback on a page with controls, or the form's questions become
+  // the description (Lever's /apply page matches no candidate at all); there
+  // it is left empty.
   let description = '';
+
+  const isForm = (el) => el.matches(SELECTORS.formControls) || !!el.querySelector(SELECTORS.formControls);
 
   let best = null;
   let bestLen = 0;
   for (const sel of SELECTORS.description) {
     const el = document.querySelector(sel);
-    if (el) {
+    if (el && !isForm(el)) {
       const text = (el.innerText || '').trim();
       if (text.length > bestLen) {
         bestLen = text.length;
@@ -133,7 +145,8 @@ function scrapeJobPage() {
     }
   }
 
-  description = best || (document.body && document.body.innerText) || '';
+  const hasForm = !!document.querySelector(SELECTORS.formControls);
+  description = best || (!hasForm && document.body && document.body.innerText) || '';
 
   // Collapse whitespace and cap at 8000 chars
   description = description.replace(/\s+/g, ' ').trim().slice(0, 8000);

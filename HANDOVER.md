@@ -1,21 +1,23 @@
 # Handover: Onextap backend plugged into the new landing page and dashboard
 
-**State on 2026-10-10:** built, exercised against stubs (the extension
-included, checkpoint 7), and **run against real services on a dev Supabase
-project with Dodo in test mode** (checkpoint 9): every flow in §7 item 2
-passes, except Google sign-in, not tried. Production has not been touched,
-and nothing is deployed. The site has to work with the extension already on
-the Chrome Web Store (1.0.2, not 1.0.3 as this file said until 2026-10-16;
-a 1.0.4 is being built and tested, and submitting it is the owner's later
-call, see `docs/plans/active/completion-plan.md`): it does, except profile sync from the website (§7
-item 1), which the website cannot fix alone; since checkpoint 11 it says so
-after a save instead of claiming the sync. (Resume upload with the store
-build installed, item 31, is fixed since checkpoint 11.) The keys on this machine are the dev
-project's now; production's are backed up outside the repo. **Committed and pushed**: the
-branch `merge/web-dashboard`, off `main` (`bae4abc`) of
-`github.com/Aiko002/Onextap`, is on `github.com/UncannySteel/OneXtap-latest`
-(its default branch). The first session's work is `81e1c01`, and each
-checkpoint since (§0) is its own commit.
+**State on 2026-10-20 (checkpoint 15):** built; exercised against stubs
+(lint, unit tests, both builds, the website e2e and the extension e2e with
+the real store 1.0.2 beside 1.0.4); and **run against real services on a
+dev Supabase project with Dodo in test mode twice**: at checkpoint 9, and at
+checkpoint 15 with server-side charging (migration 007, applied on dev),
+extension 1.0.4 loaded and the store's 1.0.2 beside it. Every check of the
+plan's B4 table passes (§5), Google sign-in included. Production has not
+been touched, and nothing is deployed: `docs/deploy-checklist.md` is the
+owner's order of operations for that, and batch B6 of
+`docs/plans/active/completion-plan.md` (branding, then the 1.0.4 release
+zip) comes first. The live store version is 1.0.2; the website works with
+it and says honestly what it can't do (§7 item 1). The keys on this machine
+are the dev project's; production's are backed up outside the repo.
+**Committed and pushed**: the branch `merge/web-dashboard`, off `main`
+(`bae4abc`) of `github.com/Aiko002/Onextap`, is on
+`github.com/UncannySteel/OneXtap-latest` (its default branch). The first
+session's work is `81e1c01`, and each checkpoint since (§0) is its own
+commit.
 
 Section 7 lists every problem found that is still open. Read it before
 deploying. Section 0 is the log of the sessions since, newest last: start
@@ -202,7 +204,7 @@ Done:
   build under `vite preview`: the Contact page's feedback posted to
   `localhost:5174/api/feedback`, with every request to onextap.com blocked
   and none attempted.
-- **§7 item 25 designed** (not built): `docs/plans/active/server-side-generation-charging.md`.
+- **§7 item 25 designed** (not built): `docs/plans/completed/server-side-generation-charging.md`.
   One table of server-granted follow-ups, two atomic database functions,
   charging inside the generate route before the model call, and a rollout
   where `/api/credits/deduct` becomes a no-op so no old client is double
@@ -855,7 +857,7 @@ findings went back to the builders, and the gate was re-run on the result.
   outside B2): in an unlucky interleaving with the on-hold replacement it
   could switch Pro off until the next event.
 - **Deviations from the design document**
-  (`docs/plans/active/server-side-generation-charging.md`): the migration is
+  (`docs/plans/completed/server-side-generation-charging.md`): the migration is
   007 (006 was taken); a third kind, `explain`; both functions take a
   description for the audit row and raise `no_profile` and `bad_kind`; the
   stored field is `aiAllowanceId`; `charge` has a `premium` field and drops
@@ -1141,6 +1143,155 @@ changes until they run.
 and paste: `Run batch B5 of docs/plans/active/completion-plan.md.` The plan's
 Status notes say how to resume B4's checks.
 
+**Owner's answers (at the start of B5's session):** the Google provider "is
+on" (it was not, see checkpoint 15); go ahead with check 7.
+
+### Checkpoint 15 (2026-10-20, session 12): B5, with B4's owner checks against real services
+
+The owner ran B4's queued checks at the keyboard, against the dev project:
+the dev Supabase project, Dodo in test mode, real Groq and Gemini, the API
+reached by Dodo through a Cloudflare quick tunnel, 1.0.4 (`dist/`) loaded in
+a Chrome profile of its own and the store's 1.0.2 in Profile 1. Every result
+was checked against the dev database (a read-only probe printing balances
+and row counts) and the API's debug log, not taken on the owner's word: three
+times an answer said a step was done that had not reached the server, and
+the step was run again. The session paused overnight between the e2e gate
+and the checks. B5's own work (the deploy checklist, the docs, the final
+review) ran around them.
+
+**B4's checks** (the plan's table; §5 has the results):
+- Migration 007 applied to the dev project by the owner, the whole file in
+  the SQL Editor; a read-only probe passes (the table answers, the service
+  role sees both functions, the anon key reads no allowance rows).
+  `supabase/migrations/README.md` updated.
+- All twenty pass. Google sign-in passed only after the owner turned the
+  provider on: the dev project had it off ("Unsupported provider"). The steps
+  are now `docs/google-sign-in-setup.md`, written at the owner's request.
+- Charging with real rows: a charge and its improvements, a cover letter's
+  re-run keyed to its description, "Explain my fit" spending first, the
+  hourly ceiling at 2 (200, 200, 429, 429, refusals free), Premium never
+  charged, and check 7's four concurrent spends with three credits (three
+  charged, one `no_credits`, the balance 2, 1, 0). Account A's balance was
+  topped up twice on the owner's request, dev only, each with a `bonus`
+  ledger row (a script outside the repo; nothing in the product does this).
+- Billing: a real double checkout (the second subscription cancelled as a
+  duplicate, both ids in the log, Premium kept), a resent activation (still
+  one link), Switch to Standard (the end of the period scheduled), Dodo's
+  immediate cancel (Premium off).
+- Extension: sync with 1.0.4 ("Saved and synced"), 1.0.2's out-of-date
+  notice and resume upload through the API, the popup's read-only Cover tab,
+  deletion wiping 1.0.4 and leaving 1.0.2 ("this browser only"), the
+  job-page button on Greenhouse and Lever with the handoff through sign-in.
+
+**Found during the checks, and fixed here:**
+- **Job Matches' default rank scored nothing with the model.** With the
+  owner's profile, a 30-job reply ran past `RANK_MAX_TOKENS` (5,000) and was
+  cut off; the lenient parser then took the first finished job's
+  `matchedSignals` for the answer, so all 30 jobs were keyword scored and 3
+  results shown, twice in a row. Reproduced against real Gemini with a
+  smaller budget. `parseJsonArrayLenient()` (`server/llmJson.js`) now keeps a
+  cut-off array's finished entries: the next real rank had 29 of 30 scored by
+  the model and 26 results. Unit tests first (`test/server/llmJson.test.js`,
+  `test/jobs/rank.test.js`). The budget itself is an open question.
+- **The handoff's description was the application form** (B5-C, a builder).
+  Lever's `/apply` page has no job ad, so the scrapers fell back to the whole
+  page: the cookie notice and every question. On Greenhouse, `<main>` (ad
+  and form) beat the ad's own element. Both scrapers now skip a candidate
+  that is or holds an application control, and use the page's text only on a
+  page without one; on a form-only page the description is empty and the
+  dashboard says to paste it. After the final review, "application control"
+  is a textarea or a file input only, so a search box or a filter no longer
+  counts (rule 5's behaviour tests hold both scrapers to it).
+- The popup's profile dropdown opened behind the tab buttons (the header and
+  the content were both `z-10`; the header is `z-20`). Pre-existing.
+- **The owner's product call: one credit buys an answer and two free
+  improvements, not three.** `ANSWER_FREE_IMPROVEMENTS` in
+  `server/lib/generationSpend.js`, the dashboard's rule line, tests and docs.
+  Cover letters are unchanged (one re-run). The SQL comments in 007 and
+  `schema.sql` still say three: they are what was applied, and the server
+  decides the number.
+- "New answer" puts the cursor in the Question field (the owner found the
+  greyed-out buttons unexplained).
+
+**B5's own work:**
+- B5-A, docs (a builder): `docs/app-flow.md` reconciled with the real run
+  (each section says what the run found and what it did not check);
+  `docs/extension-protocol.md` final for 1.0.4 (who sends what today, the
+  scrapers' rule, the release allowlist); CLAUDE.md under 2,000 tokens, with
+  the server layout, the protocol document, `test/rules/`, the release
+  command and the e2e variables, its "Unverified" section settled (the
+  branch is a key fact, merging into `main` or pushing to `origin` is in
+  Escalate; Node 22.15+ is on the test line); the count of free
+  improvements in README, PRODUCT.md, the PRD and the dashboard README;
+  the privacy page's wording on sync (it stays in the browser) and on
+  deletion (1.0.4's copy is cleared, 1.0.2's is not). PRODUCT.md also lost
+  three claims the code contradicts (one React tree, Answer Studio reading
+  the open tab, personal data never leaving the device).
+- B5-B, `docs/deploy-checklist.md` and `scripts/smoke-prod.mjs` (a builder):
+  the owner's order of operations for production (Vercel's watched branch
+  first; the owner's private Supabase runbook, then 006 and 007 with
+  read-only checks and the ledger; Redirect URLs; Vercel's variable names;
+  Dodo live; the smoke run and `POST /api/credits/refund` answering 404;
+  rollback; the 1.0.4 submission; a compatibility matrix). The smoke script
+  sends GET requests only and refuses anything else; it runs against the
+  harness-served app in `test/release/smoke.test.js`.
+- The final review: the `code-review` skill at `xhigh` over `5ddb7db..HEAD`
+  (11 findings; the owner said to apply them all: ten fixed, one needed no
+  change, §7 items 32 to 39) and the `security-review` skill (no HIGH or MEDIUM
+  finding; two pre-existing low ones noted in §7). Fixed: a stale
+  `subscription.active` no longer turns Premium back on (Dodo is asked on a
+  redelivery; the first `premium_since` kept); `verify-premium` ends Premium
+  only when the subscription can no longer bill, as the webhook does; the
+  rank's output budget is 6,500 tokens; a cover letter with no description
+  grants no re-run; an unsaved answer and its improvements survive a reload
+  (sessionStorage, this tab); the server undoes a spend once; the parser's
+  salvage falls through to the wrapped-object recovery; the scrapers'
+  narrower control list; the webhook's unresolved-user log prints ids, not
+  the payload (which carries the customer's email); a cascade comment. No
+  change: the wipe accepted from any allowed origin (§7 item 39).
+- `docs/plans/active/server-side-generation-charging.md` moved to
+  `docs/plans/completed/`.
+
+**Verified:** the full gate, on the final tree (`8c91751` on `batch/5`): lint 0
+errors, 0 warnings; `npm test` 1058 pass, 0 fail, 2 skipped; both builds;
+`test:e2e` 203 pass, 10 skipped; `test:e2e:extension` 13 of 13 (the legacy
+project included); `/api/health` 200 with an `X-Request-Id`;
+`build:release` refusing the dev `.env` (three variables not production's,
+nothing zipped). The e2e gate also ran before the dev servers started (200 /
+10 skipped; 12 of 12), and after each change to the scrapers.
+
+**Not verified:** the review fixes against real services (the stale
+activation, `verify-premium` on `on_hold`, the 6,500-token rank budget: each
+is unit- or e2e-tested only); an Ashby board; the button inside the MyGreenhouse portal
+(the form is not in the top frame: §7 item 37); the end-of-period
+cancellation reaching `subscription.cancelled` on its date (the immediate
+cancel was tested); Improve's retry branch on a real reply (the guard ran;
+its added claims were all in the draft, so no retry); anything in
+production.
+
+**Owner's answer during the checkpoint:** apply all eleven review findings
+with the minimal edits. That settled what were going to be questions: the
+stale activation and `verify-premium`'s `on_hold` (webhook handling and
+Premium gating, both CLAUDE.md escalations, approved this way), the rank's
+budget, and the unsaved answer's improvements.
+
+**Open questions for the owner:**
+1. **MyGreenhouse** (§7 item 37): its application form is out of the
+   button's reach. Reaching it would need host permissions for the board
+   (CLAUDE.md asks first). Leave it?
+2. **College pages**: since B5-C an essay container that wraps its own
+   textarea gives no description (the prompt beside the textarea still
+   does). Accept?
+
+**New work for B6 (the owner, at this checkpoint):** an Onextap-branded
+confirmation email instead of Supabase's; Google's sign-in screen naming
+Onextap; and the browser-tab and extension icons as the transparent ring
+mark the landing and dashboard draw. In the plan as B6-0. Not GitHub
+issues (the owner: "plan is enough").
+
+**Next:** batch B6. Open a new session and paste:
+`Run batch B6 of docs/plans/active/completion-plan.md.`
+
 ---
 
 ## 1. What was asked, and what was decided
@@ -1368,17 +1519,46 @@ mode, real Groq and Gemini; checkpoint 9 has the detail):
   forgot password with a real inbox (both by the owner, who reported them
   working).
 
+**Against real services, 2026-10-20** (the plan's B4 checks, run in B5's
+session; the dev project with migration 007, Dodo in test mode through a
+Cloudflare quick tunnel, real Groq and Gemini, 1.0.4 loaded and store 1.0.2
+in another Chrome profile; each result read back from the database and the
+API's debug log; checkpoint 15 has the detail):
+
+- **Accounts:** email sign-up and confirmation (two accounts: the row, 3
+  credits, the name); Google sign-in, once the dev project's provider was
+  turned on (`docs/google-sign-in-setup.md`); the job-page handoff through
+  an email sign-in.
+- **Charging (server-side, 007):** an answer's charge, its free improvements
+  (two since this checkpoint), then a charge; a cover letter's charge, its
+  free re-run on the same description, a charge for another; at 0 credits
+  the page refuses without calling; "Explain my fit" spends first (6.3 s);
+  Premium never charged; the hourly ceiling at 2 (200, 200, 429, 429, the
+  refusals free); four concurrent spends with three credits, exactly three
+  charged and the balance never below zero. Every usage row has its
+  allowance row.
+- **Billing:** a real double checkout (the second subscription cancelled as
+  a duplicate, both ids logged, Premium kept); a resent activation (still
+  one link); Switch to Standard (the end of the period scheduled, the
+  pending end shown); Dodo's immediate cancel (Premium off).
+- **Extension 1.0.4:** "Saved and synced", and the popup shows the edit; the
+  popup's Cover tab read-only, "Manage templates" opens the Cover workspace;
+  the job-page button on Greenhouse and Lever (the field's corner, the
+  dashboard prefilled, Fill puts the saved version in the field); deleting
+  the account sends the popup back to Welcome.
+- **Store 1.0.2:** the out-of-date notice after a save; the resume parsed
+  through the API (16 s); deletion's dialog says this browser only.
+- **AI:** the Improve guard ran (its added claim was in the draft, so no
+  retry); rank timings 23.0 s and 14.7 s for the whole pool before the parse
+  fix (0 of 30 scored by the model), 8.4 s for a filtered 13, 23.1 s after it
+  (29 of 30), cache hits ~0.37 s.
+
 **Not verified**
 
-- **Still open against real services**: Google sign-in; Dodo's
-  `subscription.cancelled` at the end of a real period; "Explain my fit"'s
-  one-credit charge on a free account after the checkpoint 9 fix; a real
-  double checkout (§7 item 30); anything in production. From checkpoint 12:
-  migration 007 on the dev project and server-side charging against it (a
-  charge, a free improvement, a re-run, two quick presses with one credit,
-  the 503 before it is applied), the on-hold replacement with real Dodo
-  subscriptions, the Improve guard and a rank's `meta.timings` with real
-  models.
+- **Still open against real services**: Dodo's `subscription.cancelled` at
+  the end of a real period (the immediate cancel was tested); an Ashby
+  board; Improve's retry branch on a real reply; Google with production's
+  allowlist and its consent screen (B6-0); anything in production.
 - **The store extension (1.0.2) itself**: never against real services. Since
   checkpoint 11 it runs in the legacy e2e (an unpacked copy, the site on
   localhost, the API stubbed): its "Unknown action" handshake, the sync, the
@@ -1389,9 +1569,11 @@ mode, real Groq and Gemini; checkpoint 9 has the detail):
   an unpacked copy for the legacy e2e tests B1 adds.
 - **The popup's cover-letter AI**: removed at checkpoint 13 (no popup
   sign-in, D5; §7 item 27). Nothing to check.
-- **The job-page button on real job boards**, and the release build's own
-  path to it (activeTab after the popup's click, on a board outside
-  `host_permissions`): B4, by hand.
+- **The job-page button on real job boards**: checked at checkpoint 15 on
+  Greenhouse and Lever with the dev build (whose `host_permissions` hold
+  neither board, so activeTab after the popup's click is the path the
+  release build takes). Not on Ashby, and not inside MyGreenhouse (§7 item
+  37).
 - Safari and Firefox.
 
 **Unit tests (`npm test`) on this machine** (Node 25, Windows):
@@ -1428,9 +1610,14 @@ mode, real Groq and Gemini; checkpoint 9 has the detail):
   list, the worker's imports, the release manifest, scanner and script, and
   "Explain my fit" spending first through the harness. **Lint:** 0 errors,
   0 warnings.
+- **Checkpoint 15: 1058 pass, 0 fail, 2 skipped.** The new ones: the smoke script
+  (`test/release/smoke.test.js`), the scrapers on application pages (rule 5's
+  behaviour tests), the parser's cut-off arrays (`test/server/llmJson.test.js`)
+  and a cut-off rank reply, a handoff with no description; the charging
+  tests now pin two improvements. **Lint:** 0 errors, 0 warnings.
 
 **E2E (`npm run test:e2e`)**, at checkpoint 5, and again at checkpoint 10: 188 pass, 10 skipped
-(197 at checkpoint 11, with the new copy tests; 200 at checkpoint 12, with Answer Studio's server-side charging; 200 at checkpoint 13)
+(197 at checkpoint 11, with the new copy tests; 200 at checkpoint 12, with Answer Studio's server-side charging; 200 at checkpoint 13; 203 at checkpoint 15, with the reload-safe draft and "New answer")
 (keyboard and wheel tests on the phone profile), 0 fail, across desktop
 Chromium, phone Chromium and WebKit. It covers the landing page, its company
 pages, the 404 page, the account flows (sign-up's name, forgot password, the
@@ -1444,7 +1631,8 @@ the markup pass `toHaveText` while the card is hidden.
 3 tests since checkpoint 8, 15 of 15 over five repeats (3 of 3 again at checkpoint 10; since
 checkpoint 11 a `legacy` project adds 3 against the real store 1.0.2, skipped unless
 `E2E_LEGACY_EXTENSION_PATH` is set: 6 of 6; 12 of 12 at checkpoint 13, with
-`cover-handoff.spec.js` and the delete-account tests), in Chromium with the
+`cover-handoff.spec.js` and the delete-account tests; 13 of 13 at checkpoint 15, with a
+form-only application page), in Chromium with the
 extension loaded unpacked. It builds its own copy of the extension with unresolvable
 addresses, runs the website on 5173 (it stops if something is already
 there), and uses the same stubs. The job page is served by a route on
@@ -1454,23 +1642,34 @@ there), and uses the same stubs. The job page is served by a route on
 
 ## 6. Before going live
 
-1. **Finish the real-service run** (done on a dev project at checkpoint 9; §5 lists what is left): Google sign-in, the end-of-period cancellation, a real double checkout (§7 item 30), and the owner's decisions on items 1, 29 and 31.
-2. **Supabase → Authentication → URL Configuration**: add `https://www.onextap.com/dashboard/` and `https://www.onextap.com/reset-password/` (and their `http://localhost:5173/...` twins for development) to the Redirect URLs. Apply migration 006 (§9).
-   - The Site URL can stay the root: the landing forwards tokens that land there.
-   - Keep the extension's `https://<extension-id>.chromiumapp.org/` entry.
-3. **Dodo**:
-   - confirm the customer portal is enabled for the live account (done in test mode);
-   - in test mode, confirm that cancelling at period end keeps Premium until the date and that `subscription.cancelled` then arrives;
-   - the live webhook endpoint is `https://www.onextap.com/api/webhook`, and `DODO_PAYMENTS_WEBHOOK_KEY` in Vercel is the live endpoint's secret, copied with Dodo's button (§9 lists the two ways this broke on dev).
-4. **Vercel**: same env var names; `VITE_DASHBOARD_URL` and `CLIENT_URL` stay the site origin.
-5. **Chrome Web Store**:
-   - **the published version is 1.0.2** (not 1.0.3: `docs/plans/active/completion-plan.md` §2), and the site must keep working with it. The owner decided at planning (session 6) that 1.0.4 is built and fully tested, and that submitting it is their later call; the plan stops at a release zip. What follows describes what that release carries: checkpoint 2's profile-sync fix, checkpoint 8's dashboard link in the popup's Cover Letter tab (§7 item 27), and checkpoint 13's job-page button, read-only popup templates (§7 item 28) and the wipe on account deletion (§7 item 10). Until it ships, the published popup (1.0.2) still misses dashboard edits made after it first opened;
-   - build it with `npm run build:release` on production's `.env` (it refuses anything else, and asks for the publishable key's project to be confirmed by hand), and upload `release/onextap-1.0.4.zip`, noting its SHA-256;
-   - it also links straight to `/dashboard/` (the landing forwards the old link meanwhile);
-   - point the listing's privacy URL at `/privacy/` (the old URL redirects).
-6. **Check `docs/app-flow.md` against the real run** (§7, item 4; the run happened at checkpoint 9), and fix it where they disagree.
-7. **Production Supabase**: apply migration 006 (ask first, CLAUDE.md) and record it in `supabase/migrations/README.md`. Confirm the store build's Supabase project is the one the production server verifies tokens against (unpack the CRX; compare hosts, never keys).
-8. **Merge and push.** Each checkpoint is committed on the branch `merge/web-dashboard`.
+**`docs/deploy-checklist.md` is the order of operations**, written at
+checkpoint 15 (B5-B): it is the owner's to run, step by step, and nothing in
+it has been done. In short:
+
+1. **Batch B6 first** (`docs/plans/active/completion-plan.md`): the branding
+   work the owner added at checkpoint 15 (B6-0: Onextap's auth emails,
+   Google's consent screen naming Onextap, the transparent icons), then the
+   1.0.4 release zip built on production's `.env`, its SHA-256 recorded.
+2. **Which repo and branch Vercel watches**, before anything is merged:
+   merging into `main` may deploy.
+3. **Production Supabase**: the owner's private runbook first (kept outside
+   the repo), then migrations 006 and 007 **before** the server that needs
+   them (without 007 every generation answers 503), each verified read-only
+   and recorded in `supabase/migrations/README.md`; the Redirect URLs for
+   `/dashboard/` and `/reset-password/` (a wildcard `/**` where the handoff
+   passes a query string), keeping the extension's `chromiumapp.org` entry;
+   Google's provider (`docs/google-sign-in-setup.md` has the steps on dev).
+4. **Vercel's environment variables** (names in the checklist; never a
+   server secret behind `VITE_*`) and **Dodo live**: the webhook at
+   `https://www.onextap.com/api/webhook` with its secret, the live key, the
+   customer portal.
+5. **The deploy, then `node scripts/smoke-prod.mjs https://www.onextap.com`**
+   (GET only) and `POST /api/credits/refund` answering 404 (§7 item 26).
+   Rollback is Vercel's instant rollback; the migrations are additive.
+6. **The Chrome Web Store**: B6's zip, the privacy URL at `/privacy/`,
+   permissions unchanged from 1.0.2, a staged rollout if offered. The
+   checklist's compatibility matrix covers the old and new site with 1.0.2
+   and 1.0.4.
 
 ---
 
@@ -1491,7 +1690,7 @@ before this work.
 - **But the owner said at checkpoint 9 that the site has to plug into the store extension**, then thought to be 1.0.3 and in fact 1.0.2, with no release planned (since session 6: 1.0.4 is built and tested, submission is the owner's later call). That build has the old worker, so for its users this item stays open, and the website cannot work around it: 1.0.2's worker accepts `ONEXTAP_SYNC_DATA`, `PARSE_RESUME`, `SCRAPE_ACTIVE_TAB` and `GENERATE_IMPROVED_ANSWER`, and none of them writes `onextap_profiles`. In practice: install, click the icon (the store is created, empty), set up the profile on the website, and the popup still says "Welcome to Onextap". The website meanwhile says "Saved and synced to the extension", because the old worker answers `success: true` regardless. Production, if it runs `main`'s website, has the same today. **Options:** a minimal 1.0.4 with only this fix (`extension/background.js` + `extension/profileSync.js`, a version bump); and in any case, the website's copy should stop claiming the sync (§0 checkpoint 9, option a).
 - **Checkpoint 11 (B1): the website stopped claiming it.** It asks the extension `ONEXTAP_HELLO` first (`docs/extension-protocol.md`): 1.0.2 answers "Unknown action", and after a save the status says the extension is out of date, with a link to the store; the sync is still sent, which helps a fresh install. A current build answers with its version and `profile-sync`, and only then does the status say "Saved and synced". Store users still need 1.0.4 for the sync itself (batch B3). The legacy e2e checks this against the real 1.0.2.
 
-**2. ~~Never run against real services.~~ Run at checkpoint 9**, against a dev Supabase project and Dodo in test mode: every line below passes (§0 has the detail), except Google sign-in, not tried, and the extension one, which passes with this branch's build only (item 1). Production itself has not been touched. The list, for the next real-service run:
+**2. ~~Never run against real services.~~ Run at checkpoint 9, and again at checkpoint 15**, against a dev Supabase project and Dodo in test mode. At checkpoint 9 every line below passed except Google sign-in, not tried. At checkpoint 15 (the plan's B4 checks, with server-side charging on migration 007, 1.0.4 loaded and store 1.0.2 beside it) every line passes, Google sign-in included once the dev project's provider was turned on, and "Explain my fit" on a free account; §5 has the list. Production itself has not been touched. The list, for the next real-service run:
 - email sign-up with confirmation;
 - email sign-in and Google sign-in (after adding the redirect URL, §6);
 - resume upload (Gemini);
@@ -1506,26 +1705,26 @@ before this work.
 
 **3. ~~The landing's Playwright suite is broken by the wiring.~~ Fixed at checkpoint 1** (§0). The four tests that expected the old `onextap:login` / `onextap:feedback` stubs now stub the network (`web/tests/stubs.js`) and assert the request bodies. Playwright 1.63 and its browsers are installed on this machine.
 
-**4. ~~Docs.~~ Done:** updated at checkpoint 2, and `docs/app-flow.md` rewritten from the code at checkpoint 4. It is traced and stub-tested; the real run (checkpoint 9) has happened but the doc has not been checked against it yet (§6 item 6).
+**4. ~~Docs.~~ Done:** updated at checkpoint 2, and `docs/app-flow.md` rewritten from the code at checkpoint 4. **Reconciled with the real run at checkpoint 15** (B5-A), along with `docs/extension-protocol.md`, README, CLAUDE.md and the privacy page's wording on sync and deletion.
 
 **29. The dashboard trusts `?extensionId=` from the link.** Pre-existing (`src/extensionClient.js`, the same on `main`). Whatever ID the link names gets the active profile, and through `PARSE_RESUME` the resume file and the Supabase access token (`web/dashboard/js/services.js`, `src/resumeParse.js`). Chrome delivers only if that extension lists the site's origin in its own `externally_connectable`, so an attack needs an installed extension that does, plus a crafted link. Found at checkpoint 9. **Fixed at checkpoint 11 (B1), option b:** `resolveExtensionId()` in `src/extensionClient.js`. Outside `localhost` and `127.0.0.1` the site only messages `EXTENSION_ID_FALLBACK`, whatever the link says; on localhost `?extensionId=` wins if it has an extension ID's shape (32 letters a–p), for unpacked builds. Inside the extension it addresses itself, never the store ID. The resume no longer goes to the extension at all (item 31). Unit-tested; not deployed.
 
-**30. One account could end up with two Dodo subscriptions. Fixed in code at checkpoint 9, not yet tested with a real double checkout.** Checkout refuses an account that is already Pro, but an account becomes Pro only when the first `subscription.active` lands, so two checkouts in that window (two tabs, a slow or failing webhook) made two subscriptions, and the app tracks one. It was worse than double billing: every webhook acted on the account whatever subscription it named, so cancelling the stray one switched Pro off, and deleting the account cancelled only the linked one. The fix (`server/subscriptionGuard.js`, the webhook and `DELETE /api/account`, now in `server/routes/webhook.js` and `server/routes/account.js`, `web/dashboard/js/subscription.js`) is in §0, checkpoint 9. **Left open:**
-- the cancelled duplicate's payment is refunded by hand in Dodo (the log names both subscriptions); automating it needs the payment id from `payment.succeeded`;
+**30. One account could end up with two Dodo subscriptions. Fixed in code at checkpoint 9; tested with a real double checkout at checkpoint 15:** two tabs, two test payments, the second subscription cancelled as a duplicate with both ids in the log, Premium kept, and its own `renewed` and `cancelled` events ignored as foreign. Checkout refuses an account that is already Pro, but an account becomes Pro only when the first `subscription.active` lands, so two checkouts in that window (two tabs, a slow or failing webhook) made two subscriptions, and the app tracks one. It was worse than double billing: every webhook acted on the account whatever subscription it named, so cancelling the stray one switched Pro off, and deleting the account cancelled only the linked one. The fix (`server/subscriptionGuard.js`, the webhook and `DELETE /api/account`, now in `server/routes/webhook.js` and `server/routes/account.js`, `web/dashboard/js/subscription.js`) is in §0, checkpoint 9. **Left open:**
+- the cancelled duplicate's payment is refunded by hand in Dodo (the log names both subscriptions); automating it needs the payment id from `payment.succeeded`. **Out of scope by owner decision, 2026-10-16:** it stays manual;
 - two activations processed in the same instant can both link; account deletion cleans that up. **Fixed in code at checkpoint 12 (B2):** linking is one conditional write (`supabaseLinkStore()` in `server/subscriptionGuard.js`, lands only if the link is still what was read), so one activation links and the other re-reads and cancels itself as a duplicate; if Dodo can't be asked on that re-read, the webhook answers 500 and Dodo redelivers;
 - a linked subscription on hold is not cancelled when a new one replaces it. **Fixed in code at checkpoint 12 (B2):** the new one links first, then the stalled one (on hold, paused, past due or pending) is cancelled through Dodo, so the cancel's own `subscription.cancelled` is foreign to the account and can't switch Pro off. A failed cancel is logged with both ids for a manual cancel.
 
-Both are unit-tested with Dodo and Supabase faked; neither has met a real double checkout (B4).
+Both are unit-tested with Dodo and Supabase faked. The real double checkout at checkpoint 15 took the first path (the duplicate cancelled); the on-hold replacement has not met real subscriptions.
 
 **26. Any account could mint credits through `POST /api/credits/refund`. Fixed at checkpoint 4 on this branch; production keeps the hole until this branch is deployed.** Pre-existing since the first commit (Feb 2026): the route added a credit for any signed-in, non-Premium account, with no check that a charge had happened, no limit, and no caller anywhere in the product. Removed, with `test/server/routes.test.js` to keep it out (§0).
 
 ### Medium
 
-**5. The pending cancellation is not stored locally.** The dashboard learns about it from Dodo, via `verify-premium`. If Dodo can't be reached, the panel shows plain "Pro" with no dates, and "Switch to Standard" can be pressed again. Ending Premium depends on Dodo sending `subscription.cancelled` at the period's end (unverified, see item 2).
+**5. The pending cancellation is not stored locally.** **Out of scope by owner decision, 2026-10-16.** The dashboard learns about it from Dodo, via `verify-premium`. If Dodo can't be reached, the panel shows plain "Pro" with no dates, and "Switch to Standard" can be pressed again (at checkpoint 15 it was pressed twice, and both scheduled the same end). Ending Premium depends on Dodo sending `subscription.cancelled` at the period's end (unverified; the immediate cancel was tested at checkpoint 15).
 
-**6. Account deletion can fail halfway.** If Dodo cancels the subscription and then Supabase `deleteUser` fails, the user has no subscription but still has an account. The user is told to try again, and a retry completes it (the subscription is no longer billable, so the Dodo step is skipped).
+**6. Account deletion can fail halfway.** **Out of scope by owner decision, 2026-10-16.** If Dodo cancels the subscription and then Supabase `deleteUser` fails, the user has no subscription but still has an account. The user is told to try again, and a retry completes it (the subscription is no longer billable, so the Dodo step is skipped).
 
-**7. Supabase redirect allowlist.** Google sign-in and email confirmation depend on the configuration in §6. Without `/dashboard/` on the allowlist, Supabase falls back to the site root and the landing forwards the tokens. At checkpoint 9, email confirmation and the reset link worked on the dev project with the `localhost` entries; Google and the production allowlist are untested. This path was tested only against the mock.
+**7. Supabase redirect allowlist.** Google sign-in and email confirmation depend on the configuration in §6. Without `/dashboard/` on the allowlist, Supabase falls back to the site root and the landing forwards the tokens. At checkpoint 9, email confirmation and the reset link worked on the dev project with the `localhost` entries. **At checkpoint 15 Google sign-in passed on the dev project**, with the entry `http://localhost:5173/**` (the wildcard, because the job-page handoff returns with a query string; `docs/google-sign-in-setup.md`). The production allowlist is untested.
 
 **8. ~~Cover-letter personalisation never spends a credit.~~ Done at checkpoint 3**, by the owner's decision: 1 credit buys a personalisation plus 1 free re-run, on the dashboard and in the popup (§0). The dashboard's half passed against real services at checkpoint 9; the popup's half reaches no store user (item 27). The popup's half was never reachable (item 27) and was removed at checkpoint 13: personalising is on the dashboard only.
 
@@ -1558,6 +1757,10 @@ Both are unit-tested with Dodo and Supabase faked; neither has met a real double
 
 **13. `dist/` was built here without a `.env`** at checkpoints 1 to 3; since checkpoint 6 with a `.env`, the production one until checkpoint 8 and the dev one since checkpoint 9. The rule below stands: build after the `.env` you mean. That build has no Supabase address, so its Supabase client cannot start (the dev dashboard without a `.env` stops on `supabaseUrl is required`; the popup uses the same `src/supabaseClient.js`). Run `npm run build` again once `.env` is in place, before loading the unpacked extension. **Checkpoint 13:** the store build has its own command, `npm run build:release`, which refuses unless `.env` holds production's addresses, so a release can't be built from the wrong one.
 
+**33. ~~A stale `subscription.active` turns Premium back on.~~ Fixed at checkpoint 15, at the owner's request.** Found in B5's final review. A redelivered or resent activation of the account's linked subscription re-links it and sets Premium, `active` and a new `premium_since`, without asking Dodo (`activateSubscription()` in `server/subscriptionGuard.js`: "a redelivered activation … asks Dodo nothing"). The webhook answers 500 on purpose so Dodo redelivers, so an activation that failed, then a cancellation, then the redelivery, leaves a cancelled account Premium until the next dashboard load's `verify-premium` asks Dodo and turns it off; generations in between are free. A manual Resend from Dodo's delivery log does the same (it was done at checkpoint 15, while the subscription was still active). **Fixed:** on a redelivery `activateSubscription()` asks Dodo for the subscription's status and writes nothing if it has ended (outcome `ended`); if Dodo can't be asked it re-links as before. A redelivery keeps the first `premium_since`. Unit-tested.
+
+**34. ~~`verify-premium` and the webhook disagree about `on_hold`.~~ Fixed at checkpoint 15, at the owner's request.** Found in B5's final review. Pre-existing logic, moved in B1. `subscription.on_hold` keeps Premium on during Dodo's payment retry; `GET /api/verify-premium` turns Premium off for any status but `active` and `trialing`, so a dashboard load during the retry ends Premium, and only a later `renewed` or `active` event restores it. **Fixed:** `verify-premium` ends Premium only when the subscription can no longer bill (`endsPremium()` in `server/subscriptionGuard.js`: cancelled, failed, expired), as the webhook does. Unit-tested; the route itself has no test (the harness has no database).
+
 ### Low
 
 **14. ~~Landing copy that is still aspirational.~~ Rewritten at checkpoint 11 (B1)**, words only, after checking each claim against the code: an unknown field is left empty (nothing is flagged or bound), a profile custom field named the way forms print it fills it from then on, and Premium only skips the credit charge (same models, no support tier). The before → after list is in §0, checkpoint 11. The site does not say Premium uses the same AI as Free (the owner's call at checkpoint 11). **Still not quite true, kept by the owner's call at checkpoint 11:** "every field, on every board" (hero, About, FAQ 1); "activates automatically" (it is injected on demand); the demo's "Mapped" `work_authorization` and `years_of_experience` (no built-in match); "No limits on the AI" and "Unlimited AI answers" (every plan has an hourly ceiling of 30 drafts). What it said before:
@@ -1569,7 +1772,7 @@ Both are unit-tested with Dodo and Supabase faked; neither has met a real double
 
 **16. ~~The landing's sign-up form has no name field.~~ Fixed at checkpoint 5:** an optional name, stored as the account's `full_name`. Without one, the dashboard's name still falls back to the profile's, then the email's local part.
 
-**17. The web dashboard can't read the open job page or fill a form.** It has no tab access, so job descriptions are pasted. The popup keeps both abilities.
+**17. The web dashboard can't read the open job page or fill a form.** It has no tab access, so job descriptions are pasted. The popup keeps both abilities. Since checkpoint 13, the job-page button hands a page's job to the dashboard (checked on real boards at checkpoint 15); **the rest is out of scope by owner decision, 2026-10-16** (the dashboard still can't fill forms).
 - This also fixes a bug: the old dashboard's "scrape the active tab" scraped the dashboard itself, and for cover letters that overrode what the user pasted.
 - The service worker's `SCRAPE_ACTIVE_TAB` is unchanged; it only makes sense from the popup.
 
@@ -1581,9 +1784,9 @@ Both are unit-tested with Dodo and Supabase faked; neither has met a real double
 
 **20. ~~Unknown URLs get Vercel's default 404.~~ Fixed at checkpoint 4:** `web/404.html` (a Vite entry, so it shares the site's styles), built to `dist-dashboard/404.html`.
 
-**21. ~~Job Matches shows "Scoring 30 of 30 jobs" immediately.~~ Fixed at checkpoint 11:** the label claims no running count. It reads "Scoring the closest of N jobs in the pool", with N from `/api/jobs/meta` and only while no filter is applied, else "Scoring the closest jobs in the pool" (`web/dashboard/js/ws/job-matches-label.js`, unit-tested). Not seen in a browser: no e2e covers Job Matches, and a real rank needs real services (B4).
+**21. ~~Job Matches shows "Scoring 30 of 30 jobs" immediately.~~ Fixed at checkpoint 11:** the label claims no running count. It reads "Scoring the closest of N jobs in the pool", with N from `/api/jobs/meta` and only while no filter is applied, else "Scoring the closest jobs in the pool" (`web/dashboard/js/ws/job-matches-label.js`, unit-tested). Real ranks ran at checkpoint 15; the label itself was not looked at, and no e2e covers Job Matches.
 
-**22. No application-type picker on the web dashboard.** Job is the only live type, as in the backend. Bringing the others back needs a picker there as well as in the popup.
+**22. No application-type picker on the web dashboard.** **Out of scope by owner decision, 2026-10-16.** Job is the only live type, as in the backend. Bringing the others back needs a picker there as well as in the popup.
 
 **23. The landing's "signed in?" check reads Supabase's default storage key** (`sb-<ref>-auth-token`), in `web/src/app/backend.js`. A custom `storageKey` would break it. **Checkpoint 11:** worked out in one pure place, `web/src/app/session.js`, and `test/web/session.test.js` builds real supabase-js clients with `src/supabaseClient.js`'s options and fails if the keys ever differ, a custom `storageKey` included. Loading the SDK on the landing just to ask would cost its first paint. **Fixed at checkpoint 13:** `src/supabaseSessionKey.js` computes the key once; `src/supabaseClient.js` passes it as its `storageKey` (the same value as supabase-js's default, so no session moved), and the landing and the extension's wipe import it.
 
@@ -1601,7 +1804,23 @@ Both are unit-tested with Dodo and Supabase faked; neither has met a real double
 - HTML vs HTML5: an explicit list of versioned names (`VERSIONED_NAMES` in `src/matching/lexicon.js`: html, css, php, vue, angular, bootstrap, webpack, java, swift, oauth) folds `html5`, `html-5`, `css3`, `vue3` and the like in extraction, in stored job terms and in the claim check. S3, EC2, Web3, ES6, D3, K8s, C++ and Python 2/3 are unchanged (tests). Plain "HTML5" already matched through an alias, so the chip seen in the real run may have been the model's.
 - The 27 s: a default rank is one model call writing ~3,600 tokens, so there is nothing independent to parallelise (splitting the batch would cost more of the 20-a-day Gemini quota and move scores). The likely cause is the model order: `server/.env.example`'s commented `GEMINI_RANK_MODELS` listed the slowest model first, and a model that can't finish 30 jobs inside `GEMINI_RANK_TIMEOUT_MS` (25 s) times out before the next one answers. The example line now matches the code's default order. Every stage is timed (debug logs and `meta.timings`); a broadening loop no longer re-scores jobs an earlier loop scored. The page now says "usually takes 10–30 seconds, and longer when the AI service is busy". To check in B4: the dev env's `GEMINI_RANK_MODELS` order (pass/fail only) and `meta.timings` from a real rank.
 
-**25. Answer Studio and cover letters are charged by the client, after the fact.** Pre-existing for Answer Studio, and cover letters now follow the same pattern: the page calls `POST /api/answer-vault/generate`, which charges nothing, and then `POST /api/credits/deduct`. A modified client can skip the second call and generate for free. The balance itself cannot be tampered with (rule 6), and "Explain my fit" is charged inside its own route, so this is the one gap. Closing it means charging in the generate route and keeping the free improvements and re-runs on the server: a pricing-adjacent change, so the owner's call. Found at checkpoint 3. **Design written at checkpoint 4:** `docs/plans/active/server-side-generation-charging.md`. **The owner chose "not now" at checkpoint 5**; the hourly ceiling added then (`server/generateLimit.js`) bounds the quota damage, not the free drafts. **Decided at planning (D7), fixed in code at checkpoint 12 (B2), not applied anywhere:** the generate route spends before the model through `spend_generation()` (migration 007), gives the spend back through `undo_generation()` if the generation fails, and keeps the free improvements and re-runs on the server as allowances; `POST /api/credits/deduct` is a no-op that answers with the balance. "Explain my fit" spends through the same function, and since checkpoint 13 (B3-D) before its analysis, like the generate route. Until 007 is applied, both routes refuse with a 503 (fail closed). Details in §0, checkpoint 12. **Left open:** `kind` is the client's word, so a modified client can send cover letters as `answer` and get 3 untied follow-ups instead of 1 re-run (1 credit buys at most 4 generations, under the hourly cap; accepted by the owner at checkpoint 12); a request the client gives up on after the server spent is charged with nothing shown (the 90 s client timeout; the Improve retry is bounded to stay well inside it); a refused generation still uses an hourly slot.
+**Measured against real services at checkpoint 15:**
+- The rank chain: `GEMINI_RANK_MODELS` unset on dev, so the code's order; all five ids on the dev key (checkpoint 14).
+- **A real fault, fixed:** with the owner's profile, the whole pool's 30-job reply ran past `RANK_MAX_TOKENS` (5,000) and was cut off, and the parser took the first job's `matchedSignals` for the answer: 0 of 30 scored by the model, 3 results, twice (23.0 s, 14.7 s). `parseJsonArrayLenient()` now keeps a cut-off array's finished entries: the next rank had 29 of 30, 26 results, 23.1 s. A filtered 13 took 8.4 s, all scored; cache hits ~0.37 s.
+- **The budget, raised at checkpoint 15 at the owner's request:** 30 jobs with the owner's profile needed ~5,200 output tokens, so `RANK_MAX_TOKENS` is 6,500 (not 8,000: a longer reply nears `GEMINI_RANK_TIMEOUT_MS`, 25 s). Not measured against Gemini since. A richer profile still loses only its tail, to keyword scoring, thanks to the parse fix.
+- The Improve guard ran (its added claim was in the draft, so no retry); its retry branch has not met a real reply. "HTML" vs "HTML5" was not seen in a real rank's chips this time.
+
+**25. ~~Answer Studio and cover letters are charged by the client, after the fact.~~ Charged on the server since checkpoint 12, and verified against real services at checkpoint 15** (migration 007 on the dev project: §5). Since checkpoint 15, by the owner's call, an answer's charge grants two free improvements, not three. The history: pre-existing for Answer Studio, and cover letters now follow the same pattern: the page calls `POST /api/answer-vault/generate`, which charges nothing, and then `POST /api/credits/deduct`. A modified client can skip the second call and generate for free. The balance itself cannot be tampered with (rule 6), and "Explain my fit" is charged inside its own route, so this is the one gap. Closing it means charging in the generate route and keeping the free improvements and re-runs on the server: a pricing-adjacent change, so the owner's call. Found at checkpoint 3. **Design written at checkpoint 4:** `docs/plans/completed/server-side-generation-charging.md`. **The owner chose "not now" at checkpoint 5**; the hourly ceiling added then (`server/generateLimit.js`) bounds the quota damage, not the free drafts. **Decided at planning (D7), fixed in code at checkpoint 12 (B2), not applied anywhere:** the generate route spends before the model through `spend_generation()` (migration 007), gives the spend back through `undo_generation()` if the generation fails, and keeps the free improvements and re-runs on the server as allowances; `POST /api/credits/deduct` is a no-op that answers with the balance. "Explain my fit" spends through the same function, and since checkpoint 13 (B3-D) before its analysis, like the generate route. Until 007 is applied, both routes refuse with a 503 (fail closed). Details in §0, checkpoint 12. **Left open:** `kind` is the client's word, so a modified client can send cover letters as `answer` and get 2 untied follow-ups instead of 1 re-run (1 credit buys at most 3 generations, under the hourly cap; accepted by the owner at checkpoint 12); a request the client gives up on after the server spent is charged with nothing shown (the 90 s client timeout; the Improve retry is bounded to stay well inside it); a refused generation still uses an hourly slot; and cover letters with an empty description all share one re-run key (`applicationKey('')`), so an old or modified client could spend one such letter's re-run on another (the dashboard won't personalise without a description). **Fixed at checkpoint 15:** a cover letter with no description grants no re-run.
+
+**35. ~~An unsaved answer's improvements are lost on a reload.~~ Fixed at checkpoint 15, at the owner's request.** Seen at checkpoint 15. The allowance id a paid answer gets is kept only with a saved answer; reload the page (or start a new question) before saving, and the next Improve on that text is charged, while the allowance stays in the database, unused. **Fixed:** the unsaved answer, its question and its allowance are kept in `sessionStorage` for the tab (on the device, rule 8) and come back after a reload; saving, "New answer", a new question or another profile drops them. e2e: `web/tests/dashboard.spec.js`.
+
+**36. The API's CORS check matches origins by prefix.** Found by B5's security review; pre-existing (moved in B1). `startsWith` accepts `https://onextap.com.evil.example` as an allowed origin. The impact is small: the API authenticates with Bearer tokens, not cookies, so a foreign page gets nothing it couldn't ask for itself. Worth an exact-origin comparison when that code is next touched.
+
+**37. The job-page button can't reach a form inside an iframe.** Seen at checkpoint 15 on MyGreenhouse (`my.greenhouse.io`), Greenhouse's job-seeker portal: no button, while the same posting on the board's own page works. `content.js` runs in the top frame only (activeTab reaches the tab's own origin), by design; company career sites that embed a board's form in an iframe behave the same. Reaching them would need host permissions for the boards (CLAUDE.md asks first). **The owner's call.**
+
+**38. `undo_generation()` gives a free follow-up its use back without a receipt. Guarded in the server at checkpoint 15.** Found in B5's final review. Unlike a charge's refund (gated by deleting its allowance row), undoing a follow-up adds a use back each time it is called. Latent: each route undoes a failed generation once. Since checkpoint 15 `undoGeneration()` (`server/lib/credits.js`) sends one undo per spend, whatever asks again (tested). The function itself still has no receipt: a caller that retried after a timeout could not tell whether the first landed. A real fix is a new migration, if that ever matters.
+
+**39. Any page on an allowed origin can wipe the extension's local data. No change, checkpoint 15.** Found in B5's final review. `ONEXTAP_WIPE_LOCAL` is accepted from any `site` sender, by the plan's §3 design (the dashboard sends it after `DELETE /api/account`). A script running on `www.onextap.com` (or, on a dev build, anything on `localhost:5173`) could erase a user's profiles from 1.0.4. No change, because the gate would protect nothing: a script on those origins can already overwrite the extension's profile with `ONEXTAP_SYNC_DATA` (as since 1.0.2) and delete the account through the API with its token. The release manifest narrows the origins to onextap.com.
 
 ### Found and fixed along the way (for the record)
 
@@ -1611,6 +1830,11 @@ Both are unit-tested with Dodo and Supabase faked; neither has met a real double
 - Cover-letter edits no longer get lost when leaving the workspace or switching profile mid-save.
 - "Explain my fit" cut off mid-JSON by a token cap that `gpt-oss-120b`'s reasoning shares (checkpoint 9).
 - An ERROR logged on every Pro account's deletion, for a webhook that arrives after the profile is gone (checkpoint 9).
+- Job Matches' whole-pool rank keyword-scored every job when the model's reply was cut off at its token budget: the parser read a list nested in the first job (checkpoint 15).
+- The job-page handoff sent the application form's text as the job description (Lever's `/apply`, Greenhouse's `<main>`); the scrapers skip application controls now (checkpoint 15).
+- The popup's profile dropdown opened behind the tab buttons (checkpoint 15).
+- The webhook logged the raw payload, the customer's email included, when it could not resolve a user (checkpoint 15).
+- A redelivered `subscription.active` could switch a cancelled subscription's Premium back on; `verify-premium` ended Premium during Dodo's payment retry (checkpoint 15, items 33 and 34).
 
 ---
 
@@ -1668,12 +1892,17 @@ Never commit either `.env` (both are gitignored; CLAUDE.md rule 10).
   - SQL Editor: `supabase/schema.sql`, then
     `supabase/migrations/002_rank_cache.sql` and
     `supabase/migrations/006_generation_rate_limit.sql` (`schema.sql` already
-    includes 001, 003, 004 and 005). Record it in
+    includes 001, 003, 004 and 005, and since checkpoint 12 007's block;
+    a project made before that runs `007_generation_charges.sql` itself, or
+    every generation answers 503). Record it in
     `supabase/migrations/README.md`.
   - Authentication: the email provider (decide whether addresses must be
-    confirmed), and Google if Google sign-in is to be tested.
-  - URL Configuration → Redirect URLs: `http://localhost:5173/dashboard/`,
-    `http://localhost:5173/reset-password/` (the reset email's link), and
+    confirmed), and Google if Google sign-in is to be tested:
+    `docs/google-sign-in-setup.md` has the steps (it was off on the dev
+    project until checkpoint 15).
+  - URL Configuration → Redirect URLs: `http://localhost:5173/**` (the
+    wildcard: the job-page handoff comes back with a query string), which
+    covers `/dashboard/` and `/reset-password/` (the reset email's link), and
     `https://<extension-id>.chromiumapp.org/` with the unpacked extension's ID
     (shown at `chrome://extensions`), for Google sign-in from the popup if
     §7 item 27 gives it one (nothing in the popup signs in today).
@@ -1696,6 +1925,10 @@ Never commit either `.env` (both are gitignored; CLAUDE.md rule 10).
     is the endpoint URL; "Base64Coder: incorrect characters for decoding" is
     the secret itself, not the signature. Then resend from Dodo's delivery
     log.
+  - At checkpoint 15, a new tunnel meant **editing** the existing endpoint's
+    URL in Dodo, which keeps its signing secret, so `server/.env` did not
+    change. Resending from the delivery log: the newest event of a type may
+    not be listed first, so pick it by its subscription id.
 - **Groq** and **Gemini** keys. Check which Groq model ids the key can reach
   (`server/.env.example` says how).
 - **Resend**, to test the feedback form (mind its sandbox limit, in
@@ -1710,24 +1943,34 @@ Never commit either `.env` (both are gitignored; CLAUDE.md rule 10).
 ```bash
 npm install && npm run server:install
 # put .env, server/.env and server/data/cached_jobs.json in place
-npm run lint          # expect 0 errors (1 warning)
-npm test              # expect 660 pass, 0 fail
+npm run lint          # expect 0 errors, 0 warnings
+npm test              # expect 0 fail (see §5 for the current count)
 npm run test:e2e      # expect every test to pass
-npm run test:e2e:extension   # 3 tests; needs port 5173 free
+npm run test:e2e:extension   # needs port 5173 free; E2E_CHROMIUM_PATH and E2E_LEGACY_EXTENSION_PATH on this machine
 npm run build         # after .env: then Load unpacked → dist/ at chrome://extensions
 npm run server:dev    # API on :3001
 npm run dev           # the site on :5173
 ```
 
 Open the dashboard from the extension's popup: it passes the unpacked
-extension's ID, which the sync needs.
+extension's ID, which the sync needs. A tab opened any other way (the
+confirmation email's link, say) has no `?extensionId=`, so the site looks
+for the store's ID and says "Saved on this device" (seen at checkpoint 15;
+production always uses the store's ID).
+
+In the Claude desktop app, `.claude/launch.json` also has `api-debug` (the
+API with `LOG_LEVEL=debug`, which logs `rank timings`) and `api-limit2`
+(`GENERATE_LIMIT_PER_HOUR=2` for the hourly-ceiling check), set in the
+launch environment rather than `server/.env`.
 
 ### Then check by hand
 
 Nothing automated covers these. The list in §7 item 2, plus what later
 sessions added. At checkpoint 9 all of it passed except where marked
 (profile sync and forgot password on the owner's word; the sub-checks
-inside forgot password were not reported one by one).
+inside forgot password were not reported one by one). At checkpoint 15 the
+plan's B4 table ran in full against the dev project (§5): its list is the
+fuller one for a next run (`docs/plans/active/completion-plan.md`, B4).
 
 Keep test data fictional: a made-up resume and job description go to Gemini
 and Groq like real ones would (CLAUDE.md rule 8).
@@ -1738,22 +1981,21 @@ and Groq like real ones would (CLAUDE.md rule 8).
   it adds a real sign-in.
 - **Cover-letter credits** (§7 item 8), on the dashboard: the first
   personalisation spends a credit, its re-run is free, and a new job
-  description spends again. In the popup (item 27): "Personalize on the
-  dashboard" opens that workspace; save a version there, and the popup's
-  "Saved versions" offers it to fill on a real job page. (The popup half
-  was dropped at checkpoint 9: it exists only in this branch's extension.)
+  description spends again. The popup's Cover tab is read-only since
+  checkpoint 13: "Manage templates on the dashboard" opens that workspace,
+  and a version saved there is offered to fill on a real job page.
 - **Forgot password, with a real inbox** (§7 item 15): ask for a link, open
   it, set a new password, sign in with it. Also an expired link (use one
   twice) and the "wait a minute" answer (ask twice quickly).
 - **A name on sign-up** (§7 item 16): the dashboard greets the new account by
   it.
-- **The draft ceiling**: with `GENERATE_LIMIT_PER_HOUR=2` on the dev server,
+- **The draft ceiling** (passed at checkpoint 15): with `GENERATE_LIMIT_PER_HOUR=2` on the dev server,
   the third draft in Answer Studio says to try again later, and no credit is
   spent on it. Then check the server log has no "generation limit
   unavailable" warning (the migration is in). Remove the setting and restart
   the API afterwards.
 - `__onextapIssues()` answers in the dashboard's console.
-- **One account, one subscription** (§7 item 30). **Not yet run.** Open the
+- **One account, one subscription** (§7 item 30). **Passed at checkpoint 15.** Open the
   dashboard in two tabs, Manage subscription in both. Tab 1: Upgrade, pay
   with the test card, come back. Tab 2, not refreshed: Upgrade and pay
   again. Expect: Pro on the account; a warning in the API log that the
@@ -1762,12 +2004,18 @@ and Groq like real ones would (CLAUDE.md rule 8).
   Back in tab 1, Manage subscription should say "Payment received" until
   Pro arrives, not "Upgrade".
 - **With the store extension (1.0.2)**, if you want to see §7 item 1 for
-  yourself. **Not yet run.** Install it from the store, open its popup once,
-  save a profile on `localhost:5173/dashboard/` (the store build's
-  `externally_connectable` allows that origin, checked at checkpoint 10), and reopen the
-  popup. Expected, from the code: still "Welcome to Onextap".
+  yourself. Install it from the store, open its popup once, save a profile
+  on `localhost:5173/dashboard/` (the store build's `externally_connectable`
+  allows that origin, checked at checkpoint 10), and reopen the popup.
+  Expected, from the code: still "Welcome to Onextap". At checkpoint 15 the
+  dashboard's side passed with 1.0.2 (the out-of-date notice, resume upload
+  through the API, deletion's "this browser only"); the popup's stale copy
+  was not looked at again.
 
 ### Deploying (Vercel)
+
+**`docs/deploy-checklist.md` is the order of operations** (written at
+checkpoint 15, nothing in it done yet); this section is the background.
 
 This repo deploys as it is: `vercel.json` builds the website
 (`vite build --config vite.dashboard.config.js` → `dist-dashboard/`), serves
@@ -1789,22 +2037,25 @@ ingest cron daily at 06:00 UTC. What the Vercel project needs:
   it elsewhere means widening `externally_connectable` and a new extension
   release (CLAUDE.md: ask first).
 - **Supabase** (the production project, this time; CLAUDE.md: ask first):
-  Redirect URLs for `https://<domain>/dashboard/` and
+  Redirect URLs for `https://<domain>/dashboard/**` and
   `https://<domain>/reset-password/` (the Site URL can stay the root), and
-  migration **006** (`generation_rate_limit`): production has 001–005
-  (`supabase/migrations/README.md`). Apply 006 before or with the deploy; if
-  it lags, drafts are simply not limited until it lands (the ceiling fails
-  open). Record the apply in the ledger.
+  migrations **006** (`generation_rate_limit`) and **007**
+  (`generation_charges`): production has 001–005
+  (`supabase/migrations/README.md`). **007 must be applied before the server
+  that needs it**: without it every generation and "Explain my fit" answers
+  503. 006 can lag (the ceiling fails open). Record each apply in the
+  ledger. The checklist starts these steps with the owner's private runbook.
 - **Optional server variable**: `GENERATE_LIMIT_PER_HOUR` (default 30).
 - **Dodo**: the webhook pointed at `https://<domain>/api/webhook`, and the
   customer portal enabled.
-- **The extension**: build it with `.env` holding the production values
-  (`VITE_API_URL=https://www.onextap.com`, `VITE_DASHBOARD_URL` the site's
-  origin) for the Web Store release (§6).
+- **The extension**: `npm run build:release` with `.env` holding the
+  production values (it refuses anything else) for the Web Store release:
+  batch B6 builds the zip, the owner submits it (§6).
 - **Order**: deploying fixes the credit-minting route (§7 item 26) on the
-  website's API at once. The extension's changes (profile sync, cover-letter
-  credits in the popup) reach users only with a new extension release, and
-  none is planned (§0 checkpoint 9).
+  website's API at once. The extension's changes (profile sync, the job-page
+  button, the read-only Cover tab, the wipe) reach users only with the 1.0.4
+  release; 1.0.4 keeps answering everything the site already deployed sends,
+  so either can go first (the checklist's compatibility matrix).
 
 ### For Claude on that machine
 

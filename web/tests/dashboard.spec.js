@@ -101,7 +101,7 @@ test.describe('the dashboard: cover letters and credits', () => {
 });
 
 test.describe('the dashboard: Answer Studio and credits', () => {
-  test('one credit writes an answer with three free improvements, charged by the server', async ({ page, isMobile }) => {
+  test('one credit writes an answer with two free improvements, charged by the server', async ({ page, isMobile }) => {
     await stubAuth(page);
     const api = await stubApi(page, { credits: 1 });
     await signIn(page, isMobile);
@@ -116,7 +116,7 @@ test.describe('the dashboard: Answer Studio and credits', () => {
     expect(generateCalls()[0].body).toMatchObject({ kind: 'answer' });
     expect(generateCalls()[0].body.allowanceId).toBeUndefined();
     expect(api.state.credits).toBe(0);
-    await expect(page.getByText('Free improvements on this answer: 3')).toBeVisible();
+    await expect(page.getByText('Free improvements on this answer: 2')).toBeVisible();
     await expect(page.locator('.credit-pill')).toHaveText('0 credits left');
 
     // Improving it is free, at zero credits, with the allowance handed back.
@@ -124,8 +124,41 @@ test.describe('the dashboard: Answer Studio and credits', () => {
     await expect(answer).toHaveValue('Dear Norwick Labs team, letter number 2.');
     expect(generateCalls()[1].body.allowanceId).toMatch(/^[0-9a-f-]{36}$/);
     expect(api.state.credits).toBe(0);
-    await expect(page.getByText('Free improvements on this answer: 2')).toBeVisible();
+    await expect(page.getByText('Free improvements on this answer: 1')).toBeVisible();
+
+    // "New answer" empties the editor and puts the cursor where it starts.
+    await page.getByRole('button', { name: 'New answer' }).click();
+    await expect(page.getByPlaceholder('e.g. Why do you want to work here?')).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Generate answer' })).toBeDisabled();
 
     expect(api.calls.filter(c => c.path === '/api/credits/deduct')).toHaveLength(0);
+  });
+
+  // Seen in B5's real run: a reload before saving lost the improvements the
+  // credit had bought, and the next Improve was charged again.
+  test('a reload keeps an unsaved answer and the improvements its credit bought', async ({ page, isMobile }) => {
+    await stubAuth(page);
+    const api = await stubApi(page, { credits: 1 });
+    await signIn(page, isMobile);
+    await page.goto('/dashboard/#/answer-studio');
+
+    const generateCalls = () => api.calls.filter(c => c.path === '/api/answer-vault/generate');
+    const answer = page.getByPlaceholder('Optional — your own draft. Generate writes one; Improve rewrites what is here.');
+    await page.getByPlaceholder('e.g. Why do you want to work here?').fill('Why do you want to work here?');
+    await page.getByRole('button', { name: 'Generate answer' }).click();
+    await expect(answer).toHaveValue('Dear Norwick Labs team, letter number 1.');
+    await expect(page.getByText('Free improvements on this answer: 2')).toBeVisible();
+
+    await page.reload();
+    await expect(answer).toHaveValue('Dear Norwick Labs team, letter number 1.');
+    await expect(page.getByPlaceholder('e.g. Why do you want to work here?')).toHaveValue('Why do you want to work here?');
+    await expect(page.getByText('Free improvements on this answer: 2')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Improve answer' }).click();
+    await expect(answer).toHaveValue('Dear Norwick Labs team, letter number 2.');
+    // At 0 credits only the kept allowance can pay for this.
+    expect(generateCalls()[1].body.allowanceId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(api.state.credits).toBe(0);
+    await expect(page.getByText('Free improvements on this answer: 1')).toBeVisible();
   });
 });

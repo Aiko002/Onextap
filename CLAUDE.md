@@ -9,8 +9,8 @@ Onextap: a Chrome MV3 extension that autofills job applications, plus a
 website and an Express backend on one origin (landing `/`, dashboard
 `/dashboard/`, API `/api/`). The popup is React (`src/`); the website is plain
 JS (`web/`) importing `src/` modules via `@app`. Supabase holds accounts and
-billing only. Layout and import rules: `docs/repo-structure.md`; merge
-status: `HANDOVER.md`.
+billing only. Layout and import rules: `docs/repo-structure.md`; user paths:
+`docs/app-flow.md`; merge status: `HANDOVER.md`.
 
 ## Always
 
@@ -22,9 +22,10 @@ status: `HANDOVER.md`.
    like `typeof chrome !== 'undefined' && chrome?.runtime`.
 3. Always guard credit values with `Number.isFinite()` before comparing or
    rendering. Premium accounts report `Infinity`, not a number.
-4. Always keep the Dodo webhook registered *before* `express.json()` in
-   `server/app.js`. It needs the raw body for signature verification;
-   moving it silently breaks payment webhooks in production only.
+4. Always keep the Dodo webhook (`server/routes/webhook.js`) registered on
+   the app in `server/app.js`, *before* `express.json()`. It needs the raw
+   body for signature verification; moving it silently breaks payment
+   webhooks in production only.
 5. Always mirror scraper selector fixes across both copies:
    `scrapeJobPage()` in `extension/background.js` and `scrapePageContext()`
    in `public/content.js`. They cannot call each other, so each starts with
@@ -61,36 +62,27 @@ status: `HANDOVER.md`.
 ## Commands
 
 - Install: `npm install && npm run server:install`
-- Build extension → `dist/`: `npm run build` (needs `.env` first)
-- Build website → `dist-dashboard/`: `npm run build:dashboard`
-- Store release → `release/onextap-<version>.zip`: `npm run build:release`.
-  Refuses unless `.env` holds production's addresses (pass/fail per variable,
-  never a value), then builds `dist-release/` without localhost, scans it for
-  secrets and localhost, checks the manifest against 1.0.2's permissions, and
-  prints the zip's SHA-256.
-- Website dev server: `npm run dev` (keep :5173, the only local origin
-  `externally_connectable` allows); extension's: `npm run dev:extension`
-- Backend with reload: `npm run server:dev`
-- Health check: `curl localhost:3001/api/health`
-- Verbose server logs: `LOG_LEVEL=debug npm run server:dev`
-  (levels: error/warn/info/debug; client side uses `VITE_LOG_LEVEL`)
-- **Test: `npm test`** (`node --test`) — matching, corpus, the stores,
-  credit rules, server modules, the worker's profile sync; rules 4, 5, 7, 9
-  and 10 (`test/rules/`); and every route, through a harness that serves the
-  real app with dummy env, no `server/.env` and no network
-  (`test/server/harness.js`). A new route means updating
-  `test/rules/routes.snapshot.json`.
-- **E2E: `npm run test:e2e`** — landing + company pages, and the dashboard's
-  cover-letter credits, against stubs.
-- **E2E, extension loaded: `npm run test:e2e:extension`** — dashboard →
-  extension profile sync, popup autofill, the popup's read-only Cover tab
-  (to the dashboard and back), the job-page button's handoff
-  (`cover-handoff.spec.js`) and the account deletion's wipe, against stubs;
-  plus a `legacy` project against store 1.0.2, skipped unless
-  `E2E_LEGACY_EXTENSION_PATH` is set. Needs port 5173 free.
-- **Lint: `npm run lint`** (ESLint 9, flat `eslint.config.js`):
-  correctness only, no style rules, no Prettier. `no-console` is an error
-  outside the loggers, `scripts/` and the e2e probe tools (rule 11).
+- Build: extension → `dist/`, `npm run build` (needs `.env`); website →
+  `dist-dashboard/`, `npm run build:dashboard`.
+- Store zip → `release/onextap-<version>.zip`: `npm run build:release`.
+  Refuses unless `.env` holds production's addresses; drops localhost from
+  the manifest, scans for secrets, checks permissions against 1.0.2's.
+- Dev: `npm run dev` (website; keep :5173, the only local origin
+  `externally_connectable` allows), `npm run dev:extension`,
+  `npm run server:dev` (`LOG_LEVEL=debug` for more; client side
+  `VITE_LOG_LEVEL`).
+- **Test: `npm test`** (Node 21+; 22.15+ for the tests that load `src/`
+  through `test/extension/viteModules.js`, which older Node skips): unit
+  tests, every route through `test/server/harness.js` (the real app, dummy
+  env, no network), and rules 4, 5, 7, 9 and 10 in `test/rules/`. A new route means
+  updating `test/rules/routes.snapshot.json`.
+- **Lint: `npm run lint`** (ESLint 9, correctness only). `no-console` is an
+  error outside the loggers, `scripts/` and the e2e probes (rule 11).
+- **E2E** against stubs: `npm run test:e2e` (the website);
+  `npm run test:e2e:extension` (the extension loaded: sync, autofill, Cover
+  tab, handoff, wipe; a `legacy` project runs store 1.0.2 if
+  `E2E_LEGACY_EXTENSION_PATH` is set). `E2E_CHROMIUM_PATH` picks the
+  Chromium. Needs port 5173 free.
 
 Nothing else automated drives the dashboard or the popup, nor real
 services. There, "verified" means you built it and exercised the path in the
@@ -98,37 +90,34 @@ browser. Say so plainly when you have not.
 
 ## Key facts
 
-- Two builds. `vite.config.js` → extension (popup from `index.html`);
-  `vite.dashboard.config.js` → the whole website from `web/`, and that second
-  one is what `vercel.json` runs on deploy (the script keeps its old name,
-  `build:dashboard`).
-- `api/index.js` re-exports the Express app so Vercel serves it as a
-  function. Keep it a bare re-export.
-- `server/load-env.js` must stay the first import in `server/index.js`;
-  `server/supabase.js` reads `process.env` at module load.
-- `job_listings` is the only table in Supabase holding shared *content* rather
-  than per-account rows — ingested postings, no `user_id`. (`job_ingest_state`
-  is also user-less, but it is an ingest cursor, not data.) Everything else is
-  keyed to a user, and no table holds profile data — see rule 8.
-- `supabase/schema.sql` is applied by hand in the Supabase SQL Editor. There
-  is no migration tool and no migration history. The file is idempotent, but
-  it drops and recreates the `on_auth_user_created` trigger, so use the
-  numbered files in `supabase/migrations/` against an existing project and
-  keep `schema.sql` for bootstrapping a fresh one.
-- `supabase/migrations/README.md` is the only record of which migrations have
-  actually been applied to which project. Read it before assuming a table
-  exists; update it in the same commit as the apply. A missing `job_listings`
-  traced back to exactly this gap.
-- `server/` has its own `package.json` and `node_modules`; root deps are
-  duplicated there for the Vercel build.
-- Four loggers, one per runtime, because the runtimes cannot share code:
-  `server/logger.js` (adds request ids), `src/logger.js` (popup and website),
-  `extension/logger.js` (service worker), and an inline one at the top of
-  `public/content.js` (that file cannot import). Their redaction key lists
-  mirror each other — a change to one usually belongs in the others.
-- Every server response carries `X-Request-Id`. It is the correlation key
-  between a user's report and a log line; the service worker logs it on
-  failed calls.
+- Two builds: `vite.config.js` → extension; `vite.dashboard.config.js` → the
+  website from `web/`, which `vercel.json` runs (`build:dashboard`).
+- `api/index.js` re-exports the Express app for Vercel. Keep it bare.
+- Server: `server/index.js`, whose first import must stay `server/load-env.js`
+  (`server/supabase.js` reads `process.env` at load), → `server/app.js`
+  (middleware order) → `server/routes/`; helpers in `server/lib/`, prompts in
+  `server/prompts/`. `server/` has its own `package.json` and `node_modules`.
+- Charging is the server's, inside the request: `spend_generation()`
+  (migration 007) via `server/lib/generationSpend.js`. Without 007 it fails
+  closed (503).
+- Extension messages: `docs/extension-protocol.md`, one module each in
+  `extension/messages/`. Every key written to `chrome.storage.local` is in
+  `src/localKeys.js`. An unpacked build is reached only through
+  `?extensionId=`: open the dashboard from its popup.
+- In Supabase only `job_listings` (and its cursor, `job_ingest_state`) is
+  not keyed to a user; no table holds profile data (rule 8).
+- `supabase/schema.sql` is for bootstrapping a fresh project only (it drops
+  and recreates `on_auth_user_created`); an existing one gets the numbered
+  files in `supabase/migrations/`, by hand in the SQL Editor. That folder's
+  `README.md` is the only record of what is applied where: read it before
+  assuming a table exists, and update it in the same commit as the apply.
+- Four loggers, one per runtime: `server/logger.js` (adds request ids),
+  `src/logger.js` (popup and website), `extension/logger.js` (service
+  worker), and an inline one at the top of `public/content.js`. Their
+  redaction key lists mirror each other.
+- Every server response carries `X-Request-Id`: quote it to find the log line.
+- Git: the work is on `merge/web-dashboard`, pushed to remote `latest`;
+  `origin` is the backend's repo. Nothing is merged into `main`.
 
 ## Escalate
 
@@ -142,21 +131,8 @@ Stop and ask before:
 - Deleting user profile data or changing the `user_profile` ⟷
   `onextap_profiles` handling: the migration in `src/profileStore.js`, or the
   worker's sync in `extension/profileSync.js`.
-- Publishing to the Chrome Web Store or deploying to Vercel.
-
-## Unverified — confirm before relying on these
-
-- **Branching.** History is on `main`; the website merge is on
-  `merge/web-dashboard`, pushed to `github.com/UncannySteel/OneXtap-latest`
-  (remote `latest`, where it is the default branch); `origin` is the backend's
-  repo. No "never commit to main" rule is written here. Add one if that is the
-  intent.
-- **Node version.** README says Node 18+ (21+ for `npm test`'s glob); there
-  is no `engines` field.
-
-(`EXTENSION_ID_FALLBACK` in `src/config.js` was listed here; it is the
-published extension's ID, the one in `CHROME_WEB_STORE_URL`. An unpacked
-build gets a different ID, so open the dashboard from its popup.)
+- Publishing to the Chrome Web Store, deploying to Vercel, merging into
+  `main` or pushing to `origin` (`main` may auto-deploy).
 
 ---
 

@@ -39,7 +39,7 @@ tracked file names it.
 | `supabase/schema.sql` (whole file) | **applied 2026-10-10** | Fresh project, so batch 2 ran too. That block already carries what `001`, `003`, `004` and `005` add; do not run those here. |
 | `002_rank_cache.sql` | **applied 2026-10-10** | |
 | `006_generation_rate_limit.sql` | **applied 2026-10-10** | |
-| `007_generation_charges.sql` | **not applied** | Written 2026-10-17 (B2). The 2026-10-10 `schema.sql` run predates its block in `schema.sql`, so run this file here. |
+| `007_generation_charges.sql` | **applied 2026-10-20** | Written 2026-10-17 (B2). The 2026-10-10 `schema.sql` run predates its block in `schema.sql`, so this file ran here, whole, by the owner in the SQL Editor (batch B5, with B4's checks). Verified the same day by a read-only probe through the service client: `generation_allowances` answers, the service role's OpenAPI lists `spend_generation` and `undo_generation`, and the anon key reads no `generation_allowances` rows. |
 
 Verified the same day by a read-only PostgREST probe: all seven tables answer
 (`profiles`, `credit_transactions`, `job_listings`, `job_ingest_state`,

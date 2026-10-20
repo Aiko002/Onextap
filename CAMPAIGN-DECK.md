@@ -241,8 +241,8 @@ three or four questions. Answer them once.
   straight into the page's cover-letter field.
 
 **Credit rule, stated plainly on the slide:** One credit buys a generation
-*plus three revisions of it*. Credits are deducted only after a successful
-generation — a failed call costs nothing.
+*plus two revisions of it*. A failed generation is refunded — it costs
+nothing.
 
 ---
 

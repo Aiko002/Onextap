@@ -13,26 +13,37 @@ One origin serves all of it: the landing page at `/`, the dashboard at
 
 - **Accounts** — email (with an optional name) or Google, from the landing
   page's sign-in window. "Forgot password?" emails a link to
-  `/reset-password/`, where the new password is set.
+  `/reset-password/`, where the new password is set. Google needs the
+  provider switched on in Supabase: `docs/google-sign-in-setup.md`.
 - **Profiles** — several application profiles, each with its own autofill
   data, saved answers and cover-letter templates. Edited on the dashboard;
   switched in the popup.
 - **Autofill** (popup) — fills application forms on any site by matching each
-  field against the active profile.
+  field against the active profile. The popup has no sign-in of its own: its
+  Answers and Cover tabs are read-only, and writing happens on the dashboard.
 - **Resume parsing** — upload a PDF or image resume; Google Gemini extracts
   structured profile data, merged over the profile and kept in a local resume
   library.
-- **Answer Studio** — tailored answers with Groq (Llama). On the dashboard you
-  paste the job description; the popup reads it from the page you have open.
-  One credit buys an answer plus three improvements of it.
+- **Answer Studio** (dashboard) — tailored answers with Groq (Llama), against
+  a pasted job description. One credit buys an answer plus two free
+  improvements of it, for 30 days.
 - **Cover letters** — up to 10 templates per profile, personalised with AI per
-  application, with saved versions. One credit buys a personalisation plus one
-  free re-run of it (same template, same job description).
+  application on the dashboard, with saved versions the popup fills into the
+  page. One credit buys a personalisation plus one free re-run of it (same
+  template, same job description). Once the popup has been opened on a job
+  page, a "Customize cover letter" button in the cover-letter field takes the
+  posting's company, role and description to the dashboard (extension 1.0.4).
 - **Job Matches** (dashboard) — ranks a shared pool of job listings, ingested
   daily from Adzuna, company ATS boards and keyless job boards, against one of
-  your resumes. "Explain my fit" costs one credit.
+  your resumes. "Explain my fit" costs one credit, spent before the analysis
+  and refunded if it fails.
 - **Premium** — unlimited credits, via Dodo Payments. Cancelling keeps Premium
   until the end of the paid period; the billing portal is Dodo's.
+- **Charging** is the server's: `POST /api/answer-vault/generate` and
+  `POST /api/jobs/explain` spend inside the request, atomically, through
+  `spend_generation()` (migration 007), before the model is called, and give
+  the spend back on a failure. Every account, Premium included, has an hourly
+  ceiling on AI drafts (`GENERATE_LIMIT_PER_HOUR`, default 30).
 - **Application types** — the code knows job, college, scholarship and
   internship modes; **only Job is live** (see `src/applicationTypes.js`).
 
@@ -43,7 +54,10 @@ Profile data (personal details, saved answers, cover letters) and resumes are
 the website. None of it is written to Supabase. The dashboard pushes the
 profile to the extension over `chrome.runtime` messaging (`ONEXTAP_SYNC_DATA`),
 and the extension files it into its own profile store as the active profile.
-The two copies are separate stores kept in step by that message.
+The two copies are separate stores kept in step by that message (store 1.0.2
+reads it only before its popup's first open). Deleting the account clears
+this browser's copy, and the extension's too when it is 1.0.4; the delete
+dialog says when it can't (`docs/extension-protocol.md`, "The wipe").
 
 Local is not the same as private: resume files go to Gemini, and answer
 requests (with profile context) to Groq, per request. The privacy page
@@ -57,24 +71,30 @@ Credits are server-managed and never adjusted client-side.
 
 ```
 .
-├── extension/          # Chrome extension: manifest, service worker, profile sync
-├── public/             # Content script (autofill, page scraping) + icon
+├── extension/          # Chrome extension: manifest, service worker, messages/ (one per message), profile sync
+├── public/             # Content script (autofill, page scraping, the job-page button) + icon
 ├── index.html, src/    # The popup (React), and the modules the website shares
 ├── web/                # The website (plain JS): landing page, dashboard, e2e tests
-├── server/             # Express API (own package.json)
+├── server/             # Express API (own package.json): app.js, routes/, lib/, prompts/
 ├── api/index.js        # Vercel serverless entry — re-exports the Express app
 ├── supabase/           # schema.sql + hand-applied migrations
-├── test/               # npm test (node --test)
+├── scripts/            # build-release.mjs, smoke-prod.mjs, data backfills
+├── test/               # npm test (node --test); test/rules/ holds CLAUDE.md's testable rules
 ├── vite.config.js           # Extension build → dist/
 └── vite.dashboard.config.js # Website build → dist-dashboard/
 ```
 
-`docs/repo-structure.md` has the full layout and the import rules.
+`docs/repo-structure.md` has the full layout and the import rules,
+`docs/app-flow.md` every user path traced to its code, and
+`docs/extension-protocol.md` the messages between the website, the popup and
+the extension's service worker.
 
 ## Prerequisites
 
 - Node.js 18+ for the app; `npm test` needs Node 21+ (it passes a glob to
-  `node --test`). Developed on Node 25.
+  `node --test`), and Node 22.15+ for the tests that load `src/` through
+  `test/extension/viteModules.js` (older Node skips them). Developed on
+  Node 25.
 - A [Supabase](https://supabase.com) project
 - A [Dodo Payments](https://app.dodopayments.com) account (for Premium)
 - A [Groq](https://console.groq.com) API key — Answer Studio, cover letters,
@@ -99,8 +119,9 @@ npm install && npm run server:install
 `supabase/migrations/002_rank_cache.sql` and
 `supabase/migrations/006_generation_rate_limit.sql`. `schema.sql` creates the `profiles`
 and `credit_transactions` tables, the RLS policies, the sign-up trigger that
-grants 3 free credits to each new account, and the job-listing pool (it
-already includes migrations 001, 003, 004 and 005).
+grants 3 free credits to each new account, the job-listing pool, and the
+generation charges (it already includes migrations 001, 003, 004, 005 and
+007).
 
 **An existing project:** never re-run `schema.sql` — it drops and recreates
 the sign-up trigger. Apply the numbered files in `supabase/migrations/`
@@ -149,14 +170,19 @@ feedback sender.
 
 In Supabase → Authentication → URL Configuration, add to the Redirect URLs:
 
-- `https://www.onextap.com/dashboard/` and `http://localhost:5173/dashboard/`
-  (Google sign-in and email confirmation land on the dashboard);
-- `https://www.onextap.com/reset-password/` and
-  `http://localhost:5173/reset-password/` (the password-reset email's link);
-- `https://<extension-id>.chromiumapp.org/` (Google sign-in from the popup).
+- production: `https://www.onextap.com/dashboard/` (Google sign-in and email
+  confirmation land on the dashboard) and
+  `https://www.onextap.com/reset-password/` (the password-reset email's link);
+- a dev project: `http://localhost:5173/**`. Keep the wildcard: sign-in
+  returns to the address it left, query string included (the job-page
+  button's handoff);
+- keep `https://<extension-id>.chromiumapp.org/` (the popup's Google flow in
+  `src/auth.js`, which no screen calls today).
 
 The Site URL can stay the site's root: the landing page forwards a session
-that arrives there to the dashboard.
+that arrives there to the dashboard. Google sign-in also needs the provider
+and a Google OAuth client: `docs/google-sign-in-setup.md`. Production's steps
+are in `docs/deploy-checklist.md`.
 
 ### 5. Build the extension
 
@@ -175,11 +201,13 @@ Put `.env` in place first: its values are built into the extension.
 
 ### 7. The extension ID
 
-The dashboard messages the extension by ID. Opened from the popup's Dashboard
-button, it gets the real ID as `?extensionId=`; opened directly, it falls back
-to `EXTENSION_ID_FALLBACK` in `src/config.js` (the published extension's ID).
-For an unpacked build, open the dashboard from the popup, or set the fallback
-to your ID and rebuild.
+The dashboard messages the extension by ID. On localhost, opened from the
+popup's "Open Dashboard", it gets the real ID as `?extensionId=`; opened any
+other way (a bookmark, the confirmation email's link), it falls back to
+`EXTENSION_ID_FALLBACK` in `src/config.js` (the published extension's ID),
+so an unpacked build is not reached and a save says "Saved on this device".
+Off localhost the site only ever messages the published ID, whatever the
+address says.
 
 ### 8. Run it
 
@@ -199,11 +227,20 @@ npm run dev:extension    # Extension dev server (crx plugin)
 npm run server:dev       # API with auto-reload
 npm run build            # Extension → dist/
 npm run build:dashboard  # Website → dist-dashboard/ (what Vercel builds)
+npm run build:release    # Store zip → release/onextap-<version>.zip (production .env only)
 npm test                 # Unit tests (node --test)
-npm run test:e2e         # Landing page e2e (Playwright), against stubs
+npm run lint             # ESLint 9, correctness rules only
+npm run test:e2e         # Website e2e (Playwright), against stubs
 npm run test:e2e:extension  # The extension loaded in Chromium, against stubs
 npm run evals            # Model-quality evals (opt-in; some spend real requests)
+node scripts/smoke-prod.mjs <origin>  # After a deploy: GET-only smoke checks
 ```
+
+`npm run build:release` refuses unless `.env` holds production's addresses
+(pass or fail per variable, never a value), builds `dist-release/` with a
+manifest that drops the localhost entries, scans it for secrets and
+localhost, checks its permissions against store 1.0.2's, and prints the
+zip's SHA-256.
 
 After changing `src/`, `extension/` or `public/`, rebuild and reload the
 extension in Chrome: a loaded extension does not pick up dev-server changes.
@@ -218,8 +255,10 @@ serves the Express app as a serverless function.
 ### Testing
 
 - `npm test` — matching and corpus functions, the profile and resume stores,
-  server modules (jobs pipeline, logger, cron auth) and the extension's
-  profile sync.
+  credit rules and charging, server modules (jobs pipeline, logger, cron
+  auth), every route through a harness that serves the real app with dummy
+  env and no network (`test/server/harness.js`), the extension's worker and
+  messages, and the `CLAUDE.md` rules a test can hold (`test/rules/`).
 - `npm run test:e2e` — the landing page and its company pages, and the
   dashboard's cover-letter credits, in Chromium (desktop and phone) and
   WebKit. Sign-in, the feedback form and the API are answered by
@@ -229,10 +268,12 @@ serves the Express app as a serverless function.
   with unresolvable addresses and loaded unpacked in Playwright's full
   Chromium, beside the website on `localhost:5173` (the one local origin the
   manifest lets message it; the run stops if 5173 is taken). It checks the
-  dashboard → extension profile sync through to the popup's autofill, and
-  the popup's cover letters: signed out, sent to the dashboard and back to
-  fill; signed in (a session put in place), the credit rule. `E2E_CHROMIUM_PATH` points it at another
-  `chrome.exe`.
+  dashboard → extension profile sync through to the popup's autofill, the
+  popup's read-only Cover tab (to the dashboard and back to fill), the
+  job-page button's handoff (`cover-handoff.spec.js`), and the account
+  deletion's wipe. A `legacy` project runs the website against store 1.0.2
+  when `E2E_LEGACY_EXTENSION_PATH` points at an unpacked copy of it.
+  `E2E_CHROMIUM_PATH` points the run at another `chrome.exe`.
 - Nothing automated covers the rest of the dashboard and the popup, or the
   real services: check those by hand.
 
@@ -269,15 +310,15 @@ takes the cron secret).
 |--------|----------|-------------|
 | GET | `/api/me` | Authenticated user profile (also used to pre-flight a token) |
 | GET | `/api/credits` | Current credit balance and premium flag |
-| POST | `/api/credits/deduct` | Deduct 1 credit; no-op for premium |
+| POST | `/api/credits/deduct` | A no-op kept for old clients: answers the balance, charges nothing |
 | GET | `/api/verify-premium` | Premium status, re-checked against Dodo, with the renewal date and any scheduled cancellation |
-| POST | `/api/answer-vault/generate` | Answer and cover-letter generation (Groq); 429 past the hourly ceiling (`GENERATE_LIMIT_PER_HOUR`) |
+| POST | `/api/answer-vault/generate` | Answer and cover-letter generation (Groq), charged inside the request (`kind`, `allowanceId`; the reply's `charge`); 403 out of credits, 429 past the hourly ceiling (`GENERATE_LIMIT_PER_HOUR`), 503 without migration 007 |
 | POST | `/api/parse-resume` | Resume → structured profile JSON (Gemini) |
 | GET | `/api/jobs` | Browse the job pool, unranked |
 | GET | `/api/jobs/locations` | Location facets for the pool |
 | GET | `/api/jobs/meta` | What is in the pool, and which sources are failing |
 | POST | `/api/jobs/rank` | Rank the pool against a resume |
-| POST | `/api/jobs/explain` | One job against a resume, in depth (1 credit) |
+| POST | `/api/jobs/explain` | One job against a resume, in depth: 1 credit, spent first, refunded on a failure |
 | GET, POST | `/api/jobs/ingest` | Daily ingest run (Vercel cron; `CRON_SECRET`) |
 | POST | `/api/create-checkout-session` | Create a Dodo Payments checkout |
 | POST | `/api/cancel-subscription` | Cancel Premium: at the end of the period if active, at once otherwise |
@@ -306,7 +347,13 @@ stays on until Dodo's `subscription.cancelled` webhook turns it off, and
 "Keep Pro" withdraws the cancellation until then.
 
 The webhook resolves the account by `metadata.supabaseUserId`, then
-`dodo_customer_id`, then email.
+`dodo_customer_id`, then email. An account is linked to one subscription
+(`server/subscriptionGuard.js`): a second one paid while the first is in force
+(two tabs, a double click) is cancelled at Dodo as a duplicate, with both ids
+in a warning (its payment is refunded in Dodo by hand); a new one replaces a
+linked subscription that is on hold; events about any other subscription are
+ignored. Deleting the account first cancels every subscription of its own
+that can still bill.
 
 ## Troubleshooting
 
@@ -318,6 +365,8 @@ The webhook resolves the account by `metadata.supabaseUserId`, then
 | Dashboard sends you to sign in every time | Check the Supabase redirect URLs (setup step 4) and that `VITE_SUPABASE_URL` is the same project the API uses |
 | Data not syncing to the extension | Open the dashboard from the popup (it passes the extension ID), or set `EXTENSION_ID_FALLBACK`; the site must be on `localhost:5173` or the production origin |
 | Answer generation fails | Check `GROQ_API_KEY` and its model ids (see `server/.env.example`), and that the server is running |
+| "AI writing is unavailable right now" (503) | Migration 007 is not applied to the project the API uses; the server's error log names the file |
+| Google: "Unsupported provider: provider is not enabled" | The Google provider is off in Supabase: `docs/google-sign-in-setup.md` |
 | "That's the limit of N AI drafts an hour" | The per-account ceiling (`GENERATE_LIMIT_PER_HOUR`, default 30); it lifts within the hour |
 | The reset email's link opens the dashboard or the landing page | Add `<site>/reset-password/` to Supabase's Redirect URLs (setup step 4); the site forwards a stray reset link to the reset page meanwhile |
 | Resume parsing fails | Check `GEMINI_API_KEY`; only PDF and image uploads are supported |

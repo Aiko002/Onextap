@@ -329,7 +329,7 @@ companion, but should be stated rather than discovered.
 |---|---|---|
 | U1 | Section toggles do not affect the fill | The UI implies a partial fill; `autofill()` ignores the `sections` payload |
 | U2 | Premium benefits listed in the modal and pricing card are not differentiated in code | "Two-pass rewrites", "priority processing" — the generation path is identical for both tiers |
-| U3 | The credit model is never explained in the UI | One credit buys a generation plus three improvements; only the counter hints at it |
+| U3 | The credit model is never explained in the UI | One credit buys a generation plus two improvements (three until 2026-10-20); only the counter hints at it |
 | U4 | The dashboard has no mobile layout | The 288px sidebar is always fixed |
 | U5 | ~~`OnextapDashboard.jsx` holds every screen in ~4.4k lines~~ **Resolved** | Split into 15 files; components rendered by both surfaces now live in `src/components/shared/` and are reusable |
 | U6 | Modal focus management is absent | See §8 |

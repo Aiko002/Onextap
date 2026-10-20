@@ -21,9 +21,9 @@ Four co-equal personas (no priority order between them):
 
 Applying for jobs is a copy-paste job: the same identity fields get retyped into every ATS, and every application asks the same three or four open-ended questions in slightly different words. Browser password managers and ATS account imports handle identity fields; nothing handles the part that takes real time — written answers and cover letters tailored to the posting on screen.
 
-Onextap is a Chrome MV3 extension plus a web dashboard (one React source tree, two builds). The user enters their details once, or uploads a resume for AI parsing, and from then on: one click fills any application form by keyword-matching fields against the active profile; saved answers live in an Answer Studio and can be rewritten by AI against the scraped job description; cover letters are stored as templates and personalized per application.
+Onextap is a Chrome MV3 extension plus a website with a dashboard (a React popup in `src/`, a plain-JS website in `web/` that imports `src/`'s modules; two builds). The user enters their details once, or uploads a resume for AI parsing, and from then on: one click fills any application form by keyword-matching fields against the active profile; saved answers live in an Answer Studio on the dashboard and can be rewritten by AI against the job description; cover letters are stored as templates and personalized per application, and a "Customize cover letter" button on the job page brings that posting to the dashboard.
 
-Success means cutting the time to fill a form to one click, removing retyping of long-form answers, and making AI answers specific to the posting actually open — without personal data ever leaving the user's device.
+Success means cutting the time to fill a form to one click, removing retyping of long-form answers, and making AI answers specific to the posting actually open — with personal data stored only on the user's device.
 
 ## Positioning
 
@@ -35,17 +35,17 @@ Onextap does not submit applications, track a pipeline, or represent an employer
 
 ## Operating Context
 
-- The user is mid-application, on the job posting or application page, usually wanting speed. Autofill and Answer Studio generation both read the currently open tab.
-- Application types relabel the same UI for different contexts: `job`, `college`, `scholarship`, `internship` (e.g. "Cover Letter" → "Personal Statement" / "Scholarship Essay"). Every type currently enables every feature — the type changes presentation and prompt wording, not gating.
-- The same React app runs as the extension popup (small, chrome-embedded) and the standalone web dashboard (full browser tab) — both must work from one source tree.
+- The user is mid-application, on the job posting or application page, usually wanting speed. Autofill reads and fills the currently open tab; answers and cover letters are written on the dashboard, from a pasted job description or one the job page's button hands over.
+- Application types relabel the same UI for different contexts: `job`, `college`, `scholarship`, `internship` (e.g. "Cover Letter" → "Personal Statement" / "Scholarship Essay"). Only `job` is live today; the others are commented out in `src/applicationTypes.js`, kept for later.
+- The extension popup (React, small, chrome-embedded) and the web dashboard (plain JS, full browser tab) share the data modules in `src/`, which must work with and without `chrome.*`.
 - Job matching runs asynchronously against a shared, pre-ingested pool, not a live per-request search — the user experiences it as a ranked list refreshing over time, not an instant query.
 
 ## Capabilities and Constraints
 
 - **Local-first storage is a hard constraint, not a preference.** Profile data (personal details, saved answers, cover letters) lives only in `chrome.storage.local` (extension) / `localStorage` (web), synced device-to-device only via `ONEXTAP_SYNC_DATA` messaging between the dashboard and the extension it's opened from. It is never written to Supabase.
-- Supabase holds only accounts and billing: auth users, a `profiles` row (credits, premium flag), `credit_transactions`, and the job-matching pool (`job_listings`, `job_ingest_state` — the only tables holding shared content rather than per-account rows).
+- Supabase holds only accounts and billing: auth users, a `profiles` row (credits, premium flag), `credit_transactions`, `generation_allowances` (the free follow-ups a credit bought), per-account rate-limit and rank-cache rows, and the job-matching pool (`job_listings`, `job_ingest_state` — the only tables holding shared content rather than per-account rows).
 - Credits and premium status are server-managed only; the client never computes or writes a balance (RLS blocks client writes to `credit_transactions`).
-- Premium is $5/month via Dodo Payments. Free accounts get 3 credits (1 credit = 1 generation + 3 follow-up improvements on it).
+- Premium is $5/month via Dodo Payments. Free accounts get 3 credits. 1 credit = 1 answer + 2 free improvements on it (three until 2026-10-20), or 1 cover letter + 1 free re-run for the same job description, or 1 "Explain my fit"; free follow-ups last 30 days. The server charges inside the generation request.
 - AI providers are request-scoped and never store data server-side on Onextap's end: Groq (Llama) generates answers/cover letters; Google Gemini parses resumes and ranks job matches. Each falls back to a secondary model on 404/429/5xx or an empty/safety-blocked response. (Opik, the observability layer, does retain traces when configured — that's a separate, real disclosure surface from the AI providers themselves.)
 - No Firefox/Safari support today — MV3, `chrome.*` APIs, Chromium only.
 - Terminology: "profile" is a saved applicant identity (a user can hold several); "Answer Studio" is the saved-answer vault plus AI rewrite; "corpus" (in job-matching) is the candidate's grounding text used to check AI output isn't fabricating experience.
@@ -65,7 +65,7 @@ Onextap does not submit applications, track a pipeline, or represent an employer
 
 ## Product Principles
 
-1. **Personal data never leaves the device.** This is enforced in code, not policy, and it is Onextap's central trust claim against competitors. Any new feature touching profile data must preserve it or be treated as an escalation requiring a privacy-policy update.
+1. **Personal data is stored only on the device.** This is enforced in code, not policy, and it is Onextap's central trust claim against competitors. Stored locally is not never sent: an AI feature the user asks for sends the text it needs to Groq or Gemini, per request, and the privacy page says so. Any new feature touching profile data must preserve this or be treated as an escalation requiring a privacy-policy update.
 2. **The product fills what's already open, it doesn't manage the search.** Historically true for autofill/Answer Studio; job-matching is extending this into surfacing what to apply to, but the tool still doesn't submit applications or represent an employer.
 3. **Tailoring beats speed when they trade off.** Targeted and multi-track applicants need AI output grounded in the specific job and profile in front of them, not generic filler — this is why fabrication-checking against the user's own corpus exists.
 4. **Paid usage is server-tamper-proof by design.** Every credit and premium check is authenticated server-side; nothing about billing state is ever trusted from the client.

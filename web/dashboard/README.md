@@ -54,29 +54,42 @@ Instrument Serif for the voice, Instrument Sans for UI, DM Mono for figures.
   you back and forth.
 - **The name** comes from the account, then the profile, then the email.
   Credits read "Unlimited" on Premium.
-- **Credits.** One credit buys an answer plus three improvements (Answer
-  Studio), a cover letter plus one re-run for the same job description (Cover
-  Letter, `@app/coverLetterCredits.js`), or one fit explanation (Job Matches).
-  Answer Studio and Cover Letter check the balance before the AI call and
-  deduct through `POST /api/credits/deduct` after a successful one; "Explain my
-  fit" is charged by the server inside `POST /api/jobs/explain`.
+- **Credits.** One credit buys an answer plus two free improvements (Answer
+  Studio; three until 2026-10-20), a cover letter plus one free re-run for the
+  same job description (Cover Letter, `@app/coverLetterCredits.js`), or one fit
+  explanation (Job Matches); the free follow-ups last 30 days, and Premium
+  never pays. The server charges, inside the request
+  (`POST /api/answer-vault/generate` with `kind` and the `allowanceId` it
+  granted; `POST /api/jobs/explain`, which spends before its analysis), and
+  gives the charge back when the generation fails. The page only refuses
+  early at a balance of 0 and shows what the response's `charge` says: the
+  balance, and the follow-ups left, kept with the saved answer or template.
+  `POST /api/credits/deduct` is a no-op left for old clients.
 - **Settings**: change avatar (kept in this browser: the Google photo, else
   initials, unless you upload one), manage subscription, billing portal, log
   out, delete account. Logging out clears this browser's profiles
-  (`user_profile`, `onextap_profiles`); resumes and the avatar stay. Deleting
-  the account deletes it on the server, then clears this browser; the
-  extension's copy and other browsers keep theirs, and the dialog says so.
+  (`user_profile`, `onextap_profiles`); resumes and the avatar stay, and so
+  does the extension's copy. Deleting the account deletes it on the server,
+  then clears this browser's storage and, when the extension in this browser
+  can (1.0.4, capability `wipe-local`), its copy too (`ONEXTAP_WIPE_LOCAL`);
+  store 1.0.2 and other browsers keep theirs, and the dialog says which
+  before you confirm.
 - **Returning from checkout** (`?payment=success`): re-checks Premium every 8
   seconds for up to 2 minutes, while Dodo's webhook lands.
 - **Links in**: `?view=vault|cover|jobs|profiles` (the popup's) opens that
   workspace; `?upgrade=1` opens the plan panel; `?extensionId=` says which
-  extension to sync with.
+  extension to talk to (on localhost only; elsewhere it is always the
+  published extension); `?handoff=<id>` is a job from the extension's
+  "Customize cover letter" button, kept in the tab through sign-in and read
+  once by the Cover Letter workspace (`docs/extension-protocol.md`).
 - **Syncing to the extension**: saving a profile pushes it to the extension
-  over `ONEXTAP_SYNC_DATA` when the page can reach one (opened from the popup,
-  or the published extension's ID). The save bar says which: synced (an
-  extension that answers `ONEXTAP_HELLO`), saved but the extension is out of
-  date (1.0.2, with a link to the store), or saved on this device; the local
-  save stands either way.
+  over `ONEXTAP_SYNC_DATA` when the page can reach one. The save bar says
+  which: synced (an extension that answers `ONEXTAP_HELLO` and confirmed it),
+  saved but not confirmed, saved but the extension is out of date (1.0.2, with
+  a link to the store), or saved on this device; the local save stands either
+  way. On localhost an unpacked build is reached only through `?extensionId=`,
+  so open the dashboard from the popup's "Open Dashboard"; a tab opened from
+  the confirmation email has none, and says "Saved on this device".
 
 ## Behaviour
 

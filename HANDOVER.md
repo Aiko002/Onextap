@@ -1283,6 +1283,15 @@ budget, and the unsaved answer's improvements.
    textarea gives no description (the prompt beside the textarea still
    does). Accept?
 
+**Owner's answers after the checkpoint (2026-10-21):**
+1. MyGreenhouse: "it works as intended". No change; §7 item 37 stays as
+   recorded.
+2. College pages: "will turn the options on soon. so plan for that". The
+   other application types become a switch in B6-1 (the plan): pickers that
+   show only when more than one type is listed, the dashboard following the
+   type, the essay pages' description, prompts, and tests with the types on.
+   §7 item 22 is no longer out of scope.
+
 **New work for B6 (the owner, at this checkpoint):** an Onextap-branded
 confirmation email instead of Supabase's; Google's sign-in screen naming
 Onextap; and the browser-tab and extension icons as the transparent ring
@@ -1786,7 +1795,7 @@ Both are unit-tested with Dodo and Supabase faked. The real double checkout at c
 
 **21. ~~Job Matches shows "Scoring 30 of 30 jobs" immediately.~~ Fixed at checkpoint 11:** the label claims no running count. It reads "Scoring the closest of N jobs in the pool", with N from `/api/jobs/meta` and only while no filter is applied, else "Scoring the closest jobs in the pool" (`web/dashboard/js/ws/job-matches-label.js`, unit-tested). Real ranks ran at checkpoint 15; the label itself was not looked at, and no e2e covers Job Matches.
 
-**22. No application-type picker on the web dashboard.** **Out of scope by owner decision, 2026-10-16.** Job is the only live type, as in the backend. Bringing the others back needs a picker there as well as in the popup.
+**22. No application-type picker on the web dashboard.** Out of scope by owner decision, 2026-10-16; **back in at checkpoint 15** (the owner, 2026-10-21: "will turn the options on soon"): batch B6-1 makes the types a switch. Job is the only live type, as in the backend. Bringing the others back needs a picker there as well as in the popup.
 
 **23. The landing's "signed in?" check reads Supabase's default storage key** (`sb-<ref>-auth-token`), in `web/src/app/backend.js`. A custom `storageKey` would break it. **Checkpoint 11:** worked out in one pure place, `web/src/app/session.js`, and `test/web/session.test.js` builds real supabase-js clients with `src/supabaseClient.js`'s options and fails if the keys ever differ, a custom `storageKey` included. Loading the SDK on the landing just to ask would cost its first paint. **Fixed at checkpoint 13:** `src/supabaseSessionKey.js` computes the key once; `src/supabaseClient.js` passes it as its `storageKey` (the same value as supabase-js's default, so no session moved), and the landing and the extension's wipe import it.
 
@@ -1816,7 +1825,7 @@ Both are unit-tested with Dodo and Supabase faked. The real double checkout at c
 
 **36. The API's CORS check matches origins by prefix.** Found by B5's security review; pre-existing (moved in B1). `startsWith` accepts `https://onextap.com.evil.example` as an allowed origin. The impact is small: the API authenticates with Bearer tokens, not cookies, so a foreign page gets nothing it couldn't ask for itself. Worth an exact-origin comparison when that code is next touched.
 
-**37. The job-page button can't reach a form inside an iframe.** Seen at checkpoint 15 on MyGreenhouse (`my.greenhouse.io`), Greenhouse's job-seeker portal: no button, while the same posting on the board's own page works. `content.js` runs in the top frame only (activeTab reaches the tab's own origin), by design; company career sites that embed a board's form in an iframe behave the same. Reaching them would need host permissions for the boards (CLAUDE.md asks first). **The owner's call.**
+**37. The job-page button can't reach a form inside an iframe.** Seen at checkpoint 15 on MyGreenhouse (`my.greenhouse.io`), Greenhouse's job-seeker portal: no button, while the same posting on the board's own page works. `content.js` runs in the top frame only (activeTab reaches the tab's own origin), by design; company career sites that embed a board's form in an iframe behave the same. Reaching them would need host permissions for the boards (CLAUDE.md asks first). **The owner, 2026-10-21: "it works as intended". No change.**
 
 **38. `undo_generation()` gives a free follow-up its use back without a receipt. Guarded in the server at checkpoint 15.** Found in B5's final review. Unlike a charge's refund (gated by deleting its allowance row), undoing a follow-up adds a use back each time it is called. Latent: each route undoes a failed generation once. Since checkpoint 15 `undoGeneration()` (`server/lib/credits.js`) sends one undo per spend, whatever asks again (tested). The function itself still has no receipt: a caller that retried after a timeout could not tell whether the first landed. A real fix is a new migration, if that ever matters.
 

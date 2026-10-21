@@ -22,7 +22,7 @@ Run batch B<N> of docs/plans/active/completion-plan.md.
 | B3 | Extension 1.0.4: job-page button, popup, wipe, release tooling; Explain spends first (B3-D) | no | L | done 2026-10-18 (checkpoint 13) | see `git log --grep "checkpoint 13"` |
 | B4 | Owner session A: real services on the dev project | yes, ~90 min | M | prep and the no-owner checks done 2026-10-18 (checkpoint 14); the owner's checks are queued into B5's session (owner's call) | see `git log --grep "checkpoint 14"` |
 | B5 | Docs, deploy checklist, final review; plus B4's queued owner checks | yes, ~90 min (B4's checks) | M | done 2026-10-20 (checkpoint 15), B4's owner checks included | see `git log --grep "checkpoint 15"` |
-| B6 | Owner session B: branding (B6-0, added at checkpoint 15), then the release-candidate build | yes, ~20 min plus B6-0's dashboard settings | M | not started | |
+| B6 | Branding (B6-0) and the application types made switchable (B6-1), both added at checkpoint 15; then the owner's release-candidate build | yes: B6-0's dashboard settings, the types' on/off call, ~20 min for the build | L | not started | |
 
 Order: `B0 → B1 → B2 and B3 (either order, or both at once, see B3's note) → B4 → B5 → B6`.
 
@@ -210,6 +210,11 @@ know) go here, newest last:
   (6,500 tokens), the unsaved answer's improvements, and smaller ones. The
   billing two are unit-tested only: worth a look against Dodo's test mode
   in B6 if the owner is there anyway.
+- **B5, owner's answers after checkpoint 15 (2026-10-21):** MyGreenhouse:
+  "it works as intended": no change (HANDOVER §7 item 37). The
+  application types: "will turn the options on soon. so plan for that":
+  B6-1, which also covers the essay pages B5-C changed. The plan's §6 lists
+  item 22 as out of scope: superseded by this answer.
 - **B5, for B6 and the deploy:** `docs/deploy-checklist.md` has a marked
   blank for the zip's SHA-256 from B6's run, and starts the production
   Supabase steps with the owner's private runbook (kept outside the repo).
@@ -1075,6 +1080,46 @@ release build, since (c) changes what the zip ships:
   change; `build:release`'s manifest check must still pass). Rebuild and
   have the owner look at the toolbar and a tab before the release build.
 
+**B6-1: ready for the other application types, from the owner after
+checkpoint 15 (2026-10-21): "will turn the options on soon. so plan for
+that".** College, Scholarship and Internship are commented out in
+`src/applicationTypes.js`, and that array is meant to be the one switch
+(its header says what else bringing them back needs). B6-1 makes the
+switch enough, so turning them on is uncommenting the entries, with no
+other change and no one-option picker while only Job is listed:
+
+- **A picker on each surface that shows itself only when more than one
+  type is listed:** the popup's (the commented `<select>` in
+  `src/components/popup/PopupView.jsx`, its imports restored) and a new one
+  on the website dashboard, which has none (§7 item 22, out of scope until
+  this answer). Each surface keeps its own choice under
+  `APPLICATION_TYPE_KEY` (`src/applicationTypeStorage.js`); whether the
+  dashboard's choice should reach the extension is the owner's call at the
+  checkpoint (it would ride the sync, `extension/profileSync.js`: CLAUDE.md
+  asks first).
+- **The dashboard follows the type:** its workspace list
+  (`web/dashboard/js/config.js`) hides what a type turns off (`features`:
+  Job Matches is off for College and Scholarship), and its labels come from
+  the type (`vaultLabel`, `coverLetterLabel`, `documentLabel`), as the Cover
+  Letter workspace's already do.
+- **The scrapers on essay pages:** since B5-C a `personal-statement` or
+  `essay` container that wraps its own textarea gives no description;
+  exempt `descriptionAcademic` from the controls rule there (the wrapper
+  is the prompt; a textarea's typed text is not in `innerText`). Only
+  `content.js` reads those keys (rule 5's tests hold the split).
+- **Prompts and copy:** the Answer Studio and cover-letter prompts
+  (`server/prompts/answerVault.js`) say "job application"; give an essay
+  its own wording where the type is known, and list for the owner every
+  website line that says "job" only (the landing's copy stays the owner's
+  call, checkpoint 11).
+- **Tests with the switch on:** unit and e2e runs with the three types
+  listed (a test-time override, not a commented-out array), so turning
+  them on later is already tested; and with only Job listed, no picker
+  shows anywhere.
+
+Whether 1.0.4 ships with the types on is the owner's call at the start of
+B6: the release build (step 2 below) takes whatever the switch says.
+
 1. The owner puts production's `VITE_*` values into `.env` from their backup.
    Claude doesn't see them.
 2. The lead runs `npm run build:release`. Every check must pass; record the
@@ -1118,7 +1163,7 @@ By owner decision, 2026-10-16. They stay in HANDOVER §7.
 - Items 5 (storing the pending cancellation) and 6 (deletion failing
   halfway).
 - Item 17 beyond the job-page button: the dashboard still can't fill forms.
-- Item 22: application types.
+- Item 22: application types. (Superseded at checkpoint 15: B6-1 makes them switchable.)
 - A popup sign-in (item 27 options b and c).
 - Type-checking.
 - Deploying, merging into `main`, submitting to the store.

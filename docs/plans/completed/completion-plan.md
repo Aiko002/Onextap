@@ -1,7 +1,7 @@
 # Completion plan: the website, the dashboard and extension 1.0.4
 
 Written 2026-10-16 (session 6) from an interview with the owner. Picks up
-from checkpoint 9 (`5ddb7db`). Ends **deploy-ready**: everything built and
+from checkpoint 9 (`4593018`). Ends **deploy-ready**: everything built and
 tested against the dev project, a production deploy checklist, and a 1.0.4
 release zip. It does not deploy, touch production, merge into `main`, or
 submit to the Chrome Web Store (§1, D13).
@@ -9,7 +9,7 @@ submit to the Chrome Web Store (§1, D13).
 **One batch per session.** Open a new session in this repo and paste:
 
 ```
-Run batch B<N> of docs/plans/active/completion-plan.md.
+Run batch B<N> of docs/plans/completed/completion-plan.md.
 ```
 
 ## Status
@@ -22,7 +22,7 @@ Run batch B<N> of docs/plans/active/completion-plan.md.
 | B3 | Extension 1.0.4: job-page button, popup, wipe, release tooling; Explain spends first (B3-D) | no | L | done 2026-10-18 (checkpoint 13) | see `git log --grep "checkpoint 13"` |
 | B4 | Owner session A: real services on the dev project | yes, ~90 min | M | prep and the no-owner checks done 2026-10-18 (checkpoint 14); the owner's checks are queued into B5's session (owner's call) | see `git log --grep "checkpoint 14"` |
 | B5 | Docs, deploy checklist, final review; plus B4's queued owner checks | yes, ~90 min (B4's checks) | M | done 2026-10-20 (checkpoint 15), B4's owner checks included | see `git log --grep "checkpoint 15"` |
-| B6 | Branding (B6-0) and the application types made switchable (B6-1), both added at checkpoint 15; then the owner's release-candidate build | yes: B6-0's dashboard settings, the types' on/off call, ~20 min for the build | L | not started | |
+| B6 | Branding (B6-0) and the application types made switchable (B6-1), both added at checkpoint 15; then the owner's release-candidate build | yes: B6-0's dashboard settings, the types' on/off call, ~20 min for the build | L | done 2026-10-21 (checkpoint 16); the release zip is built at release time (the owner's call) | see `git log --grep "checkpoint 16"` |
 
 Order: `B0 → B1 → B2 and B3 (either order, or both at once, see B3's note) → B4 → B5 → B6`.
 
@@ -218,6 +218,27 @@ know) go here, newest last:
 - **B5, for B6 and the deploy:** `docs/deploy-checklist.md` has a marked
   blank for the zip's SHA-256 from B6's run, and starts the production
   Supabase steps with the owner's private runbook (kept outside the repo).
+- **B6, the owner's answers at the start:** 1.0.4 ships Job only; the
+  dashboard's type choice does not ride the sync; the auth emails'
+  templates now, custom SMTP at deploy; Google through the consent screen
+  only.
+- **B6: the switch is a list of ids, not commented-out entries.** All four
+  types live in `ALL_APPLICATION_TYPES`; `LISTED_TYPE_IDS` is the switch, so
+  the tests can list them (`ONEXTAP_E2E_APPLICATION_TYPES`, a Vite define;
+  a release build refuses it). The website e2e runs a `types-on` project on
+  port 5191; the extension e2e builds a second, all-types copy.
+- **B6: Supabase locks the email templates without custom SMTP.** Found on
+  dev. The templates were checked from a local render; SMTP and the
+  templates are deploy steps (checklist §3, steps 11 and 12, after the
+  deploy, because the new privacy page names Resend).
+- **B6: the release zip was not built** (the owner, 2026-10-21): whoever runs
+  the release builds it (`docs/release-guide.md` step 9, the checklist's §9
+  step 1). B6's steps 1 to 5 below moved there.
+- **B6: commit messages name no tool and carry no co-author line** (the
+  owner, 2026-10-21); the branch's earlier messages were reworded, so every
+  commit after `bae4abc` has a new id.
+- **B6: baseline at close-out.** `npm run lint` 0/0; `npm test` 1170/0/2;
+  `test:e2e` 211 pass / 10 skipped; `test:e2e:extension` 14 of 14.
 
 ---
 
@@ -298,7 +319,7 @@ know) go here, newest last:
 Fill in the `<…>` parts from the WP. Keep the rest word for word.
 
 ```
-You are builder <WP-ID> for batch B<N> of docs/plans/active/completion-plan.md,
+You are builder <WP-ID> for batch B<N> of docs/plans/completed/completion-plan.md,
 working in an isolated git worktree.
 
 Read first: CLAUDE.md; the plan's §0.3 (rules) and §2 (facts); §3 (the
@@ -1036,7 +1057,7 @@ after them.
 **Lead:**
 
 - Final review of the whole plan: the `code-review` skill at `xhigh` over
-  `5ddb7db..HEAD`, and the `security-review` skill. The Auditor checks §5.
+  `4593018..HEAD`, and the `security-review` skill. The Auditor checks §5.
 - HANDOVER refresh: the top state paragraph; §5; §6 points to the deploy
   checklist; §7 strikes what's fixed and marks items 5, 6, the automatic
   refund, the rest of 17, and 22 "out of scope by owner decision,

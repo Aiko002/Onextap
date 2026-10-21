@@ -619,9 +619,10 @@ if (!window.__onextapAutofillLoaded) {
    * selectors, then school / university / organization ones → the last
    * segment of document.title split on | - — or " at ". Description picks
    * whichever candidate selector yields the most text, skipping any that is
-   * or holds a form control; falls back to document.body only on a page with
-   * no form controls (else ''); then collapses whitespace and caps at 8000
-   * chars.
+   * a form control, and any job-ad candidate that holds one (an essay
+   * wrapper may hold its own textarea, one at most); falls back to
+   * document.body only on a page with no form controls (else ''); then
+   * collapses whitespace and caps at 8000 chars.
    *
    * NOTE: scrapeJobPage() in extension/background.js does the same job for
    * the service worker, which cannot call into this file — it must be a
@@ -697,12 +698,25 @@ if (!window.__onextapAutofillLoaded) {
     // than the ad (Greenhouse's <main>). Nor is the body a fallback on a page
     // with controls, or the form's questions become the description (Lever's
     // /apply page matches no candidate at all); there it is left empty.
-    const isForm = (el) => el.matches(SELECTORS.formControls) || !!el.querySelector(SELECTORS.formControls);
+    //
+    // Except an essay or personal-statement wrapper, which may hold its own
+    // textarea: on an essay page that wrapper is the prompt, and what is typed
+    // in a textarea is not in innerText. One textarea at most: a wrapper with
+    // several is a whole form in an "essay" class, the case the rule above is
+    // for. A candidate that IS a control is still never read, academic or not.
+    const isControl = (el) => el.matches(SELECTORS.formControls);
+    const holdsControl = (el) => !!el.querySelector(SELECTORS.formControls);
+    const textareasIn = (el) => [...el.querySelectorAll(SELECTORS.formControls)].filter((c) => c.localName === 'textarea').length;
+    const holdsForm = (el, mayHoldControls) => (mayHoldControls ? textareasIn(el) > 1 : holdsControl(el));
+    const candidates = [
+      ...SELECTORS.description.map((sel) => ({ sel, mayHoldControls: false })),
+      ...SELECTORS.descriptionAcademic.map((sel) => ({ sel, mayHoldControls: true })),
+    ];
     let description = '';
     let bestLen = 0;
-    for (const sel of [...SELECTORS.description, ...SELECTORS.descriptionAcademic]) {
+    for (const { sel, mayHoldControls } of candidates) {
       const el = document.querySelector(sel);
-      if (!el || isForm(el)) continue;
+      if (!el || isControl(el) || holdsForm(el, mayHoldControls)) continue;
       const text = (el.innerText || '').trim();
       if (text.length > bestLen) {
         bestLen = text.length;

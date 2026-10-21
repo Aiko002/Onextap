@@ -19,6 +19,7 @@ import {
 } from '../groqClient.js';
 import { validateAgainstCorpus } from '../../src/matching/index.js';
 import {
+  applicationTypeOf,
   pickRelevantAnswers,
   buildGroqAnswerSystemInstruction,
   buildAnswerVaultUserContent,
@@ -224,6 +225,10 @@ async function generateDraft({ groq, selectedModel, systemInstruction, userConte
 //   - `kind` ('answer' | 'cover_letter') and `allowanceId` (optional, from
 //     the previous response's `charge`): what this generation costs. Without
 //     `kind` it is charged a credit, with nothing granted (chargingFor()).
+//   - `applicationType` (optional, an id from src/applicationTypes.js): the
+//     prompt's wording, an essay's for College and Scholarship. Missing,
+//     blank or unknown is Job, the prompt every client had before it. It
+//     chooses wording only: the charge and the Improve guard never read it.
 //
 // ═══ PAID HERE, BEFORE THE MODEL ═══
 //
@@ -251,6 +256,7 @@ router.post('/api/answer-vault/generate', requireAuth, async (req, res) => {
     const jobContext = typeof req.body?.jobContext === 'string' ? req.body.jobContext.trim() : '';
     const profileContext = typeof req.body?.profileContext === 'string' ? req.body.profileContext.trim() : '';
     const vaultAnswers = Array.isArray(req.body?.vaultAnswers) ? req.body.vaultAnswers : [];
+    const applicationType = applicationTypeOf(req.body?.applicationType);
 
     // B2-C: Improve guard. Answer Studio's Improve only — an explicit
     // `kind: 'answer'` with a draft. Cover letters and clients that send no
@@ -263,7 +269,7 @@ router.post('/api/answer-vault/generate', requireAuth, async (req, res) => {
       const profileBlock = profileContext
         ? `PROFILE (brief):\n${profileContext}\n\n`
         : '';
-      userContent = buildAnswerVaultUserContent({ relevantAnswers, profileBlock, jobContext, question, draft, improve: answerImprove });
+      userContent = buildAnswerVaultUserContent({ relevantAnswers, profileBlock, jobContext, question, draft, improve: answerImprove, applicationType });
     } else if (legacyPrompt) {
       userContent = legacyPrompt;
     } else {
@@ -303,7 +309,7 @@ router.post('/api/answer-vault/generate', requireAuth, async (req, res) => {
       return res.status(429).json({ error: limitMessage(gate.resetAt, gate.limit), resetAt: gate.resetAt });
     }
 
-    const systemInstruction = buildGroqAnswerSystemInstruction(taskHint, styleHint);
+    const systemInstruction = buildGroqAnswerSystemInstruction(taskHint, styleHint, applicationType);
     // Before the spend: a server with no Groq key fails without charging.
     const groq = getGroq();
 
@@ -370,6 +376,7 @@ router.post('/api/answer-vault/generate', requireAuth, async (req, res) => {
           text: finalText,
           corpus,
           jobContext,
+          applicationType,
           startedAt: requestStartedAt,
           regenerate: createGroqRetry({ groq, model: finalModel, system: systemInstruction, user: userContent, previous: finalText }),
         });

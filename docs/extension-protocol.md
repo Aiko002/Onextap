@@ -4,7 +4,7 @@ How the website and the popup talk to the extension's service worker: every
 message, who may send it, what it answers, and what store 1.0.2 (the version
 most users have) answers instead. Final for extension 1.0.4, protocol 2:
 checked on 2026-10-20 against `extension/messages/`, `public/content.js` and
-§3 of `docs/plans/active/completion-plan.md`, and against a real run on the
+§3 of `docs/plans/completed/completion-plan.md`, and against a real run on the
 dev project (`docs/app-flow.md` §3.1, §6.1, §9).
 
 The worker's side is `extension/messages/` (one module per message, routed by
@@ -195,10 +195,14 @@ only `scrapePageContext()` also reads the `*Academic` lists.
   else the last part of the title.
 - **Description:** the longest text among the description candidates (job
   board classes, `article`, `main`, and in `scrapePageContext()` essay
-  markup) that is not itself an application control and holds none
-  (`SELECTORS.formControls`: `textarea, input[type="file"]`: an
-  application asks for prose or a file; a search box, a filter or a
-  newsletter field does not count). On a page with no such candidate, the
+  markup) that is not itself an application control and, for the job-ad
+  candidates, holds none (`SELECTORS.formControls`: `textarea,
+  input[type="file"]`: an application asks for prose or a file; a search
+  box, a filter or a newsletter field does not count). An essay candidate
+  (`descriptionAcademic`) may hold its own textarea, one at most: on an
+  essay page the wrapper is the prompt, and what is typed in a textarea is
+  not in `innerText`; one holding several is a whole form. On a page with no
+  such candidate, the
   page's text, but only if the page has no application control at all;
   otherwise `''`.
   Whitespace collapsed, capped at 8,000 characters.
@@ -209,9 +213,12 @@ notice, the form's questions); and on Greenhouse `<main>`, holding the
 application form, outran the description `div` and brought the form's
 questions with it. Now an application form with no job ad outside it gives
 `''`, and the dashboard asks for the description (The cover-letter handoff,
-below). Known trade-offs: an essay container that wraps its own textarea
-gives `''` on college pages, and a job ad whose only candidate (`main`)
-holds a search box would too.
+below). Known trade-offs: a job ad whose only candidate (`main`) holds an
+application control gives `''` too; and since the completion plan's B6-1
+exempted the `*Academic` candidates, a job application page whose one
+question sits in an `essay` or `personal-statement` class with its textarea
+gives that question as the description (the scraper does not know the
+application type).
 
 ## The cover-letter handoff
 

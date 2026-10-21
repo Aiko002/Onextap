@@ -1,34 +1,41 @@
 // End-to-end checks with the extension loaded unpacked: the dashboard's
 // profile sync into it (ONEXTAP_SYNC_DATA), autofill from the popup, the
 // popup's read-only Cover tab and the dashboard it sends you to for the rest,
-// and deleting the account, which clears the extension (ONEXTAP_WIPE_LOCAL).
-// playwright.extension.config.js runs this file
+// deleting the account, which clears the extension (ONEXTAP_WIPE_LOCAL), and
+// the popup's application type picker, which only a build listing more than
+// one type shows. playwright.extension.config.js runs this file
 // (`npm run test:e2e:extension`), after tests/extension-build.js has built the
-// extension with unresolvable addresses. The account and the API are stubbed
-// on the whole browser context, so the same stubs answer the website and the
-// extension's pages. Nothing here reaches a real project or a real model.
+// extension with unresolvable addresses, twice: as the switch in
+// src/applicationTypes.js lists the types, and with every type listed. The
+// account and the API are stubbed on the whole browser context, so the same
+// stubs answer the website and the extension's pages. Nothing here reaches a
+// real project or a real model.
 /* global chrome -- the evaluate() callbacks run in the extension's popup and worker */
 import { test as base, expect, chromium } from '@playwright/test';
-import { EXTENSION_DIR, EXTENSION_ENV } from './extension-build.js';
+import { EXTENSION_DIR, EXTENSION_ALL_TYPES_DIR, EXTENSION_ENV } from './extension-build.js';
 import { stubAuth, stubApi, stubDashboard, sessionFor } from './stubs.js';
 import { supabaseStorageKey } from '../../src/supabaseSessionKey.js';
+import { APPLICATION_TYPE_KEY } from '../../src/localKeys.js';
+import { ALL_APPLICATION_TYPES } from '../../src/applicationTypes.js';
 
 const SITE = 'http://localhost:5173';
 
 const test = base.extend({
+  // Which build to load: EXTENSION_DIR unless a describe block says
+  // otherwise with test.use().
+  extensionDir: [EXTENSION_DIR, { option: true }],
   // An extension loads only into a persistent context; '' is a fresh
   // profile folder, removed when the context closes. It needs Playwright's
   // full Chromium (`npx playwright install chromium`), not the headless shell
   // the other suites use. E2E_CHROMIUM_PATH points at another chrome.exe: on
   // one Windows machine the installed one failed to start ("side-by-side
   // configuration is incorrect") and a copy of its folder elsewhere ran.
-  // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's dependencies from this destructure
-  context: async ({}, use) => {
+  context: async ({ extensionDir }, use) => {
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
       executablePath: process.env.E2E_CHROMIUM_PATH || undefined,
       viewport: { width: 1280, height: 900 },
-      args: [`--disable-extensions-except=${EXTENSION_DIR}`, `--load-extension=${EXTENSION_DIR}`]
+      args: [`--disable-extensions-except=${extensionDir}`, `--load-extension=${extensionDir}`]
     });
     await use(context);
     await context.close();
@@ -108,6 +115,13 @@ test.describe('the extension, loaded', () => {
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/index.html`);
     await expect(popup.getByRole('button', { name: 'Dashboard' })).toBeVisible();
+
+    // This build lists Job alone (the switch in src/applicationTypes.js), so
+    // the popup offers no application type: no picker, not even one with a
+    // single option. Its labels are Job's.
+    await expect(popup.getByRole('combobox')).toHaveCount(0);
+    await expect(popup.locator('select')).toHaveCount(0);
+    await expect(popup.getByRole('button', { name: 'Cover Letter' })).toBeVisible();
 
     // An edit after that: before checkpoint 2's fix the worker wrote only
     // user_profile, which the popup no longer reads once its store exists.
@@ -376,5 +390,71 @@ test.describe('the extension, loaded', () => {
     // The copy is still there, as the user was told.
     const stored = await extensionStorage(serviceWorker, ['onextap_profiles', 'user_profile']);
     expect(stored.user_profile.firstName).toBe('Ada');
+  });
+});
+
+// The switch turned on (completion plan B6-1): the copy built with every
+// application type listed (ONEXTAP_E2E_APPLICATION_TYPES=all), so turning
+// College, Scholarship and Internship on is uncommenting their ids, already
+// tested. The popup's choice is its own, under APPLICATION_TYPE_KEY in the
+// extension's storage; the website dashboard keeps a separate one.
+test.describe('the extension, with every application type listed', () => {
+  test.use({ extensionDir: EXTENSION_ALL_TYPES_DIR });
+
+  const job = ALL_APPLICATION_TYPES.find((t) => t.id === 'job');
+  const college = ALL_APPLICATION_TYPES.find((t) => t.id === 'college');
+  const tabNames = (type) => ['Autofill', 'Saved Answers', type.coverLetterLabel];
+
+  test('the popup offers the four types; College relabels it, is stored, and is still chosen when the popup reopens', async ({ context, page, serviceWorker, extensionId }) => {
+    await stubAuth(context);
+    await stubApi(context);
+    const popupUrl = `chrome-extension://${extensionId}/index.html`;
+    let popup = await context.newPage();
+    await popup.goto(popupUrl);
+
+    // A profile, so the popup has its header and tabs, filed by the worker's
+    // own sync handler from a page on the site. First-run setup finishes
+    // first (see the Cover tab test above).
+    await expect(popup.getByRole('button', { name: 'Open Dashboard' })).toBeVisible();
+    await page.goto(`${SITE}/contact/`);
+    const synced = await page.evaluate(([id, payload]) => new Promise((resolve) =>
+      chrome.runtime.sendMessage(id, { type: 'ONEXTAP_SYNC_DATA', payload }, resolve)),
+    [extensionId, { firstName: 'Ada', email: 'ada@example.com' }]);
+    expect(synced).toEqual({ success: true });
+    await popup.reload();
+
+    // The picker, with the four types in the catalog's order, on Job.
+    const picker = popup.getByRole('combobox', { name: 'Application type' });
+    await expect(picker).toHaveValue('job');
+    await expect(picker.locator('option')).toHaveText(ALL_APPLICATION_TYPES.map((t) => t.label));
+    await expect(popup.locator('select')).toHaveCount(1);
+    for (const name of tabNames(job)) {
+      await expect(popup.getByRole('button', { name, exact: true })).toBeVisible();
+    }
+    await expect(popup.getByRole('button', { name: `Open ${job.vaultLabel}` })).toBeVisible();
+    await expect(popup.getByRole('button', { name: 'Find matching jobs' })).toBeVisible();
+
+    // College: the popup takes its labels, and drops the job matches College
+    // turns off (features.jobMatches).
+    await picker.selectOption('college');
+    for (const name of tabNames(college)) {
+      await expect(popup.getByRole('button', { name, exact: true })).toBeVisible();
+    }
+    await expect(popup.getByRole('button', { name: job.coverLetterLabel, exact: true })).toHaveCount(0);
+    await expect(popup.getByRole('button', { name: `Open ${college.vaultLabel}` })).toBeVisible();
+    await expect(popup.getByRole('button', { name: 'Find matching jobs' })).toHaveCount(0);
+    await popup.getByRole('button', { name: college.coverLetterLabel, exact: true }).click();
+    await expect(popup.getByText(`No ${college.coverLetterLabel.toLowerCase()} templates yet. Add one on the dashboard.`)).toBeVisible();
+
+    // Stored in the extension, under the key src/localKeys.js names.
+    expect(await extensionStorage(serviceWorker, [APPLICATION_TYPE_KEY])).toEqual({ [APPLICATION_TYPE_KEY]: 'college' });
+
+    // Closed and opened again: still College.
+    await popup.close();
+    popup = await context.newPage();
+    await popup.goto(popupUrl);
+    await expect(popup.getByRole('combobox', { name: 'Application type' })).toHaveValue('college');
+    await expect(popup.getByRole('button', { name: college.coverLetterLabel, exact: true })).toBeVisible();
+    await expect(popup.getByRole('button', { name: job.coverLetterLabel, exact: true })).toHaveCount(0);
   });
 });

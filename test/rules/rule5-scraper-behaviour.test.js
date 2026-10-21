@@ -300,17 +300,86 @@ for (const kind of ['personal-statement', 'essay']) {
   });
 }
 
-// The academic candidates are held to the same rule: an essay prompt beside
-// its textarea is read, a container holding the textarea is the form.
+// The academic candidates and the controls rule (completion plan B6-1). On an
+// essay page the prompt and its textarea share a wrapper, and what is typed in
+// a textarea is not in innerText, so a personal-statement or essay wrapper
+// that holds its textarea is the prompt, not the form. The job-ad candidates
+// keep the rule, and so does the body fallback.
 test('scrapePageContext: an essay prompt beside its textarea is the description', () => {
   const page = { elements: [{ className: 'essay-prompt', innerText: long('prompt') }, { tag: 'textarea' }], body: 'Body' };
   assert.equal(runScraper(SCRAPERS.scrapePageContext, page).description, long('prompt'));
 });
 
-test('scrapePageContext: an essay container holding its textarea is skipped like any candidate', () => {
+for (const kind of ['personal-statement', 'essay']) {
   const page = {
-    elements: [{ className: 'essay-question', innerText: long('prompt'), children: [{ tag: 'textarea' }] }],
-    body: 'Body',
+    elements: [{ className: `${kind}-question`, innerText: `  ${long('prompt')}  `, children: [{ tag: 'textarea' }] }],
+    body: `${long('prompt')} Submit`,
   };
+
+  test(`scrapePageContext: ${kind} markup wrapping its textarea gives its prompt`, () => {
+    assert.equal(runScraper(SCRAPERS.scrapePageContext, page).description, long('prompt'));
+  });
+
+  test(`scrapeJobPage: ${kind} markup wrapping its textarea is no description, and the body fallback stays off`, () => {
+    assert.equal(runScraper(SCRAPERS.scrapeJobPage, page).description, '');
+  });
+}
+
+test('scrapePageContext: an essay wrapper holding a file input as well still gives its prompt', () => {
+  const page = {
+    elements: [{ className: 'essay-block', innerText: long('prompt'), children: [{ tag: 'textarea' }, input('file')] }],
+  };
+  assert.equal(runScraper(SCRAPERS.scrapePageContext, page).description, long('prompt'));
+});
+
+test('scrapePageContext: an essay-classed wrapper around a whole form (more than one textarea) is the form, not a prompt', () => {
+  // A job board's /apply page whose form sits in an "essay" class: holding
+  // several textareas, it is not one prompt and its own answer box, so the
+  // controls rule applies and the page gives no description.
+  const page = {
+    elements: [{ className: 'essay-form', innerText: long('questions'), children: [{ tag: 'textarea' }, { tag: 'textarea' }, input('file')] }],
+    body: long('questions'),
+  };
+  assert.equal(runScraper(SCRAPERS.scrapePageContext, page).description, '');
+});
+
+test('scrapePageContext: on an essay page, the main holding the form is skipped and the essay wrapper read', () => {
+  const page = {
+    elements: [{
+      tag: 'main',
+      innerText: `${long('prompt')} ${long('question')}`,
+      children: [{ className: 'essay-question', innerText: long('prompt'), children: [{ tag: 'textarea' }] }, FORM],
+    }],
+    body: `${long('prompt')} ${long('question')}`,
+  };
+  assert.equal(runScraper(SCRAPERS.scrapePageContext, page).description, long('prompt'));
+});
+
+test('scrapePageContext: an essay candidate that is itself the textarea is still skipped', () => {
+  const page = {
+    elements: [{ tag: 'textarea', className: 'essay-answer', innerText: long('typed') }, { tag: 'article', innerText: 'the prompt' }],
+  };
+  assert.equal(runScraper(SCRAPERS.scrapePageContext, page).description, 'the prompt');
+});
+
+test('scrapePageContext: a job-ad candidate holding a textarea is still skipped', () => {
+  for (const className of ['job-description', 'description']) {
+    const page = { elements: [{ className, innerText: long('question'), children: [{ tag: 'textarea' }] }], body: long('question') };
+    assert.equal(runScraper(SCRAPERS.scrapePageContext, page).description, '', className);
+  }
+});
+
+test('scrapePageContext: a job-ad candidate holding controls still loses to an essay wrapper that holds its own', () => {
+  const page = {
+    elements: [
+      { className: 'job-description', innerText: `${long('prompt')} ${long('question')}`, children: [FORM] },
+      { className: 'essay-question', innerText: long('prompt'), children: [{ tag: 'textarea' }] },
+    ],
+  };
+  assert.equal(runScraper(SCRAPERS.scrapePageContext, page).description, long('prompt'));
+});
+
+test('scrapePageContext: an essay page with a textarea and no essay markup has no description, not the body', () => {
+  const page = { elements: [{ tag: 'label', innerText: 'Tell us about yourself' }, { tag: 'textarea' }], body: 'Tell us about yourself Submit' };
   assert.equal(runScraper(SCRAPERS.scrapePageContext, page).description, '');
 });

@@ -117,7 +117,9 @@ browser. Say so plainly when you have not.
   redaction key lists mirror each other.
 - Every server response carries `X-Request-Id`: quote it to find the log line.
 - Git: the work is on `merge/web-dashboard`, pushed to remote `latest`;
-  `origin` is the backend's repo. Nothing is merged into `main`.
+  `origin` is the backend's repo. Nothing is merged into `main`. Commit
+  messages name no assistant or tool and carry no co-author line (the
+  owner's rule, 2026-10-21).
 
 ## Escalate
 

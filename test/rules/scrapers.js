@@ -93,10 +93,12 @@ function matches(el, selector) {
  */
 function stubElement(spec) {
   const el = { tag: 'div', innerText: '', ...spec };
+  el.localName = el.tag;
   el.children = (spec.children ?? []).map(stubElement);
   el.descendants = el.children.flatMap((child) => [child, ...child.descendants]);
   el.matches = (selector) => matches(el, selector);
   el.querySelector = (selector) => el.descendants.find((d) => matches(d, selector)) ?? null;
+  el.querySelectorAll = (selector) => el.descendants.filter((d) => matches(d, selector));
   return el;
 }
 

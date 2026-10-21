@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { fileURLToPath } from 'node:url';
+import { applicationTypesDefine } from './scripts/applicationTypesOverride.js';
 
 const here = (path) => fileURLToPath(new URL(path, import.meta.url));
 
@@ -26,6 +27,9 @@ export default defineConfig({
   // The one .env at the repo root serves both builds (VITE_SUPABASE_URL …).
   envDir: here('.'),
   publicDir: here('./web/public'),
+  // Null unless ONEXTAP_E2E_APPLICATION_TYPES is set: the e2e suites' way to
+  // list every application type (scripts/applicationTypesOverride.js).
+  define: applicationTypesDefine(process.env),
   resolve: {
     // The modules the dashboard shares with the popup and the server:
     // profile + resume stores, auth, credits, matching (src/, see

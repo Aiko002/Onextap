@@ -5,8 +5,10 @@ import { profileSwitcher } from '../ui/switchers.js';
 import {
   AI_TIMEOUT_SEC, ANSWER_STYLE_INSTRUCTIONS, ANSWER_STYLE_OPTIONS, withTimeout,
 } from '@app/answerStudio.js';
+import { DEFAULT_APPLICATION_TYPE, getApplicationTypeConfig } from '@app/applicationTypes.js';
 import { getAccessToken } from '@app/auth.js';
 import { ANSWER_STUDIO_MODEL, API_URL } from '@app/config.js';
+import { answerTaskHint } from '../application-type.js';
 import { creditManager } from '@app/creditManager.js';
 import { DEFAULT_PROFILE } from '@app/profileDefaults.js';
 import { getActiveLegacyProfile, loadProfileStore, saveLegacyUserProfile } from '@app/profileStore.js';
@@ -34,6 +36,11 @@ const log = baseLog.child('ui');
 // reads the job page it is opened on; the dashboard does not try to, because
 // from here "the active tab" is the dashboard itself — its own text is not a
 // job description, and sending it as one would tailor the answer to nothing.
+//
+// The application type (ctx.applicationType) names this workspace (main.js)
+// and words the task hint: a College or Scholarship answer is an essay for
+// its committee (js/application-type.js). Generating sends its id as
+// `applicationType`.
 
 const allowanceOf = (item) => (typeof item?.aiAllowanceId === 'string' && item.aiAllowanceId ? item.aiAllowanceId : null);
 
@@ -49,6 +56,8 @@ const normalizeVault = (items = []) => (Array.isArray(items) ? items : []).map((
 const finiteOrNull = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 
 export function mount(body, ctx) {
+  // The application type this browser picked: what the AI is asked to write.
+  const appType = ctx.applicationType ?? getApplicationTypeConfig(DEFAULT_APPLICATION_TYPE);
   let alive = true;
   let profile = { ...DEFAULT_PROFILE, vault: normalizeVault(DEFAULT_PROFILE.vault) };
   let activeId = null;
@@ -399,20 +408,7 @@ export function mount(body, ctx) {
       const hasJobContext = !!pasted;
       const jdSnippet = hasJobContext ? pasted.substring(0, 6000) : '';
       const companyName = (company.value.trim() || 'Not specified').trim();
-      const hasGeneric = draft.length > 0;
-
-      const lengthRule = 'Target length: 170-240 words unless the question clearly needs less.';
-      const impactRule = 'Include at least one measurable or observable impact/result. Prefer numbers/percentages/timeframes when truthful; never invent facts.';
-      let taskHint;
-      if (hasGeneric) {
-        taskHint = hasJobContext
-          ? `Rewrite the candidate draft to target the job description and company. Answer the application question directly. Tone: human, natural, confident. ${lengthRule} First person. At least two concrete details tied to the role; weave in 2-4 phrases from the job description. ${impactRule} No filler, cliches, headings, or bullet points.`
-          : `Improve the candidate draft so it is stronger and clearer. Answer the application question directly. Preserve the candidate's intent; add specificity and one concrete example or outcome. ${lengthRule} First person. ${impactRule} No filler, cliches, headings, or bullet points.`;
-      } else {
-        taskHint = hasJobContext
-          ? `Write a tailored answer to the application question. Use the job description and company to ground specifics. ${lengthRule} First person. At least two concrete details; reflect 2-4 ideas from the job description. ${impactRule} Interview-ready, not a template. No filler, cliches, headings, or bullet points.`
-          : `Write a strong, portable first-draft answer that works across employers. Target length: 160-230 words unless the question clearly needs less. First person. At least one concrete skill and one measurable or observable result. ${impactRule} Specific enough to sound real; broadly reusable. No filler, cliches, headings, or bullet points.`;
-      }
+      const taskHint = answerTaskHint(appType, { hasDraft: draft.length > 0, hasJobContext });
 
       const token = await getAccessToken();
       if (!token) throw new Error('Please sign in first.');
@@ -429,6 +425,8 @@ export function mount(body, ctx) {
         styleHint: ANSWER_STYLE_INSTRUCTIONS[tone.value] || ANSWER_STYLE_INSTRUCTIONS.balanced,
         model: ANSWER_STUDIO_MODEL,
         ...(corpus.length ? { corpus } : {}),
+        // Which kind of application it is for: the server words its prompt by it.
+        applicationType: appType.id,
         // What it costs: the server charges, or spends this allowance.
         kind: 'answer',
         ...(allowanceId && !premium ? { allowanceId } : {}),

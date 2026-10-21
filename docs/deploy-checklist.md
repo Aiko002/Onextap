@@ -1,7 +1,8 @@
 # Deploy checklist: the website, the API and extension 1.0.4
 
-Written in B5 of `docs/plans/active/completion-plan.md`, for the owner to run
-after B6. The plan stops at deploy-ready, so this file changes nothing by
+Written in B5 of `docs/plans/completed/completion-plan.md`, for the owner to run
+after B6. `docs/release-guide.md` is the same release as a shorter
+step-by-step guide, for whoever runs it. The plan stops at deploy-ready, so this file changes nothing by
 itself. Every step that touches production (Supabase, Vercel, Dodo, the
 Chrome Web Store, a push to the branch Vercel deploys) is the owner's, or
 Claude's only after the owner says yes to that step (CLAUDE.md, Escalate).
@@ -20,17 +21,21 @@ commit B6 closed.
 1. Before you start (§1).
 2. Find out how a deploy happens: a merge may deploy at once (§2).
 3. Production Supabase: migrations 006, then 007; the ledger; Redirect URLs
-   (§3).
+   (§3, steps 1 to 10).
 4. Vercel's environment variables (§4).
 5. Dodo, live (§5).
 6. Deploy (§6).
-7. After the deploy: the smoke run, and the checks by hand (§7).
+7. After the deploy: the auth emails' sender, "Onextap", and their templates
+   (§3, steps 11 and 12); then the smoke run, and the checks by hand (§7).
 8. Rollback, if needed (§8).
-9. Chrome Web Store: submit 1.0.4 (§9).
-10. Close out (§10).
+9. Google's sign-in screen: Onextap's name and logo, then Google's brand
+   verification, which can take days (§12).
+10. Chrome Web Store: build the release zip, then submit 1.0.4 (§9).
+11. Close out (§10).
 
 The compatibility matrix (§11) is for reference: every pairing of old or new
-website with extension 1.0.2 or 1.0.4.
+website with extension 1.0.2 or 1.0.4. §12 comes last in the file only so
+the sections before it keep their numbers.
 
 Why this order:
 
@@ -45,20 +50,32 @@ Why this order:
 - **The store submission after the site is live.** The listing's new privacy
   URL, `/privacy/`, exists only on the new site, and 1.0.4 was built for it.
   Either order works (§11), so a delay on one side blocks nothing.
+- **The auth emails and their sender just after the deploy.** Every link in
+  the templates is Supabase's own, so they work with the old site and the
+  new; but the sender is Resend, which only the new privacy page names (§3
+  step 11). Steps 11 and 12 of §3 can wait for §6, and nothing waits on
+  them.
+- **Google's brand check after the site is live.** Google reads the home
+  page and the privacy policy at `/privacy/`, which only the new build
+  serves. Start it once §7 passes: it can take days, and nothing else waits
+  on it.
 
 ---
 
 ## 1. Before you start
 
-1. B6 is done: `release/onextap-1.0.4.zip` was built by
-   `npm run build:release` from production's `.env`, every check passed, and
-   its SHA-256 is recorded in §9.
+1. B6 is done. The release zip was not built in B6 (the owner's call,
+   2026-10-21): whoever releases builds it at §9, step 1, from
+   production's `VITE_*` values, and records its SHA-256 there.
 2. The commit to deploy is `merge/web-dashboard` at checkpoint 16, pushed to
    `latest`, with the full gate green there (plan §0.5), plus the ledger
    commit §3 adds on top. Checkpoint 16's SHA: `________` (fill in).
 3. You can sign in to the production Supabase project, the Vercel project,
    Dodo's live dashboard, the Chrome Web Store developer dashboard, and
-   GitHub with push rights to the repository Vercel watches (§2).
+   GitHub with push rights to the repository Vercel watches (§2). For §3's
+   email sender and for §12, also: the Resend account (the feedback form's),
+   onextap.com's DNS settings, Google Search Console, and the Google Cloud
+   project that holds production's Google OAuth client, as Owner or Editor.
 4. Production's keys are at hand, from their backup outside the repo.
 5. You have read HANDOVER §7 once: it lists what stays open after the
    deploy.
@@ -213,6 +230,72 @@ anything.
       (HANDOVER §9), not here.
     - If `https://onextap.com/` serves the site itself rather than
       redirecting to `www`, add the same two paths for it.
+11. **The sender: custom SMTP, through Resend.** Before the templates
+    (step 12): Supabase won't let a project edit its email templates until
+    custom SMTP is on (found on dev, 2026-10-21). Supabase's built-in
+    sender can't be renamed, delivers only to the project team's own
+    addresses, and sends 2 emails an hour (Supabase's guide, "Send emails
+    with custom SMTP").
+    - **Look first:** Authentication → Sign In / Providers → Email →
+      **Confirm email**. If it is on and custom SMTP is not set, people who
+      sign up on production get no confirmation email at all today, and this
+      step is a fix, not polish.
+    - **Why Resend:** the server already sends the feedback form's mail
+      through it (`server/routes/feedback.js`, the `resend` package,
+      `RESEND_API_KEY`), and Resend offers SMTP. The owner types every key
+      into the dashboard that needs it; never into a file, a commit or a
+      chat with Claude.
+    - **The privacy page first:** from this build on, `/privacy/` (05, "The
+      services we use") names Resend for the account emails too. Turn custom
+      SMTP on once the new site is live (§6), so the live page says so before
+      the first email goes through Resend; until then, sign-ups keep
+      Supabase's sender, as today.
+
+    1. Resend → **Domains** → **Add domain** → `onextap.com`. Add the DNS
+       records Resend lists (SPF and DKIM; a DMARC record too if the domain
+       has none) at onextap.com's DNS host, and wait for **Verified**.
+       Supabase suggests a separate sending subdomain for auth mail (such
+       as `mail.onextap.com`); that is the owner's call, and the steps are
+       the same.
+    2. In that domain's settings in Resend, turn **click tracking** and
+       **open tracking** off. Tracking rewrites links, which Supabase warns
+       breaks its auth links, and the templates carry no pixel by design.
+    3. Resend → **API Keys** → **Create API key**: name it
+       `Supabase Auth (production)`, permission **Sending access**, domain
+       `onextap.com`. A key of its own, apart from `RESEND_API_KEY`, so
+       either can be revoked alone. Copy it for the next step only.
+    4. Supabase → Authentication → Emails → **SMTP Settings** → turn on
+       **Enable custom SMTP**, then Save:
+
+       | Field | Value |
+       | --- | --- |
+       | Sender email | `no-reply@onextap.com`, or another address on onextap.com |
+       | Sender name | `Onextap` |
+       | Host | `smtp.resend.com` |
+       | Port | `465` |
+       | Username | `resend` |
+       | Password | the key from step 3, typed by the owner |
+
+    5. Authentication → **Rate Limits**: with custom SMTP Supabase starts at
+       30 emails an hour. Set what sign-ups need, within Resend's plan (the
+       free plan is 100 emails a day, shared with the feedback form).
+    6. Optional: with onextap.com verified in Resend, `RESEND_FROM_EMAIL`
+       (§4) can move to an address on it, so feedback mail no longer comes
+       from `onboarding@resend.dev` (whose limits `server/.env.example`
+       describes).
+
+    The check is §7, step 3.7. Dev keeps Supabase's built-in sender, and so
+    Supabase's own email text, unless the owner gives it custom SMTP too.
+12. **The auth emails.** Onextap's templates for Supabase's emails are in
+    `supabase/templates/`; its `README.md` names each file's slot and the
+    subject to type. Once step 11's SMTP is saved: Authentication → Emails →
+    Templates (some dashboards list Emails under Notifications): for
+    **Confirm sign up**, **Reset password**, **Magic link** and **Change
+    email address**, type the subject and paste the whole file as the body,
+    then Save. Pasting changes no other setting; the other slots keep
+    Supabase's text, as nothing on the site sends them. They were never
+    pasted on dev (no custom SMTP there, the owner's call in B6): their look
+    was checked from a local render, and the first real one is §7 step 3.7.
 
 ---
 
@@ -402,6 +485,12 @@ is in Dodo's **live** dashboard, not test mode.
    6. With the store extension (1.0.2) in your browser, save a profile: the
       status says the extension is out of date, with a link to the store
       (expected until 1.0.4 is out; §11).
+   7. Sign out, then **Forgot password?** with your own address. The email
+      comes from "Onextap" at the address §3 step 11 set, with the subject
+      from `supabase/templates/README.md` and the branded layout; the
+      button's address is a `supabase.co` one, not a tracking redirect; and
+      it opens `/reset-password/`, where a new password can be set. Look in
+      spam too: a new sending domain can land there at first.
 4. **The first live webhook:** the next subscription event shows a 2xx for
    `https://www.onextap.com/api/webhook` in Dodo's live delivery log. A 400
    is the signing secret (§5, step 2); a 404 is the endpoint's address; a 500
@@ -445,12 +534,28 @@ is in Dodo's **live** dashboard, not test mode.
 
 After the website is live (see "Why this order").
 
-1. **The zip** is B6's `release/onextap-1.0.4.zip`. Its SHA-256, from B6's
-   run:
+1. **Build the zip**, from the commit you deployed in §6
+   (`docs/release-guide.md`, step 9, part A, has every command):
+   - Node.js 22 or newer, `npm ci`, and a `tar` that writes zip files
+     (built into Windows 10+ and macOS; `bsdtar` on Linux).
+   - Production's four `VITE_*` values (`VITE_SUPABASE_URL`,
+     `VITE_SUPABASE_ANON_KEY`, `VITE_DASHBOARD_URL`, `VITE_API_URL`) in a
+     new `.env.production.local` at the repository root: gitignored, and
+     read over `.env`. Nothing else in it; `ONEXTAP_E2E_APPLICATION_TYPES`
+     unset in the shell.
+   - `npm run build:release`. Every step must say `pass`; a publishable key
+     prints a "confirm it is itqaozltgsyvjhlcllic's" line, which you check
+     by hand in production's API keys. It ends with
+     `release/onextap-1.0.4.zip` and its SHA-256.
+   - The zip's manifest: `tar -xOf release/onextap-1.0.4.zip manifest.json`
+     says version 1.0.4 and has no `localhost`.
+   - Delete `.env.production.local` straight after.
+
+   Record the SHA-256 it printed:
 
    ```
    SHA-256: ________________________________________________________________
-            ^ TO FILL IN from B6's `npm run build:release` output
+            ^ TO FILL IN from the `npm run build:release` output
    ```
 
    Before uploading, check it is the same file:
@@ -517,6 +622,8 @@ After the website is live (see "Why this order").
    shows the commit.
 3. When 1.0.4 is published: HANDOVER's state paragraph says the store
    version is 1.0.4, and the date.
+4. When Google's brand verification passes (§12): the date in HANDOVER, and
+   what Google's account chooser now says.
 
 ---
 
@@ -556,3 +663,81 @@ How each cell is known:
   tried.
 - Old site × 1.0.2: HANDOVER §7 items 1, 26 and 31.
 - The protocol itself: `docs/extension-protocol.md`.
+
+---
+
+## 12. Google's sign-in screen: Onextap
+
+After §7 passes (step 9 of the order of operations). Not code: nothing here
+changes the repo. All of it is in Google's consoles, on the OAuth client
+production's Supabase uses; dev's client is `docs/google-sign-in-setup.md`'s.
+
+**What changes.** Until Google verifies the brand, its sign-in screens show
+only the app's domain, here production's `<ref>.supabase.co` (Supabase's
+callback host): Google shows the app name on the consent screen only once
+the app is verified (Google Cloud Help, "Manage OAuth App Branding",
+<https://support.google.com/cloud/answer/15549049>). Supabase's Google guide
+says the same: a verified brand shows the logo and name instead of the
+project's address
+(<https://supabase.com/docs/guides/auth/social-login/auth-google>).
+
+1. **Is the home page ready?** Google checks that the app name matches what
+   the home page shows. Since B6, `web/index.html`'s `<title>` is "Onextap"
+   (the owner's call, 2026-10-21), so the name is there before any script
+   runs; the header's wordmark says it too. Deploy
+   that build (§6) before step 7.
+2. **Find the client.** Production Supabase → Authentication → Sign In /
+   Providers → Google: note the **Client ID** (not a secret; leave the
+   secret where it is). In the Google Cloud Console, open the project whose
+   **Clients** list has that ID.
+3. **Branding:** Google Auth Platform → **Branding** (older consoles:
+   APIs & Services → OAuth consent screen):
+   - **App name:** `Onextap`, spelled as the home page spells it.
+   - **User support email:** the address users should write to.
+   - **App logo:** upload `docs/brand/google-consent-logo-120.png` (square,
+     120×120 pixels, PNG, under 1 MB, as Google asks). Changing the name or
+     the logo after verification means verifying again.
+   - **App domain:** home page `https://www.onextap.com`; privacy policy
+     `https://www.onextap.com/privacy/`; terms of service empty (the site
+     has no terms page).
+   - **Authorized domains:** `onextap.com`.
+   - **Developer contact information:** where Google should write about
+     the verification.
+   - **Save.**
+4. **Data Access:** only `openid`, `.../auth/userinfo.email` and
+   `.../auth/userinfo.profile`, which is all Supabase asks for. They are not
+   sensitive scopes, so only the brand needs verifying. Add nothing else.
+5. **Audience:** the publishing status should be **In production**. In
+   **Testing**, only the listed test users can sign in. If it says Testing,
+   publishing is the owner's call: ask first.
+6. **Search Console:** verify ownership of `onextap.com` (a DNS TXT record),
+   signed in with a Google account that is Owner or Editor on the Cloud
+   project. Google's brand check needs it.
+7. **Verify:** Google Auth Platform → **Verification Center** → verify the
+   branding (the button may say **Verify branding** or **Submit for
+   verification**). Google says its automated check usually takes minutes,
+   and a review by a person usually 2 to 3 business days
+   (<https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification>);
+   it writes to the developer contact. When it passes, publish the branding
+   from the same page: Google's help says a passing result is valid for 7
+   days.
+8. **Check:** in a private window, `https://www.onextap.com` → Sign in →
+   **Continue with Google**. Before: "to continue to `<ref>.supabase.co`".
+   After: Onextap's name and logo. Google's pages don't spell out which line
+   of the account chooser changes, so note what it says (§10).
+9. **If Google rejects it** as "the app name on the consent screen does not
+   match the home page": developers using Supabase report this on Google's
+   developer forum (discuss.google.dev), because the unverified screen shows
+   the `supabase.co` host as the name. Google has not confirmed the cause.
+   Check step 1 again, then reply or appeal from the Verification Center,
+   or open a Google Cloud support case. The custom domain below removes the
+   cause.
+10. **Optional, not planned: a Supabase custom domain** (such as
+    `auth.onextap.com`, a paid Supabase add-on; the owner's call). Google's
+    screens and the callback then show onextap.com instead of
+    `supabase.co`, and the Google client gets the new callback address as a
+    redirect URI. Read Supabase's custom-domain guide for everything else
+    it changes before buying. Pointing the website or the extension at the
+    new address would change `VITE_SUPABASE_URL`, and the extension's
+    `host_permissions` (`https://*.supabase.co/*` does not cover it): a
+    manifest change, which CLAUDE.md says to ask about first.

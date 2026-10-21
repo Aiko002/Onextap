@@ -205,6 +205,41 @@ a { color: inherit; }
 .menu [role="menuitem"].is-danger:hover,
 .menu [role="menuitem"].is-danger:focus-visible { background: color-mix(in srgb, var(--i2) 16%, transparent); }
 .menu-sep { height: var(--rule); margin: 6px 4px; background: var(--moss-line); }
+/* The application type's picker (main.js, only while more than one type is
+   listed): rows like the actions', the chosen one marked by a citrine dot. */
+.menu-group { display: grid; }
+.menu-group .menu-caption { padding: 6px 10px 4px; }
+.menu [role="menuitemradio"] {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--bone);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.menu [role="menuitemradio"] .icon { color: var(--ash); transition: color 0.2s; }
+.menu [role="menuitemradio"]::after {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 var(--rule) var(--moss-line);
+}
+.menu [role="menuitemradio"][aria-checked="true"]::after { background: var(--citrine); box-shadow: none; }
+.menu [role="menuitemradio"][aria-checked="true"] .icon,
+.menu [role="menuitemradio"]:hover .icon,
+.menu [role="menuitemradio"]:focus-visible .icon { color: var(--citrine); }
+.menu [role="menuitemradio"]:hover,
+.menu [role="menuitemradio"]:focus-visible { background: rgba(233,228,212,.07); outline: none; }
 
 /* ---------- Stage ---------- */
 .stage { position: relative; min-height: 0; }
@@ -335,7 +370,8 @@ a { color: inherit; }
 }
 .app[data-view="home"] .nav {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* One column per workspace the application type shows (main.js sets --cards). */
+  grid-template-columns: repeat(var(--cards, 4), minmax(0, 1fr));
   gap: 14px;
   width: 100%;
 }

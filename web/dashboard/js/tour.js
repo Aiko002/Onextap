@@ -1,37 +1,49 @@
 import { h, fill } from './ui/dom.js';
 import { button } from './ui/controls.js';
+import { listPhrase } from './application-type.js';
 
 // The first-run tour, as the backend's TourOverlay ran it: a few steps
 // pointing at the dashboard's own controls, shown once, to an account created
 // in the last couple of minutes (main.js decides; `onextap_tutorial_seen`
 // remembers). A citrine ring around the thing, a small oat card beside it.
 
-const STEPS = [
-  {
-    target: '#nav',
-    title: 'Your workspaces',
-    text: 'Job Matches, My Profiles, Answer Studio and Cover Letter. Everything you set up here is what the extension fills applications with.',
-  },
-  {
-    target: '.nav-link[data-id="my-profiles"]',
-    title: 'Start with your profile',
-    text: 'Add your details, education, experience and skills — or upload a resume and they are filled in for you.',
-  },
-  {
-    target: '.nav-link[data-id="answer-studio"]',
-    title: 'Answer Studio',
-    text: 'Save answers to the questions applications keep asking, and let the AI draft ones tailored to a job description.',
-  },
-  {
-    target: '#settings-trigger',
-    title: 'Your account',
-    text: 'Your credits, your plan and your account settings live here.',
-  },
-];
+/**
+ * The steps, for the workspaces the application type shows (main.js passes
+ * them, named as the type names them). A step about a workspace the type
+ * hides is left out. Under Job they read as they always have
+ * (test/web/applicationType.test.js).
+ * @param {Array<{ id: string, label: string }>} shown
+ */
+export function tourSteps(shown) {
+  const named = (id) => shown.find((ws) => ws.id === id);
+  return [
+    {
+      target: '#nav',
+      title: 'Your workspaces',
+      text: `${listPhrase(shown.map((ws) => ws.label))}. Everything you set up here is what the extension fills applications with.`,
+    },
+    named('my-profiles') && {
+      target: '.nav-link[data-id="my-profiles"]',
+      title: 'Start with your profile',
+      text: 'Add your details, education, experience and skills — or upload a resume and they are filled in for you.',
+    },
+    named('answer-studio') && {
+      target: '.nav-link[data-id="answer-studio"]',
+      title: named('answer-studio').label,
+      text: 'Save answers to the questions applications keep asking, and let the AI draft ones tailored to a job description.',
+    },
+    {
+      target: '#settings-trigger',
+      title: 'Your account',
+      text: 'Your credits, your plan and your account settings live here.',
+    },
+  ].filter(Boolean);
+}
 
 const GAP = 12;
 
-export function startTour({ onDone } = {}) {
+export function startTour({ onDone, workspaces = [] } = {}) {
+  const STEPS = tourSteps(workspaces);
   let step = 0;
   let finished = false;
   const ring = h('div.tour-ring', { 'aria-hidden': 'true' });

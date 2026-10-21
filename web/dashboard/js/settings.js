@@ -1,6 +1,10 @@
-/** Settings dropdown: click/keyboard toggle, arrow-key navigation, outside-click + Esc to close. */
+/**
+ * Settings dropdown: click/keyboard toggle, arrow-key navigation, outside-click + Esc to close.
+ * A row is an action (`role="menuitem"`) or one of a set of choices (`menuitemradio`, the
+ * application type's picker); `onAction(name, row)` gets the row's data-action and the row.
+ */
 export function initSettings({ root, trigger, menu, onAction }) {
-  const items = () => [...menu.querySelectorAll('[role="menuitem"]')];
+  const items = () => [...menu.querySelectorAll('[role="menuitem"], [role="menuitemradio"]')];
   const isOpen = () => root.hasAttribute('data-open');
 
   // Numbered for the rows' staggered rise as the menu opens (dashboard.css).
@@ -51,6 +55,6 @@ export function initSettings({ root, trigger, menu, onAction }) {
     const item = e.target.closest('[data-action]');
     if (!item) return;
     close(true);
-    onAction(item.dataset.action);
+    onAction(item.dataset.action, item);
   });
 }

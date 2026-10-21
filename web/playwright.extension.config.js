@@ -7,8 +7,11 @@ import { fileURLToPath } from 'node:url';
 // Chromium context, and the website must be on localhost:5173, the only local
 // origin extension/manifest.json lets message the extension.
 //
-// tests/extension-build.js builds the extension into a temp folder first,
-// with unresolvable addresses; the tests stub the account and the API.
+// tests/extension-build.js builds the extension into temp folders first,
+// with unresolvable addresses, twice: with the application types
+// src/applicationTypes.js lists, and with every type listed (the picker's
+// tests in extension.spec.js load that copy). The tests stub the account and
+// the API.
 // reuseExistingServer is off: a server already on 5173 is most likely
 // `npm run dev` with the repo's real .env, and the run stops instead.
 //

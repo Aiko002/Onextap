@@ -41,6 +41,9 @@ the Vercel project needs no change.
 ├── docs/
 │   ├── repo-structure.md      # This file
 │   ├── app-flow.md            # What happens, screen by screen
+│   ├── deploy-checklist.md    # Production deploy, in detail
+│   ├── release-guide.md       # The same release, step by step
+│   ├── brand/                 # The mark for Google's consent screen (120 px)
 │   └── plans/{active,completed}/
 ├── memory/                    # Agent memory tiers 2–4
 ├── extension/                 # Chrome-extension-only source
@@ -56,7 +59,9 @@ the Vercel project needs no change.
 ├── public/                    # Copied verbatim into the extension build
 │   ├── content.js             # Content script: autofill + page scraping,
 │   │                          #   injected on demand
-│   └── icon.png
+│   ├── icon.png               # The ring mark, transparent (the popup header)
+│   └── icons/                 # The extension's icons (16/32/48/128) and the
+│                              #   popup's favicon, made by scripts/make-icons.mjs
 ├── index.html                 # The popup's HTML entry (extension build only)
 ├── src/                       # The popup (React) + the modules the website shares
 │   ├── popup.jsx              # Popup entry; mounts App from OnextapDashboard.jsx.
@@ -103,7 +108,8 @@ the Vercel project needs no change.
 │   ├── logger.js              # Client logger + global error handlers
 │   ├── storage.js             # chrome.storage.local ⟷ localStorage ⟷ memory
 │   ├── profileStore.js        # Multi-profile store + legacy-shape migration
-│   ├── applicationTypes.js    # job / college / scholarship / internship config
+│   ├── applicationTypes.js    # job / college / scholarship / internship config;
+│   │                          #   LISTED_TYPE_IDS is the one switch (Job only)
 │   ├── applicationTypeStorage.js
 │   ├── consent.js             # Analytics consent gate — unused, kept on purpose
 │   └── index.css              # The popup's Tailwind entry
@@ -134,6 +140,7 @@ the Vercel project needs no change.
 │   │   ├── site/              #   the dashboard's variants of the company pages
 │   │   └── contact/ privacy/  #   /dashboard/contact/, /dashboard/privacy/
 │   ├── public/                # Copied verbatim into the website build
+│   │                          #   (favicon.svg + favicon-32.png: the ring mark)
 │   ├── tests/                 # E2E (Playwright): the landing page, its company
 │   │                          #   pages, the dashboard's cover-letter credits;
 │   │                          #   stubs.js stands in for Supabase and the API
@@ -176,13 +183,20 @@ the Vercel project needs no change.
 ├── test/                      # `npm test` (node --test). NOT under src/, so
 │   │                          #   Vite can never bundle it.
 │   ├── matching/ corpus/ resume/ jobs/ observability/ server/ extension/ credits/
+│   ├── release/ rules/ web/ supabase/   # build:release, the CLAUDE.md rules,
+│   │                                     #   dashboard logic, the auth emails
 │   └── evals/                 # `npm run evals` — accuracy + fabrication gates
-├── scripts/                   # One-off data repairs (backfills)
+├── scripts/                   # build:release and its manifest rules; the
+│                              #   application types' e2e override; make-icons.mjs
+│                              #   (every icon PNG from one SVG); smoke-prod.mjs;
+│                              #   one-off data repairs (backfills)
 ├── api/index.js               # Vercel serverless entry: re-exports the Express app
 ├── supabase/
 │   ├── schema.sql             # Tables, RLS policies, sign-up trigger
-│   └── migrations/            # New statements only, for pasting by hand —
-│                              #   schema.sql must never be re-run on prod
+│   ├── migrations/            # New statements only, for pasting by hand —
+│   │                          #   schema.sql must never be re-run on prod
+│   └── templates/             # Onextap's auth emails, pasted by hand into
+│                              #   Authentication → Emails (README.md says where)
 ├── vite.config.js             # Extension build → dist/
 ├── vite.dashboard.config.js   # Website build  → dist-dashboard/ (dev server on 5173)
 ├── vercel.json                # Runs the website build; rewrites /api/* → api/index.js

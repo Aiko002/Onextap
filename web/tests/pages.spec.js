@@ -181,7 +181,7 @@ test.describe('company pages', () => {
     await openPage(page, '/privacy/');
     await page.click('.back');
     await expect(page).toHaveURL(/\/$/);
-    await expect(page).toHaveTitle("We're Hiring (We're Not)");
+    await expect(page).toHaveTitle('Onextap');
   });
 
   test('between company pages, Back goes to the last one', async ({ page }) => {

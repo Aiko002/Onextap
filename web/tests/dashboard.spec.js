@@ -19,6 +19,26 @@ async function signIn(page, isMobile) {
   await expect(page.locator('#loginDoneText')).toHaveText('Signed in as reader@example.com.');
 }
 
+// src/applicationTypes.js lists Job alone, so the dashboard offers no choice
+// of application type (completion plan B6-1). The other types, listed, are
+// tests/application-types.spec.js's, on its own server.
+test.describe('the dashboard: application types', () => {
+  test('with only Job listed, no type picker renders, and every workspace has Job’s name', async ({ page, isMobile }) => {
+    await stubAuth(page);
+    await stubApi(page);
+    await signIn(page, isMobile);
+    await page.goto('/dashboard/');
+    await expect(page.locator('#settings-menu [data-bind="email"]')).toHaveText('reader@example.com');
+
+    await (isMobile ? page.tap('#settings-trigger') : page.click('#settings-trigger'));
+    await expect(page.getByRole('menuitem', { name: 'Log out' })).toBeVisible();
+    // Not hidden: not in the page at all.
+    await expect(page.locator('#type-picker, [role="menuitemradio"]')).toHaveCount(0);
+    expect(await page.locator('#nav .nav-link').evaluateAll((links) => links.map((a) => a.title)))
+      .toEqual(['Overview', 'Job Matches', 'My Profiles', 'Answer Studio', 'Cover Letter']);
+  });
+});
+
 const JD_ONE = 'Senior Backend Engineer at Norwick Labs. Requirements: Python, PostgreSQL, Docker.';
 const JD_TWO = 'Platform Engineer at Kestrel Analytics. Requirements: Kubernetes, Terraform.';
 const JD_THREE = 'Data Engineer at Fernhill Foods. Requirements: Airflow, dbt.';
@@ -54,7 +74,7 @@ test.describe('the dashboard: cover letters and credits', () => {
     // Paid: one credit, charged by the server inside the generation.
     await button.click();
     await expect(letter).toHaveValue('Dear Norwick Labs team, letter number 1.');
-    expect(lastRequest()).toMatchObject({ kind: 'cover_letter' });
+    expect(lastRequest()).toMatchObject({ kind: 'cover_letter', applicationType: 'job' });
     expect(lastRequest().allowanceId).toBeUndefined();
     expect(api.state.credits).toBe(1);
     await expect(page.locator('[data-bind="credits"]').first()).toHaveText('1');
@@ -113,7 +133,7 @@ test.describe('the dashboard: Answer Studio and credits', () => {
     await page.getByPlaceholder('e.g. Why do you want to work here?').fill('Why do you want to work here?');
     await page.getByRole('button', { name: 'Generate answer' }).click();
     await expect(answer).toHaveValue('Dear Norwick Labs team, letter number 1.');
-    expect(generateCalls()[0].body).toMatchObject({ kind: 'answer' });
+    expect(generateCalls()[0].body).toMatchObject({ kind: 'answer', applicationType: 'job' });
     expect(generateCalls()[0].body.allowanceId).toBeUndefined();
     expect(api.state.credits).toBe(0);
     await expect(page.getByText('Free improvements on this answer: 2')).toBeVisible();

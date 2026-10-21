@@ -1,4 +1,5 @@
 import { overview, plans, workspaces, legacyViews } from './config.js';
+import { routeTo, TYPE_ICONS, workspacesFor } from './application-type.js';
 import { initCursor } from './cursor.js';
 import { initDock } from './dock.js';
 import { hydrateIcons, icon } from './icons.js';
@@ -7,6 +8,8 @@ import { initSettings } from './settings.js';
 import { toast, transition } from './util.js';
 import { h } from './ui/dom.js';
 import { installGlobalErrorHandlers } from '@app/logger.js';
+import { APPLICATION_TYPES, DEFAULT_APPLICATION_TYPE, getApplicationTypeConfig, hasTypeChoice } from '@app/applicationTypes.js';
+import { getApplicationType, setApplicationType } from '@app/applicationTypeStorage.js';
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const PAYMENT_POLL_MS = 8000;
@@ -24,6 +27,14 @@ let renderWorkspace = null;
 let clearWorkspace = null;
 let subscription = null;
 let dock = null;
+
+// The application type this browser picked (getApplicationType(), stored on
+// the website only: the extension keeps its own), and the workspaces it
+// shows, named its way (js/application-type.js). Job until boot reads it.
+let appType = getApplicationTypeConfig(DEFAULT_APPLICATION_TYPE);
+let shown = workspacesFor(appType, workspaces);
+// Whether the first route has been drawn (the workspaces' modules are loaded).
+let routed = false;
 
 // ---------- Profile ----------
 
@@ -84,9 +95,11 @@ function applyChange(change) {
 
 // Each item is numbered like a landing chapter (00 is the overview). Its label
 // carries an italic twin for the home cards' hover roll (aria-hidden, so the
-// name is read once).
+// name is read once). Only the type's workspaces; the home view lays out one
+// card column per workspace (--cards).
 function renderNav() {
-  const items = [overview, ...workspaces];
+  const items = [overview, ...shown];
+  nav.style.setProperty('--cards', String(shown.length));
   nav.innerHTML = '<span class="nav-thumb" aria-hidden="true"></span>' + items
     .map((item, n) => {
       const href = item === overview ? '#/' : `#/${item.id}`;
@@ -114,11 +127,18 @@ function moveThumb({ instant = false } = {}) {
 }
 
 const routeId = () => decodeURIComponent(location.hash.replace(/^#\/?/, ''));
-const routeView = () => (workspaces.some((w) => w.id === routeId()) ? 'workspace' : 'home');
+const routeView = () => (routeTo(routeId(), shown, workspaces).ws ? 'workspace' : 'home');
+
+/** How the workspace sheet is dealt for a move between views (the CSS reads it). */
+const moveKind = (from, to) => (from === 'home' ? (to === 'workspace' ? 'enter' : '') : to === 'workspace' ? 'swap' : 'leave');
 
 function renderRoute() {
-  const ws = workspaces.find((w) => w.id === routeId()) ?? null;
+  const { ws, hidden } = routeTo(routeId(), shown, workspaces);
+  // A workspace the type turns off (a deep link, or the popup's ?view=jobs
+  // under College) is Overview, and the address says so.
+  if (hidden) history.replaceState(history.state, '', `${location.pathname}${location.search}#/`);
   const dockAppears = app.dataset.view !== 'workspace';
+  routed = true;
   app.dataset.view = ws ? 'workspace' : 'home';
 
   nav.querySelectorAll('.nav-link').forEach((link) => {
@@ -127,7 +147,7 @@ function renderRoute() {
     else link.removeAttribute('aria-current');
   });
 
-  if (ws) renderWorkspace(workspaceEl, ws, workspaces.indexOf(ws) + 1, context);
+  if (ws) renderWorkspace(workspaceEl, ws, shown.indexOf(ws) + 1, context);
   else clearWorkspace(workspaceEl);
   document.title = ws ? `${ws.label} — Onextap` : 'Dashboard — Onextap';
   dock.refresh();
@@ -138,6 +158,8 @@ function renderRoute() {
 const context = {
   toast,
   getUser: () => user,
+  /** The application type's entry (src/applicationTypes.js): its labels, and what the AI is asked for. */
+  get applicationType() { return appType; },
   /** A fresh balance from a workspace (a credit spent): the settings pill follows. */
   setCredits(credits) {
     if (!user || credits === null || credits === undefined) return;
@@ -169,6 +191,7 @@ const deleteSubmit = $('delete-submit');
 const avatarInput = $('avatar-input');
 
 const actions = {
+  'application-type': (item) => chooseType(item?.dataset.type),
   'change-avatar': () => avatarInput.click(),
   'manage-subscription': () => user && subscription.open(),
   'log-out': async () => {
@@ -241,6 +264,73 @@ deleteDialog.addEventListener('close', async () => {
     toast(error?.message || 'Couldn’t delete your account. Try again.', 'error');
   }
 });
+
+// ---------- Application type ----------
+
+// The picker: radio rows in the settings menu, built only while more than one
+// type is listed (hasTypeChoice(); with Job alone there is nothing to choose,
+// and no picker in the page). The menu rather than the topbar or Overview:
+// it is reachable from every view, inside a workspace too, and the type is
+// chosen rarely and kept on this device, like the avatar beside it, so it
+// does not take the topbar's room on a phone. The menu's keyboard handling
+// covers the rows (settings.js).
+function renderTypePicker() {
+  if (!hasTypeChoice()) return;
+  const group = h('div.menu-group', { id: 'type-picker', role: 'group', 'aria-labelledby': 'type-picker-caption' },
+    h('span.label.menu-caption', { id: 'type-picker-caption' }, 'Applying for'),
+    APPLICATION_TYPES.map((t) => h('button', {
+      type: 'button',
+      role: 'menuitemradio',
+      'aria-checked': String(t.id === appType.id),
+      'data-action': 'application-type',
+      'data-type': t.id,
+      'data-icon': TYPE_ICONS[t.id] || 'briefcase',
+    }, t.label)));
+  // After the credits, ahead of the account's own actions.
+  $('settings-menu').querySelector('.menu-stat').after(h('div.menu-sep', { role: 'separator' }), group);
+}
+
+/** The page's own words for the type's documents (the delete dialog), and the picker's tick. */
+function renderTypeCopy() {
+  document.querySelectorAll('[data-type-label="documents"]').forEach((el) => {
+    el.textContent = appType.documentLabel.toLowerCase();
+  });
+  document.querySelectorAll('#type-picker [role="menuitemradio"]').forEach((el) => {
+    el.setAttribute('aria-checked', String(el.dataset.type === appType.id));
+  });
+}
+
+async function chooseType(id) {
+  if (!id || id === appType.id) return;
+  try {
+    await setApplicationType(id);
+  } catch {
+    toast('Couldn’t change what you’re applying for. Try again.', 'error');
+    return;
+  }
+  applyType(getApplicationTypeConfig(id));
+  toast(`Now set up for ${appType.shortLabel.toLowerCase()} applications.`);
+}
+
+/**
+ * A new type, everywhere at once and without a reload: the nav and the home
+ * cards, the open workspace (mounted again, under the type's names; Overview
+ * if the type hides it), and the page's words.
+ */
+function applyType(type) {
+  const from = app.dataset.view;
+  appType = type;
+  shown = workspacesFor(type, workspaces);
+  renderTypeCopy();
+  if (!routed) {
+    renderNav();
+    return;
+  }
+  transition(() => {
+    renderNav();
+    renderRoute();
+  }, moveKind(from, routeView()));
+}
 
 // ---------- Arriving with something to do ----------
 
@@ -360,7 +450,7 @@ async function maybeStartTour() {
   }
   if (routeView() !== 'home') return;
   const { startTour } = await import('./tour.js');
-  setTimeout(() => startTour({ onDone: () => services.tourSeen.set() }), reducedMotion.matches ? 0 : 1400);
+  setTimeout(() => startTour({ onDone: () => services.tourSeen.set(), workspaces: shown }), reducedMotion.matches ? 0 : 1400);
 }
 
 // ---------- Boot ----------
@@ -379,6 +469,16 @@ async function boot() {
     return;
   }
 
+  // The type first: the nav and the picker are drawn for it.
+  try {
+    appType = getApplicationTypeConfig(await getApplicationType());
+  } catch {
+    /* storage blocked: Job, as before there were types */
+  }
+  shown = workspacesFor(appType, workspaces);
+  renderTypePicker();
+  renderTypeCopy();
+
   hydrateIcons();
   renderNav();
 
@@ -394,7 +494,7 @@ async function boot() {
     root: $('settings'),
     trigger: $('settings-trigger'),
     menu: $('settings-menu'),
-    onAction: (name) => actions[name]?.(),
+    onAction: (name, item) => actions[name]?.(item),
   });
 
   initCursor(app);
@@ -443,12 +543,7 @@ async function boot() {
 
   renderRoute();
   // The kind of move tells the CSS how to deal the workspace sheet.
-  addEventListener('hashchange', () => {
-    const from = app.dataset.view;
-    const to = routeView();
-    const kind = from === 'home' ? (to === 'workspace' ? 'enter' : '') : to === 'workspace' ? 'swap' : 'leave';
-    transition(renderRoute, kind);
-  });
+  addEventListener('hashchange', () => transition(renderRoute, moveKind(app.dataset.view, routeView())));
   addEventListener('resize', () => moveThumb({ instant: true }));
   document.fonts?.ready.then(() => moveThumb({ instant: true }));
 

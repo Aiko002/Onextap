@@ -4,7 +4,8 @@ import { fabricationNotice } from '../ui/fabrication.js';
 import { profileSwitcher } from '../ui/switchers.js';
 import { loadProfileStore, updateActiveProfileData, MAX_COVER_LETTERS_PER_PROFILE } from '@app/profileStore.js';
 import { getAccessToken } from '@app/auth.js';
-import { getApplicationTypeConfig } from '@app/applicationTypes.js';
+import { DEFAULT_APPLICATION_TYPE, getApplicationTypeConfig } from '@app/applicationTypes.js';
+import { coverLetterTaskHint } from '../application-type.js';
 import { ANSWER_STUDIO_MODEL, API_URL } from '@app/config.js';
 import { ANSWER_STYLE_INSTRUCTIONS } from '@app/answerStudio.js';
 import { creditManager } from '@app/creditManager.js';
@@ -32,8 +33,12 @@ import { getExtensionInfo, sendToExtension } from '@app/extensionClient.js';
 // (subjectKeyFor() in server/lib/generationSpend.js), so the cost hint here
 // keys the description alone. The template keeps the server's allowance id (`aiAllowanceId`); `aiRerunsLeft`
 // and `aiRerunKey` mirror it for the hint.
+//
+// Named by the application type this browser picked (ctx.applicationType,
+// src/applicationTypes.js): "Cover Letter", "Personal Statement"… A template
+// is saved with the type's id, and personalising sends it as
+// `applicationType` with the type's own task hint (js/application-type.js).
 
-const APP_TYPE = 'job';
 const NAME_MAX = 32;
 const SAVE_DEBOUNCE_MS = 500;
 
@@ -63,9 +68,10 @@ const jobContextFor = (companyName, role, description) =>
 const grantedOnly = (template) => (template?.aiAllowanceId ? template : null);
 
 export function mount(body, ctx) {
-  const appConfig = getApplicationTypeConfig(APP_TYPE);
+  const appConfig = ctx.applicationType ?? getApplicationTypeConfig(DEFAULT_APPLICATION_TYPE);
   const LABEL = appConfig.coverLetterLabel;           // "Cover Letter"
   const noun = LABEL.toLowerCase();
+  const documents = appConfig.documentLabel.toLowerCase(); // "cover letters"
 
   let alive = true;
   let letters = [];
@@ -281,11 +287,11 @@ export function mount(body, ctx) {
       ? h('div.tpl-list', null, letters.map(templateCard))
       : !adding && emptyState({
         iconName: 'file',
-        title: `No ${noun}s yet`,
+        title: `No ${documents} yet`,
         body: `Upload one (.txt or .md) or paste it in. It becomes the base every tailored version starts from.`,
       });
 
-    fill(templatesEl, section({ num: 1, label: 'Templates', title: `Your ${noun}s`, desc: `The letters you actually send, kept as templates — ${letters.length} of ${MAX_COVER_LETTERS_PER_PROFILE}.` },
+    fill(templatesEl, section({ num: 1, label: 'Templates', title: `Your ${documents}`, desc: `The letters you actually send, kept as templates — ${letters.length} of ${MAX_COVER_LETTERS_PER_PROFILE}.` },
       list, addForm, addBar));
     refreshPersonalize();
   }
@@ -357,7 +363,7 @@ export function mount(body, ctx) {
       name: (name || `Template ${letters.length + 1}`).trim().slice(0, NAME_MAX) || `Template ${letters.length + 1}`,
       body: '',
       createdAt: new Date().toISOString(),
-      applicationType: APP_TYPE,
+      applicationType: appConfig.id,
       variants: [],
     };
     await persist([...letters, template]);
@@ -386,7 +392,7 @@ export function mount(body, ctx) {
         name: file.name.replace(/\.[^.]+$/, '').slice(0, NAME_MAX) || `Template ${letters.length + 1}`,
         body: text.trim(),
         createdAt: new Date().toISOString(),
-        applicationType: APP_TYPE,
+        applicationType: appConfig.id,
         variants: [],
       };
       await persist([...letters, template]);
@@ -472,7 +478,7 @@ export function mount(body, ctx) {
     try {
       const token = await getAccessToken();
       if (!token) throw new Error('Please sign in first.');
-      const taskHint = 'Rewrite the cover letter template for this specific opportunity. Preserve the candidate\'s writing style and voice — do not make it generic. Reference the company and role by name. Weave in 2-4 key requirements from the description. Keep length within ±10% of the original. First person. No headings or bullet points.';
+      const taskHint = coverLetterTaskHint(appConfig);
       const corpus = await loadFabricationCorpus();
 
       const res = await fetch(`${API_URL}/api/answer-vault/generate`, {
@@ -486,6 +492,8 @@ export function mount(body, ctx) {
           styleHint: ANSWER_STYLE_INSTRUCTIONS.balanced,
           model: ANSWER_STUDIO_MODEL,
           ...(corpus.length ? { corpus } : {}),
+          // Which kind of application it is for: the server words its prompt by it.
+          applicationType: appConfig.id,
           // What it costs: the server charges, or spends this re-run.
           kind: 'cover_letter',
           ...(allowanceId ? { allowanceId } : {}),
@@ -597,7 +605,7 @@ export function mount(body, ctx) {
     renderResult();
   }
 
-  fill(templatesEl, section({ num: 1, label: 'Templates', title: `Your ${noun}s` }, skeleton(2)));
+  fill(templatesEl, section({ num: 1, label: 'Templates', title: `Your ${documents}` }, skeleton(2)));
   load();
   loadCredits();
   takeHandoff();

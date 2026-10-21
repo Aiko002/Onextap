@@ -359,7 +359,8 @@ unreachable the local value is trusted.
   "profileContext": "Current role: …\nCore skills: …\nRecent experience: …",
   "vaultAnswers": [ { "question": "…", "answer": "…" } ],
   "taskHint": "…", "styleHint": "…",
-  "model": "llama-3.3-70b-versatile" }
+  "model": "llama-3.3-70b-versatile",
+  "applicationType": "job" }   // optional
 
 // response
 { "text": "…", "answer": "…", "model": "llama-3.3-70b-versatile",
@@ -370,6 +371,10 @@ unreachable the local value is trusted.
 - `model` is validated against an allowlist; anything else silently falls back
   to the configured primary.
 - Only the 3 vault answers with the highest word overlap are sent.
+- `applicationType` (an id from `src/applicationTypes.js`) chooses the
+  prompt's wording only: College and Scholarship get an essay's, read by a
+  committee; Job, Internship, and a missing or unknown id get the job prompt.
+  It never changes the charge or the Improve guard.
 - Rejected: empty output, fewer than 8 non-space characters,
   `finish_reason === 'length'`.
 - A model refusal returns 502 with the refusal text; provider errors return

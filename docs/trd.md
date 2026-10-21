@@ -142,7 +142,7 @@ verified by `requireAuth` calling `supabaseAdmin.auth.getUser(token)`.
 | POST | `/api/credits/deduct` | — | `{ success, remaining }`; premium → `{ success, remaining: Infinity, isPremium: true }`; empty → `403` |
 | POST | `/api/credits/refund` | — | `{ success, remaining }` |
 | GET | `/api/verify-premium` | — | `{ isPremium, premiumSince?, subscriptionStatus? }` or `{ isPremium: false, reason }` |
-| POST | `/api/answer-vault/generate` | `{ question, draft, jobContext, vaultAnswers[], profileContext?, taskHint, styleHint, model }` | `{ text, answer, model, provider: 'groq', finishReason? }` |
+| POST | `/api/answer-vault/generate` | `{ question, draft, jobContext, vaultAnswers[], profileContext?, taskHint, styleHint, model, applicationType? }` | `{ text, answer, model, provider: 'groq', finishReason? }` |
 | POST | `/api/parse-resume` | `{ fileData (base64), fileName, fileType }` | `{ data: <structured profile> }` |
 | POST | `/api/create-checkout-session` | — | `{ url, sessionId }` |
 | POST | `/api/cancel-subscription` | — | `{ success }` |

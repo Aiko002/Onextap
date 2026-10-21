@@ -356,7 +356,7 @@ Question (+ optional draft), tone, optional company and pasted job description
         ▼
 POST /api/answer-vault/generate { kind: 'answer', allowanceId?, question, draft,
      job context ≤6000 chars, profile context, saved answers, task and style
-     hints, model, resume corpus if any }
+     hints, model, applicationType, resume corpus if any }
         │
         ├─ past the hourly ceiling → 429, nothing charged
         ├─ the spend, before the model (spend_generation(), migration 007), in order:
@@ -706,9 +706,37 @@ The settings menu (`web/dashboard/js/settings.js`, actions in `main.js`):
 ## 10. Application types
 
 `src/applicationTypes.js` knows job, college, scholarship and internship, but
-**only Job is live**: the others are commented out, the popup's picker is
-hidden, and the dashboard has none. A stored type that is no longer listed
-reads as Job.
+**only Job is listed**: `LISTED_TYPE_IDS` there is the one switch, and
+turning the others on is uncommenting their ids (completion plan B6-1). The
+extension's list is bundled into the store zip, so turning them on there is
+a new store release; on the website, a deploy. A stored type that is not
+listed reads as Job.
+
+With more than one type listed:
+
+- **Pickers.** The popup shows a dropdown above the profile switcher; the
+  dashboard's settings menu shows "Applying for" with one row per type. With
+  Job alone neither renders. Each keeps its own choice on its own device
+  (`onextap_application_type`): the dashboard's never reaches the extension,
+  and the sync carries no choice of type (the owner's call, B6). A
+  cover-letter template records the type it was made under
+  (`applicationType`), which rides the sync with it; nothing reads it.
+- **What follows the type.** The popup's tabs and the dashboard's workspaces
+  (nav, dock, Overview, tour) hide what the type's `features` turn off: Job
+  Matches for College and Scholarship. A link to a hidden workspace lands on
+  Overview. Labels come from the type: Answer Studio is "Application Essays"
+  or "Essay Answers", Cover Letter is "Personal Statement" or "Scholarship
+  Essay".
+- **The AI.** Answer Studio and the Cover Letter workspace send
+  `applicationType`; the server words College and Scholarship as an essay
+  read by an admissions or selection committee, and Job and Internship as
+  before. The charge is the same for every type.
+- **Essay pages.** The job-page button's scraper reads an essay or
+  personal-statement container that wraps its own textarea as the prompt.
+
+The e2e suites run with all four listed (`ONEXTAP_E2E_APPLICATION_TYPES`, a
+test-time Vite define that a release build refuses), so turning them on is
+already tested.
 
 ---
 

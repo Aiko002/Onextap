@@ -166,6 +166,8 @@ function draftItems(draft) {
  *   model call; see {@link createGroqRetry}.
  * @param {string} [params.jobContext] The request's job context; only its
  *   organisation and role header lines are read ({@link applicationTargets}).
+ * @param {string} [params.applicationType] The request's, for the retry
+ *   message's wording only (buildImproveRetryMessage()).
  * @param {number} [params.startedAt] When the request began (ms since the
  *   epoch). No retry starts after IMPROVE_RETRY_LATEST_START_MS of it.
  * @param {() => number} [params.now] Injected for tests.
@@ -180,6 +182,7 @@ export async function guardImprovedDraft(params = {}) {
     corpus,
     regenerate,
     jobContext,
+    applicationType,
     startedAt,
     now = Date.now,
     validate = validateAgainstCorpus,
@@ -215,7 +218,7 @@ export async function guardImprovedDraft(params = {}) {
 
   let second = '';
   try {
-    second = String((await regenerate(buildImproveRetryMessage(offending))) ?? '').trim();
+    second = String((await regenerate(buildImproveRetryMessage(offending, applicationType))) ?? '').trim();
   } catch (err) {
     guardLog.warn('improve retry failed, keeping the first answer', {
       before,

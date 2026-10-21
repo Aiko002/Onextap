@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowRight, Briefcase, Clipboard, ExternalLink, FileText, Layout, MessageSquare, PenTool, Sparkles } from 'lucide-react';
-import { getApplicationType } from '../../applicationTypeStorage';
-import { getApplicationTypeConfig } from '../../applicationTypes';
+import { getApplicationType, setApplicationType } from '../../applicationTypeStorage';
+import { APPLICATION_TYPES, getApplicationTypeConfig, hasTypeChoice } from '../../applicationTypes';
 import { AUTOFILL_SECTION_META, DEFAULT_SECTION_TOGGLES } from '../../autofillSections';
 import { getIconUrl } from '../../extensionClient';
 import { getActiveLegacyProfile, loadProfileStore } from '../../profileStore';
@@ -12,6 +12,20 @@ import WhatToFillSection from './WhatToFillSection';
 import { log as baseLog } from '../../logger';
 
 const log = baseLog.child('ui');
+
+// Fixed per build: APPLICATION_TYPES is the switch in src/applicationTypes.js
+// (or the e2e override), bundled into the extension.
+const SHOW_TYPE_PICKER = hasTypeChoice();
+
+/**
+ * The popup's tabs, each shown only while the application type turns on the
+ * feature its content needs.
+ */
+const POPUP_TABS = [
+  { id: 'autofill', feature: 'autofill', label: () => 'Autofill', icon: Clipboard },
+  { id: 'answers', feature: 'vault', label: () => 'Saved Answers', icon: MessageSquare },
+  { id: 'cover', feature: 'coverLetter', label: (config) => config.coverLetterLabel, icon: FileText },
+];
 
 // --- POPUP VIEW (Landing - Animated, two states: signed-in vs onboarding) ---
 /**
@@ -24,6 +38,10 @@ const log = baseLog.child('ui');
  *
  * Signed out, always: the popup has no sign-in (completion plan D5), and
  * nothing in it spends credits. The AI lives on the dashboard.
+ *
+ * The application type (src/applicationTypes.js) labels the tabs and buttons
+ * and decides which tabs show; its picker renders only when the build lists
+ * more than one type.
  *
  * @param {object} props
  * @param {(view?: string|null) => void} props.onLaunchDashboard Opens the
@@ -50,11 +68,13 @@ const PopupView = ({ onLaunchDashboard, onLaunchAnswerStudio, onLaunchJobMatches
   const [applicationType, setApplicationTypeState] = useState('job');
 
   const popupAppConfig = getApplicationTypeConfig(applicationType);
-  const popupTabs = [
-    popupAppConfig.features.autofill && { id: 'autofill', label: 'Autofill', icon: Clipboard },
-    popupAppConfig.features.vault && { id: 'answers', label: 'Saved Answers', icon: MessageSquare },
-    popupAppConfig.features.coverLetter && { id: 'cover', label: popupAppConfig.coverLetterLabel, icon: FileText },
-  ].filter(Boolean);
+  const popupTabs = POPUP_TABS
+    .filter((t) => popupAppConfig.features[t.feature])
+    .map((t) => ({ ...t, label: t.label(popupAppConfig) }));
+  // The tab last clicked, while the type still shows it; otherwise the first
+  // visible one. Derived rather than reset in an effect, so a hidden tab's
+  // content never renders, not even for the frame before an effect would run.
+  const activeTab = popupTabs.some((t) => t.id === popupTab) ? popupTab : popupTabs[0]?.id;
 
   const showPopupToast = (message, type = 'success') => setPopupToast({ message, type, visible: true });
 
@@ -116,17 +136,17 @@ const PopupView = ({ onLaunchDashboard, onLaunchAnswerStudio, onLaunchJobMatches
     return () => { mounted = false; };
   }, [refreshProfileState, detectSectionsOnPage]);
 
-  useEffect(() => {
-    const config = getApplicationTypeConfig(applicationType);
-    const allowed = [
-      config.features.autofill && 'autofill',
-      config.features.vault && 'answers',
-      config.features.coverLetter && 'cover',
-    ].filter(Boolean);
-    if (allowed.length && !allowed.includes(popupTab)) {
-      setPopupTab(allowed[0]);
+  // The picker's choice: stored first (setApplicationType() refuses an
+  // unlisted id), then the popup relabels from it.
+  const handleApplicationTypeChange = async (e) => {
+    const next = e.target.value;
+    try {
+      await setApplicationType(next);
+      setApplicationTypeState(next);
+    } catch (err) {
+      log.error('Onextap: could not save the application type:', err);
     }
-  }, [applicationType, popupTab]);
+  };
 
   const visibleSections = AUTOFILL_SECTION_META.filter((s) => {
     if (s.key === 'coverLetter') return detectedSections.coverLetter && coverLetterCount > 0;
@@ -213,7 +233,7 @@ const PopupView = ({ onLaunchDashboard, onLaunchAnswerStudio, onLaunchJobMatches
       <header className="relative z-20 shrink-0 px-4 pt-3 pb-2 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={getIconUrl()} alt="Onextap" className="h-8 w-8 shrink-0 rounded-xl shadow-sm ring-1 ring-black/[0.06] dark:ring-white/10" />
+            <img src={getIconUrl()} alt="Onextap" className="h-8 w-8 shrink-0 object-contain" />
             <span className="text-base font-semibold tracking-tight text-onextap-dark dark:text-[#E8EFD8]">Onextap</span>
           </div>
           {hasProfile && (
@@ -229,36 +249,33 @@ const PopupView = ({ onLaunchDashboard, onLaunchAnswerStudio, onLaunchJobMatches
         {hasProfile && (
           <>
             {/*
-              ═══ APPLICATION TYPE PICKER — HIDDEN, NOT REMOVED ═══
+              ═══ APPLICATION TYPE PICKER — ONLY WITH A CHOICE ═══
 
-              The popup half of the pair; the old React dashboard carried the
-              other copy, and the website dashboard (web/dashboard/) has none
-              yet — bringing types back means adding one there too, along with
-              the non-job entries commented out in src/applicationTypes.js. Job
-              is the only type that array still lists, so this dropdown would
-              offer exactly one choice.
+              Rendered only when more than one type is listed (hasTypeChoice(),
+              fixed per build by LISTED_TYPE_IDS in src/applicationTypes.js, or
+              the e2e override). With Job alone, nothing renders here: no
+              one-option dropdown, no wrapper, and the popup is on Job whatever
+              an older build stored (getApplicationType() reads an unlisted id
+              as Job).
 
-              Still wired underneath: `applicationType` state, the stored value
-              read in the mount effect, and `popupAppConfig`, which is what
-              relabels this popup's tabs and buttons per type. Hidden, the popup
-              is always on Job, whatever an older build may have stored.
-              Showing it again also means importing `setApplicationType` and
-              `APPLICATION_TYPES` again, removed while unused.
-
-            <select
-              value={applicationType}
-              onChange={async (e) => {
-                const next = e.target.value;
-                await setApplicationType(next);
-                setApplicationTypeState(next);
-              }}
-              className="w-full rounded-lg border border-onextap-primary/15 bg-white/80 px-2.5 py-1.5 text-[11px] font-medium text-onextap-dark dark:border-[rgba(200,216,168,0.15)] dark:bg-onextap-night-card dark:text-[#E8EFD8]"
-            >
-              {APPLICATION_TYPES.map((t) => (
-                <option key={t.id} value={t.id}>{t.label}</option>
-              ))}
-            </select>
+              A choice is stored under APPLICATION_TYPE_KEY, this extension's
+              own: the website dashboard keeps its own choice, and neither
+              reaches the other. `popupAppConfig` follows it, relabelling the
+              tabs and buttons and hiding the tabs whose feature the type
+              turns off.
             */}
+            {SHOW_TYPE_PICKER && (
+              <select
+                aria-label="Application type"
+                value={applicationType}
+                onChange={handleApplicationTypeChange}
+                className="w-full rounded-lg border border-onextap-primary/15 bg-white/80 px-2.5 py-1.5 text-[11px] font-medium text-onextap-dark dark:border-[rgba(200,216,168,0.15)] dark:bg-onextap-night-card dark:text-[#E8EFD8]"
+              >
+                {APPLICATION_TYPES.map((t) => (
+                  <option key={t.id} value={t.id}>{t.label}</option>
+                ))}
+              </select>
+            )}
             <ProfileSwitcher compact onProfileChange={async () => {
               const profile = await refreshProfileState();
               setCoverPanelKey((k) => k + 1);
@@ -274,7 +291,7 @@ const PopupView = ({ onLaunchDashboard, onLaunchAnswerStudio, onLaunchJobMatches
                 type="button"
                 onClick={() => setPopupTab(t.id)}
                 className={`flex-1 flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all ${
-                  popupTab === t.id
+                  activeTab === t.id
                     ? 'bg-onextap-primary text-white shadow-sm'
                     : 'text-onextap-dark/60 hover:bg-white/80 dark:text-[#9AB07A]'
                 }`}
@@ -290,7 +307,7 @@ const PopupView = ({ onLaunchDashboard, onLaunchAnswerStudio, onLaunchJobMatches
       <div className="flex-1 overflow-y-auto px-4 pb-4 relative z-10 min-h-0">
         {hasProfile ? (
           <div className="w-full space-y-4 max-w-[360px] mx-auto pt-1">
-            {popupTab === 'autofill' && (
+            {activeTab === 'autofill' && (
               <div className="space-y-4">
                 <WhatToFillSection
                   detectedSections={detectedSections}
@@ -298,16 +315,19 @@ const PopupView = ({ onLaunchDashboard, onLaunchAnswerStudio, onLaunchJobMatches
                   setSectionToggles={setSectionToggles}
                   hasCoverLetterTemplates={coverLetterCount > 0}
                 />
-                <button
-                  onClick={onLaunchAnswerStudio}
-                  className="w-full bg-gradient-to-br from-onextap-primary to-onextap-primary-dark text-white py-3 px-4 rounded-2xl font-bold text-sm shadow-md flex items-center justify-center gap-2"
-                >
-                  <PenTool size={16} />
-                  Open Answer Studio
-                </button>
-                {/* Same gate DashboardView uses for its Job Matches nav item,
-                    so a Scholarship user is never offered a tab that hides
-                    itself the moment it opens. */}
+                {/* The links out follow the type as the tabs do: no Answer
+                    Studio for a type without the vault, and no job matches
+                    for one whose pool holds no postings (College and
+                    Scholarship turn `jobMatches` off). */}
+                {popupAppConfig.features.vault && (
+                  <button
+                    onClick={onLaunchAnswerStudio}
+                    className="w-full bg-gradient-to-br from-onextap-primary to-onextap-primary-dark text-white py-3 px-4 rounded-2xl font-bold text-sm shadow-md flex items-center justify-center gap-2"
+                  >
+                    <PenTool size={16} />
+                    Open {popupAppConfig.vaultLabel}
+                  </button>
+                )}
                 {onLaunchJobMatches && popupAppConfig.features.jobMatches && (
                   <button
                     onClick={onLaunchJobMatches}
@@ -328,10 +348,10 @@ const PopupView = ({ onLaunchDashboard, onLaunchAnswerStudio, onLaunchJobMatches
                 </button>
               </div>
             )}
-            {popupTab === 'answers' && (
+            {activeTab === 'answers' && (
               <div className="space-y-3">
                 {savedAnswers.length === 0 ? (
-                  <p className="text-sm text-onextap-dark/60 text-center py-6">No saved answers yet. Open Answer Studio to add some.</p>
+                  <p className="text-sm text-onextap-dark/60 text-center py-6">No saved answers yet. Open {popupAppConfig.vaultLabel} to add some.</p>
                 ) : (
                   savedAnswers.map((item) => (
                     <div key={item.id} className="rounded-xl border border-onextap-primary/15 bg-white/80 p-3 dark:bg-onextap-night-card">
@@ -340,10 +360,10 @@ const PopupView = ({ onLaunchDashboard, onLaunchAnswerStudio, onLaunchJobMatches
                     </div>
                   ))
                 )}
-                <button type="button" onClick={onLaunchAnswerStudio} className="w-full text-sm font-medium text-onextap-primary py-2">Manage in Answer Studio</button>
+                <button type="button" onClick={onLaunchAnswerStudio} className="w-full text-sm font-medium text-onextap-primary py-2">Manage in {popupAppConfig.vaultLabel}</button>
               </div>
             )}
-            {popupTab === 'cover' && (
+            {activeTab === 'cover' && (
               <CoverLetterPanel
                 key={coverPanelKey}
                 showToast={showPopupToast}

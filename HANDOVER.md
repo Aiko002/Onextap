@@ -1,22 +1,24 @@
 # Handover: Onextap backend plugged into the new landing page and dashboard
 
-**State on 2026-10-20 (checkpoint 15):** built; exercised against stubs
-(lint, unit tests, both builds, the website e2e and the extension e2e with
-the real store 1.0.2 beside 1.0.4); and **run against real services on a
-dev Supabase project with Dodo in test mode twice**: at checkpoint 9, and at
-checkpoint 15 with server-side charging (migration 007, applied on dev),
-extension 1.0.4 loaded and the store's 1.0.2 beside it. Every check of the
-plan's B4 table passes (§5), Google sign-in included. Production has not
-been touched, and nothing is deployed: `docs/deploy-checklist.md` is the
-owner's order of operations for that, and batch B6 of
-`docs/plans/active/completion-plan.md` (branding, then the 1.0.4 release
-zip) comes first. The live store version is 1.0.2; the website works with
+**State on 2026-10-21 (checkpoint 16): deploy-ready.** Built; exercised
+against stubs (lint, unit tests, both builds, the website e2e and the
+extension e2e with the real store 1.0.2 beside 1.0.4); and **run against
+real services on a dev Supabase project with Dodo in test mode twice**: at
+checkpoint 9, and at checkpoint 15 with server-side charging (migration 007,
+applied on dev), extension 1.0.4 loaded and the store's 1.0.2 beside it.
+Every check of the plan's B4 table passes (§5), Google sign-in included. The
+completion plan is done (`docs/plans/completed/completion-plan.md`), B6's
+branding and the application-type switch included. Production has not been
+touched, and nothing is deployed: `docs/release-guide.md` is the release,
+step by step, for whoever runs it, and `docs/deploy-checklist.md` the same
+in detail. The 1.0.4 store zip is built as part of that release (guide step
+9), not in advance. The live store version is 1.0.2; the website works with
 it and says honestly what it can't do (§7 item 1). The keys on this machine
 are the dev project's; production's are backed up outside the repo.
 **Committed and pushed**: the branch `merge/web-dashboard`, off `main`
 (`bae4abc`) of `github.com/Aiko002/Onextap`, is on
 `github.com/UncannySteel/OneXtap-latest` (its default branch). The first
-session's work is `81e1c01`, and each checkpoint since (§0) is its own
+session's work is `a895c81`, and each checkpoint since (§0) is its own
 commit.
 
 Section 7 lists every problem found that is still open. Read it before
@@ -80,8 +82,8 @@ The owner's answers at checkpoint 1:
   one and track it; or skip the 3 tests when it is missing. Tracking it needs
   `.gitignore`'s `server/data/` to become `server/data/*` +
   `!server/data/cached_jobs.json`. Not decided yet.
-- **Commits:** on a branch. Done: `merge/web-dashboard`, `81e1c01` (first
-  session) and `64ccc75` (checkpoint 1). Nothing pushed.
+- **Commits:** on a branch. Done: `merge/web-dashboard`, `a895c81` (first
+  session) and `abb402f` (checkpoint 1). Nothing pushed.
 
 Done:
 
@@ -123,7 +125,7 @@ Done:
   or in, and clicks confirmation emails and "Delete account"; Claude drives
   the rest, and asks before submitting a Dodo test-mode checkout.
 
-Committed as `c5fe41f`.
+Committed as `aad8525`.
 
 ### Checkpoint 3 (2026-10-03, session 2): cover-letter credits, ready to move
 
@@ -167,7 +169,7 @@ Done:
 - Docs updated for both (README, repo-structure, CLAUDE.md, AGENTS.md, the
   web READMEs), and §9 written.
 
-Committed as `f62aae7`.
+Committed as `8844989`.
 
 ### Checkpoint 4 (2026-10-03, session 2): deploy-ready fixes
 
@@ -221,7 +223,7 @@ Done:
   extension's allowed domains, Supabase and Dodo URLs, the order).
 - `npm test`: 564 pass, 0 fail, 2 skipped.
 
-Committed as `ab55683`, and pushed.
+Committed as `f692a42`, and pushed.
 
 ### Checkpoint 5 (2026-10-06, session 2): password reset, sign-up name, draft ceiling — handed over
 
@@ -551,7 +553,7 @@ Waiting on the owner:
 ### Planning (2026-10-16, session 6): the rest, in batches
 
 No code changed. The owner was interviewed on everything still open, and the
-answers became `docs/plans/active/completion-plan.md`: seven batches (B0 to
+answers became `docs/plans/completed/completion-plan.md`: seven batches (B0 to
 B6), one session each, ending deploy-ready. Its §1 is now the decision
 record. It supersedes the "Waiting on the owner" list above: a 1.0.4 is built
 and tested, and submitting it is decided later; items 1a, 28a, 29b and 31c
@@ -564,7 +566,7 @@ touched.
   action". Everything this file says about "store 1.0.3" means 1.0.2; batch
   B0 corrects those lines (plan §2).
 - **Next:** batch B0. Open a new session and paste: `Run batch B0 of
-  docs/plans/active/completion-plan.md.`
+  docs/plans/completed/completion-plan.md.`
 
 ### Checkpoint 10 (2026-10-16, session 7): B0, baseline and guardrails
 
@@ -643,7 +645,7 @@ but not DNS lookups.
   **there is none**.
 
 **Next:** batch B1. Open a new session and paste: `Run batch B1 of
-docs/plans/active/completion-plan.md.`
+docs/plans/completed/completion-plan.md.`
 
 ### Checkpoint 11 (2026-10-17, session 8): B1, server split, extension protocol v2, website fixes
 
@@ -782,7 +784,7 @@ sends nothing yet, so its sender kind is tested only in unit tests.
 
 **Next:** batches B2 and B3, in either order or both at once (the plan's B3
 note). Open a new session and paste: `Run batch B2 of
-docs/plans/active/completion-plan.md.`
+docs/plans/completed/completion-plan.md.`
 
 ### Checkpoint 12 (2026-10-17, session 9): B2, server-side charging, billing hardening, AI quality
 
@@ -908,7 +910,7 @@ real database. The 27 s rank's cause is inferred from the code, not measured.
 4. Linking when Dodo can't be asked on the first read: **kept**.
 
 **Next:** batch B3 (now with B3-D). Open a new session and paste: `Run batch
-B3 of docs/plans/active/completion-plan.md.` B4 applies migration 007 to the
+B3 of docs/plans/completed/completion-plan.md.` B4 applies migration 007 to the
 dev project before anything else.
 
 ### Checkpoint 13 (2026-10-18, session 10): B3, extension 1.0.4
@@ -1091,7 +1093,7 @@ e2e's fixture job page.
 
 **Next:** batch B4, the owner session on the dev project (about 90 minutes).
 Open a new session and paste: `Run batch B4 of
-docs/plans/active/completion-plan.md.` It applies migration 007 to the dev
+docs/plans/completed/completion-plan.md.` It applies migration 007 to the dev
 project first.
 
 ### Checkpoint 14 (2026-10-18, session 11): B4, prep only; the owner's checks move to B5
@@ -1109,7 +1111,7 @@ need no owner. Nothing was applied to any project, and no code changed.
   holds `VITE_API_URL` and `VITE_DASHBOARD_URL`: harmless, since that file is
   never bundled. `GENERATE_LIMIT_PER_HOUR` and `GEMINI_RANK_MODELS` are unset
   there (code defaults: 30 an hour, and the five-model chain).
-- Baseline on `60b2e4e`: lint 0 errors / 0 warnings; `npm test` 994/0/2.
+- Baseline on `06c5582`: lint 0 errors / 0 warnings; `npm test` 994/0/2.
 - The dev project, by a read-only probe through the service client:
   `profiles`, `credit_transactions` and `generation_rate_limit` answer, with
   **0 accounts**; `generation_allowances` answers `PGRST205`, so **007 is
@@ -1140,7 +1142,7 @@ changes until they run.
    a free test account holding N credits.
 
 **Next:** batch B5, with B4's checks in the same session. Open a new session
-and paste: `Run batch B5 of docs/plans/active/completion-plan.md.` The plan's
+and paste: `Run batch B5 of docs/plans/completed/completion-plan.md.` The plan's
 Status notes say how to resume B4's checks.
 
 **Owner's answers (at the start of B5's session):** the Google provider "is
@@ -1235,7 +1237,7 @@ review) ran around them.
   rollback; the 1.0.4 submission; a compatibility matrix). The smoke script
   sends GET requests only and refuses anything else; it runs against the
   harness-served app in `test/release/smoke.test.js`.
-- The final review: the `code-review` skill at `xhigh` over `5ddb7db..HEAD`
+- The final review: the `code-review` skill at `xhigh` over `4593018..HEAD`
   (11 findings; the owner said to apply them all: ten fixed, one needed no
   change, §7 items 32 to 39) and the `security-review` skill (no HIGH or MEDIUM
   finding; two pre-existing low ones noted in §7). Fixed: a stale
@@ -1299,7 +1301,100 @@ mark the landing and dashboard draw. In the plan as B6-0. Not GitHub
 issues (the owner: "plan is enough").
 
 **Next:** batch B6. Open a new session and paste:
-`Run batch B6 of docs/plans/active/completion-plan.md.`
+`Run batch B6 of docs/plans/completed/completion-plan.md.`
+
+### Checkpoint 16 (2026-10-21, session 13): B6, branding and the application-type switch; deploy-ready
+
+**The owner's answers at the start of B6:** 1.0.4 ships with **Job only**
+(no type picker anywhere); the dashboard's type choice does **not** reach
+the extension (each surface keeps its own; `extension/profileSync.js`
+untouched); the auth emails' templates now, custom SMTP later; Google's
+screen through the consent screen only (a Supabase custom domain optional,
+not planned).
+
+**What was done.**
+
+- **B6-0 (a), Onextap's auth emails.** Four branded templates in
+  `supabase/templates/` (confirm sign-up, reset password, magic link,
+  change email), in the site's palette, email-safe (tables, inline styles,
+  no images, only Supabase's variables), with a README naming each slot
+  and subject; `test/supabase/authEmailTemplates.test.js` holds them.
+  Supabase won't let a project edit its templates until it has custom SMTP
+  (found on dev): at the owner's call they were rendered locally with sample
+  values and shown to the owner instead, never pasted on dev, and no real
+  email was sent. The deploy checklist now sets the sender first (§3 step
+  11, custom SMTP through Resend, sender "Onextap"), then the templates (step
+  12), both after the deploy, since the new privacy page is the one that
+  names Resend for account emails (it now does, in "The services we use").
+- **B6-0 (b), Google's sign-in screen.** Checklist §12: the consent screen's
+  name, logo (`docs/brand/google-consent-logo-120.png`), links and
+  authorized domain, Search Console, brand verification (days); the custom
+  domain as optional. Dev's steps in `docs/google-sign-in-setup.md`. The
+  landing's tab title is now "Onextap" (the owner), so the home page names
+  the app before any script runs.
+- **B6-0 (c), the icons.** The ring mark as the favicon (an SVG with a dark
+  variant, and a 32 px PNG), linked from all ten pages, and as the
+  extension's icons at 16, 32, 48 and 128 px (olive `#7F9A1E`, which reads
+  on light and dark toolbars; a heavier stroke at 16 and 32). The manifest's
+  `icons` and `action.default_icon` point at them; no permission change.
+  `icon.png` is the transparent mark too. `scripts/make-icons.mjs`
+  regenerates every PNG from the one SVG; `test/release/icons.test.js`. The
+  owner looked at the toolbar, the popup header and a tab: "ring is fine".
+- **B6-1, the application types as one switch.** `src/applicationTypes.js`
+  keeps all four types (`ALL_APPLICATION_TYPES`); `LISTED_TYPE_IDS` (Job
+  only) is the switch, and uncommenting an id lists it on both surfaces.
+  Pickers render only with more than one type listed: the popup's dropdown,
+  the dashboard's "Applying for" rows in the settings menu. The dashboard
+  follows the type: workspaces by `features` (Job Matches hidden for
+  College and Scholarship; a link to a hidden one lands on Overview), labels
+  by type, the tour and the home cards. Answer Studio and the Cover Letter
+  workspace send `applicationType`; the server words College and Scholarship
+  as an essay for a committee (system prompt, the context's label, the
+  Improve rule, the guard's retry turn), and Job and Internship exactly as
+  before (byte for byte, tested). The scraper reads an essay wrapper that
+  holds one textarea as the prompt (`content.js` only). The switch is
+  tested on: `ONEXTAP_E2E_APPLICATION_TYPES` (a Vite define,
+  `scripts/applicationTypesOverride.js`; a release build refuses it) runs
+  the website e2e's `types-on` project on port 5191 and an all-types
+  extension build.
+- **The release guide**, `docs/release-guide.md` (also kept as a shared doc
+  for the person who runs the release): ten steps, the release build
+  included (step 9).
+- **The release zip was not built** (the owner's call, 2026-10-21): whoever
+  runs the release builds it from production's values in
+  `.env.production.local` (guide step 9, checklist §9 step 1) and records
+  its SHA-256 there.
+- **Commit messages** were reworded at the owner's request (2026-10-21):
+  every commit after `bae4abc` on `merge/web-dashboard` has a new id, and
+  the ids in this file and the plan were updated to match. `latest` was
+  force-pushed once for it.
+
+**Verified** (the gate on the final tree): `npm run lint` 0 errors, 0
+warnings; `npm test` 1170 pass, 0 fail, 2 skipped; both builds; `test:e2e`
+211 pass, 10 skipped (the `types-on` project and the Job-only "no picker"
+checks among them); `test:e2e:extension` 14 of 14 (4 `cover-handoff`, 7
+`extension` with the all-types popup, 3 `legacy` against the real store
+1.0.2); `/api/health` 200 with an `X-Request-Id`; `build:release` refuses
+the dev `.env`. After the last changes (the privacy line and the title):
+lint, `npm test` 1170/0/2, the website build and `pages.spec.js` 57 pass,
+3 skipped.
+
+**Review.** `code-review` at high: six findings, four fixed (an essay
+wrapper around a whole form read as a job description; the Improve retry
+worded for a job on an essay; the types-on server reused when stale; the
+type toast), two recorded (§7 items 40 and 41). The auditor: 7 pass, 1
+partial (the retry wording, already fixed), 0 fail; its drift findings
+fixed (the privacy page and Resend, the checklist's order, docs).
+
+**Not verified:** a real branded email (no custom SMTP on dev); the
+dashboard picker against real services (the types are off in this
+release); the release zip itself.
+
+**For the owner:** a list of every website line that still says "job" only
+is in the session notes (`b6-job-only-lines.md`), for when the other types
+are turned on; the landing's copy stays the owner's call.
+
+**Next:** the release, `docs/release-guide.md`, when the owner decides.
 
 ---
 
@@ -1572,7 +1667,7 @@ API's debug log; checkpoint 15 has the detail):
   checkpoint 11 it runs in the legacy e2e (an unpacked copy, the site on
   localhost, the API stubbed): its "Unknown action" handshake, the sync, the
   out-of-date copy, a resume parsed without it. Its installed files were
-  read while planning (`docs/plans/active/completion-plan.md` §2: the four
+  read while planning (`docs/plans/completed/completion-plan.md` §2: the four
   messages its worker answers, its manifest, its links); before that, this
   document's claims came from reading `main` (§7 item 1). Checkpoint 10 keeps
   an unpacked copy for the legacy e2e tests B1 adds.
@@ -1624,9 +1719,14 @@ API's debug log; checkpoint 15 has the detail):
   behaviour tests), the parser's cut-off arrays (`test/server/llmJson.test.js`)
   and a cut-off rank reply, a handoff with no description; the charging
   tests now pin two improvements. **Lint:** 0 errors, 0 warnings.
+- **Checkpoint 16: 1170 pass, 0 fail, 2 skipped.** The new ones: the
+  application types' switch and its override, the type storage, the
+  dashboard's type logic, the essay prompts and the route that passes the
+  type, the scrapers on essay pages, the auth-email templates, the icons.
+  **Lint:** 0 errors, 0 warnings.
 
 **E2E (`npm run test:e2e`)**, at checkpoint 5, and again at checkpoint 10: 188 pass, 10 skipped
-(197 at checkpoint 11, with the new copy tests; 200 at checkpoint 12, with Answer Studio's server-side charging; 200 at checkpoint 13; 203 at checkpoint 15, with the reload-safe draft and "New answer")
+(197 at checkpoint 11, with the new copy tests; 200 at checkpoint 12, with Answer Studio's server-side charging; 200 at checkpoint 13; 203 at checkpoint 15, with the reload-safe draft and "New answer"; 211 at checkpoint 16, with a `types-on` project on port 5191 and the Job-only checks)
 (keyboard and wheel tests on the phone profile), 0 fail, across desktop
 Chromium, phone Chromium and WebKit. It covers the landing page, its company
 pages, the 404 page, the account flows (sign-up's name, forgot password, the
@@ -1641,7 +1741,7 @@ the markup pass `toHaveText` while the card is hidden.
 checkpoint 11 a `legacy` project adds 3 against the real store 1.0.2, skipped unless
 `E2E_LEGACY_EXTENSION_PATH` is set: 6 of 6; 12 of 12 at checkpoint 13, with
 `cover-handoff.spec.js` and the delete-account tests; 13 of 13 at checkpoint 15, with a
-form-only application page), in Chromium with the
+form-only application page; 14 of 14 at checkpoint 16, with an all-types build of the popup), in Chromium with the
 extension loaded unpacked. It builds its own copy of the extension with unresolvable
 addresses, runs the website on 5173 (it stops if something is already
 there), and uses the same stubs. The job page is served by a route on
@@ -1655,10 +1755,9 @@ there), and uses the same stubs. The job page is served by a route on
 checkpoint 15 (B5-B): it is the owner's to run, step by step, and nothing in
 it has been done. In short:
 
-1. **Batch B6 first** (`docs/plans/active/completion-plan.md`): the branding
-   work the owner added at checkpoint 15 (B6-0: Onextap's auth emails,
-   Google's consent screen naming Onextap, the transparent icons), then the
-   1.0.4 release zip built on production's `.env`, its SHA-256 recorded.
+1. **B6 is done** (checkpoint 16). `docs/release-guide.md` is the release
+   step by step; the 1.0.4 zip is built in its step 9, from production's
+   `VITE_*` values, and its SHA-256 recorded there.
 2. **Which repo and branch Vercel watches**, before anything is merged:
    merging into `main` may deploy.
 3. **Production Supabase**: the owner's private runbook first (kept outside
@@ -1675,7 +1774,7 @@ it has been done. In short:
 5. **The deploy, then `node scripts/smoke-prod.mjs https://www.onextap.com`**
    (GET only) and `POST /api/credits/refund` answering 404 (§7 item 26).
    Rollback is Vercel's instant rollback; the migrations are additive.
-6. **The Chrome Web Store**: B6's zip, the privacy URL at `/privacy/`,
+6. **The Chrome Web Store**: the zip built at that point, the privacy URL at `/privacy/`,
    permissions unchanged from 1.0.2, a staged rollout if offered. The
    checklist's compatibility matrix covers the old and new site with 1.0.2
    and 1.0.4.
@@ -1795,7 +1894,7 @@ Both are unit-tested with Dodo and Supabase faked. The real double checkout at c
 
 **21. ~~Job Matches shows "Scoring 30 of 30 jobs" immediately.~~ Fixed at checkpoint 11:** the label claims no running count. It reads "Scoring the closest of N jobs in the pool", with N from `/api/jobs/meta` and only while no filter is applied, else "Scoring the closest jobs in the pool" (`web/dashboard/js/ws/job-matches-label.js`, unit-tested). Real ranks ran at checkpoint 15; the label itself was not looked at, and no e2e covers Job Matches.
 
-**22. No application-type picker on the web dashboard.** Out of scope by owner decision, 2026-10-16; **back in at checkpoint 15** (the owner, 2026-10-21: "will turn the options on soon"): batch B6-1 makes the types a switch. Job is the only live type, as in the backend. Bringing the others back needs a picker there as well as in the popup.
+**22. ~~No application-type picker on the web dashboard.~~ Ready at checkpoint 16, switched off.** Back in at checkpoint 15 (the owner, 2026-10-21: "will turn the options on soon"). B6-1 made the types one switch: uncomment the ids in `LISTED_TYPE_IDS` (`src/applicationTypes.js`) and both surfaces show a picker and follow the type; tested with all four listed. 1.0.4 ships Job only (the owner's call): the extension's list is in the store zip, so turning the types on there is a new store release; on the website, a deploy.
 
 **23. The landing's "signed in?" check reads Supabase's default storage key** (`sb-<ref>-auth-token`), in `web/src/app/backend.js`. A custom `storageKey` would break it. **Checkpoint 11:** worked out in one pure place, `web/src/app/session.js`, and `test/web/session.test.js` builds real supabase-js clients with `src/supabaseClient.js`'s options and fails if the keys ever differ, a custom `storageKey` included. Loading the SDK on the landing just to ask would cost its first paint. **Fixed at checkpoint 13:** `src/supabaseSessionKey.js` computes the key once; `src/supabaseClient.js` passes it as its `storageKey` (the same value as supabase-js's default, so no session moved), and the landing and the extension's wipe import it.
 
@@ -1830,6 +1929,12 @@ Both are unit-tested with Dodo and Supabase faked. The real double checkout at c
 **38. `undo_generation()` gives a free follow-up its use back without a receipt. Guarded in the server at checkpoint 15.** Found in B5's final review. Unlike a charge's refund (gated by deleting its allowance row), undoing a follow-up adds a use back each time it is called. Latent: each route undoes a failed generation once. Since checkpoint 15 `undoGeneration()` (`server/lib/credits.js`) sends one undo per spend, whatever asks again (tested). The function itself still has no receipt: a caller that retried after a timeout could not tell whether the first landed. A real fix is a new migration, if that ever matters.
 
 **39. Any page on an allowed origin can wipe the extension's local data. No change, checkpoint 15.** Found in B5's final review. `ONEXTAP_WIPE_LOCAL` is accepted from any `site` sender, by the plan's §3 design (the dashboard sends it after `DELETE /api/account`). A script running on `www.onextap.com` (or, on a dev build, anything on `localhost:5173`) could erase a user's profiles from 1.0.4. No change, because the gate would protect nothing: a script on those origins can already overwrite the extension's profile with `ONEXTAP_SYNC_DATA` (as since 1.0.2) and delete the account through the API with its token. The release manifest narrows the origins to onextap.com.
+
+**40. Switching the application type remounts the open workspace.** Found in B6's review; only reachable once more than one type is listed. Picking a type in the settings menu redraws the open workspace under its new name, so an unsaved Answer Studio draft or Cover Letter edit is lost without a prompt. Worth a confirm (or keeping the draft) before the types are turned on.
+
+**41. Job-worded fields under the essay types.** Found in B6's review. Under College or Scholarship, Answer Studio's fields still say "Company" and "Job description", and that is what the request's context lines carry, while the task hint talks about the programme. The labels are on the owner's list of job-only lines (B6); the landing's copy is the owner's call.
+
+**42. The scraper reads an essay-classed question on a job page.** A trade-off since B6-1 (`docs/extension-protocol.md`, the scrapers): the scraper does not know the application type, so a job application page whose single question sits in an `essay` or `personal-statement` class with its textarea gives that question as the description. A wrapper holding more than one textarea is treated as the form and skipped.
 
 ### Found and fixed along the way (for the record)
 
@@ -1979,7 +2084,7 @@ sessions added. At checkpoint 9 all of it passed except where marked
 (profile sync and forgot password on the owner's word; the sub-checks
 inside forgot password were not reported one by one). At checkpoint 15 the
 plan's B4 table ran in full against the dev project (§5): its list is the
-fuller one for a next run (`docs/plans/active/completion-plan.md`, B4).
+fuller one for a next run (`docs/plans/completed/completion-plan.md`, B4).
 
 Keep test data fictional: a made-up resume and job description go to Gemini
 and Groq like real ones would (CLAUDE.md rule 8).

@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- Onextap: confirm sign-up. Goes in Supabase's "Confirm sign up" slot;
+     the subject and how to paste it are in README.md beside this file.
+     Email-safe on purpose: tables, inline styles, no images, no fonts loaded
+     (the site's faces are named first and fall back to system ones). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>Confirm your email for Onextap</title>
+</head>
+<body style="margin:0;padding:0;background-color:#DDD7C4;">
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#DDD7C4;opacity:0;">One click and your Onextap account is ready.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#DDD7C4" style="background-color:#DDD7C4;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;">
+        <tr>
+          <td bgcolor="#0C1710" style="background-color:#0C1710;padding:22px 32px;border-radius:16px 16px 0 0;font-family:'Archivo','Archivo Narrow','Helvetica Neue',Arial,sans-serif;font-size:18px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#E9E4D4;">Onextap</td>
+        </tr>
+        <tr>
+          <td bgcolor="#E9E4D4" style="background-color:#E9E4D4;padding:36px 32px 32px;border-radius:0 0 16px 16px;">
+            <p style="margin:0 0 12px;font-family:'DM Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#5E6858;">Account &mdash; Sign up</p>
+            <h1 style="margin:0 0 16px;font-family:'Instrument Serif',Georgia,'Times New Roman',serif;font-size:34px;line-height:1.15;font-weight:400;color:#0C1710;">Confirm your email.</h1>
+            <p style="margin:0 0 28px;font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:16px;line-height:1.55;color:#0C1710;">Thanks for signing up to Onextap with {{ .Email }}. Confirm the address and your dashboard opens, ready for your profile.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td bgcolor="#C6DA43" style="background-color:#C6DA43;border:1px solid #9FB52C;border-radius:999px;">
+                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:16px;font-weight:600;line-height:1;color:#0C1710;text-decoration:none;border-radius:999px;">Confirm my email</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:28px 0 6px;font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.5;color:#5E6858;">Button not working? Copy this link into your browser:</p>
+            <p style="margin:0 0 28px;font-family:'DM Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:12px;line-height:1.5;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#0C1710;text-decoration:underline;">{{ .ConfirmationURL }}</a></p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr><td style="border-top:1px solid #C8C1AC;font-size:0;line-height:0;">&nbsp;</td></tr>
+            </table>
+            <p style="margin:20px 0 0;font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.5;color:#5E6858;">Didn&rsquo;t sign up? Ignore this email. Until the link is opened the sign-up isn&rsquo;t confirmed, and no one can sign in with it. The link works once, for a short time.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 32px 0;font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:12px;line-height:1.5;color:#5E6858;">Sent by <a href="{{ .SiteURL }}" style="color:#5E6858;text-decoration:underline;">Onextap</a> to {{ .Email }}, because this address was used to sign up.</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

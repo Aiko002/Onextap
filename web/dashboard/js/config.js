@@ -1,6 +1,11 @@
 // Navigation + workspace registry. Add a workspace here and it appears on
 // the dashboard, in the dock list, and gets a route at #/<id>; its view is
 // the module of the same id in js/ws/ (see js/workspaces.js).
+//
+// `feature` is the flag in the application type's `features`
+// (src/applicationTypes.js) that shows it: a type that turns it off hides the
+// workspace everywhere, and a route to it lands on Overview. The labels are
+// Job's; a type renames Answer Studio and Cover Letter (js/application-type.js).
 
 export const overview = { id: 'overview', label: 'Overview', icon: 'overview' };
 
@@ -10,24 +15,28 @@ export const workspaces = [
     label: 'Job Matches',
     icon: 'briefcase',
     description: 'Roles matched to your resume, ranked by fit.',
+    feature: 'jobMatches',
   },
   {
     id: 'my-profiles',
     label: 'My Profiles',
     icon: 'user',
     description: 'The details autofill uses: who you are, where you have worked, what you know.',
+    feature: 'profiles',
   },
   {
     id: 'answer-studio',
     label: 'Answer Studio',
     icon: 'pen',
     description: 'Draft and save answers to common application questions.',
+    feature: 'vault',
   },
   {
     id: 'cover-letter',
     label: 'Cover Letter',
     icon: 'file',
     description: 'Cover letters tailored to each application.',
+    feature: 'coverLetter',
   },
 ];
 

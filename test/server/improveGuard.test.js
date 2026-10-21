@@ -362,3 +362,18 @@ test('the retry message lists each claim once, bounded', () => {
   assert.ok(message.includes('Do not replace them'), 'and the model is told not to swap in new facts');
   assert.doesNotThrow(() => buildImproveRetryMessage(null));
 });
+
+test("the retry message: an essay's names what an essay would invent; a job's is unchanged", () => {
+  const claims = ['I won the national debate prize.'];
+  const job = buildImproveRetryMessage(claims);
+  for (const type of [undefined, 'job', 'internship', 'nonsense']) {
+    assert.equal(buildImproveRetryMessage(claims, type), job, String(type));
+  }
+  assert.match(job, /employers, job titles or tools/);
+  for (const type of ['college', 'scholarship']) {
+    const essay = buildImproveRetryMessage(claims, type);
+    assert.match(essay, /awards, grades/, type);
+    assert.doesNotMatch(essay, /job titles|organisation and role/, type);
+    assert.ok(essay.includes('- "I won the national debate prize."'), type);
+  }
+});

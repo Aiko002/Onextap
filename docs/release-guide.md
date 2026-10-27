@@ -1,6 +1,6 @@
 # Onextap live release guide
 
-As of 2026-10-21. The same guide is kept as a shared doc for whoever runs the
+As of 2026-10-27. The same guide is kept as a shared doc for whoever runs the
 release; this copy travels with the code. `docs/deploy-checklist.md` is the
 detailed version, with the reasons behind each step.
 
@@ -434,7 +434,7 @@ users see no new permission warning.
 the manifest, and zips: if any check fails it stops and zips nothing. It never
 prints a key.
 
-1. **What you need:** Node.js 22 or newer; the repository on `merge/web-dashboard` at checkpoint 16 or later (the commit you deploy in step 5); and `tar` that can write zip files. Windows 10 and later and macOS have it built in; on Linux install `bsdtar` (the `libarchive-tools` package).
+1. **What you need:** Node.js 22 or newer; the clone from step 1, on `merge/web-dashboard` (the commit you deployed in step 5); and `tar` that can write zip files. Windows 10 and later and macOS have it built in; on Linux install `bsdtar` (the `libarchive-tools` package).
 
     ```
     git fetch latest
@@ -508,7 +508,7 @@ prints a key.
 Tell the owner what went live and when, so the project's records can say so.
 
 - [ ] The deploy: the date, the deployed commit, the smoke script's result, the checks by hand, and anything that failed.
-- [ ] The ledger commit from step 2 is in `main` (`git log origin/main` shows it).
+- [ ] The ledger commit from step 2 is on the live branch (`git fetch live`, then `git log live/main` shows it).
 - [ ] When 1.0.4 is published: the date.
 - [ ] When Google's brand verification passes: the date, and what the account chooser now says.
 

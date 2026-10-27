@@ -1,9 +1,9 @@
 # Deploy checklist: the website, the API and extension 1.0.4
 
-Written in B5 of `docs/plans/completed/completion-plan.md`, for the owner to run
-after B6. `docs/release-guide.md` is the same release as a shorter
-step-by-step guide, for whoever runs it. The plan stops at deploy-ready, so this file changes nothing by
-itself. Every step that touches production (Supabase, Vercel, Dodo, the
+Written in B5 of `docs/plans/completed/completion-plan.md`, for the owner to
+run after B6. `docs/release-guide.md` is the same release as a shorter
+step-by-step guide, for whoever runs it. The plan stops at deploy-ready, so
+this file changes nothing by itself. Every step that touches production (Supabase, Vercel, Dodo, the
 Chrome Web Store, a push to the branch Vercel deploys) is the owner's, or
 Claude's only after the owner says yes to that step (CLAUDE.md, Escalate).
 
@@ -13,6 +13,14 @@ Never paste a key into this file, a commit or a chat with Claude.
 "Today's production" is `main`'s build: the live API runs `main`'s code
 (HANDOVER §0, checkpoint 6). "The new build" is `merge/web-dashboard` at the
 commit B6 closed.
+
+**The site is live, with real users.** This release updates it in place: the
+code is pushed to the live repository, and that push is the deploy (§6), so
+§3 to §5 come before it. On 2026-10-27 the live site still served the old
+build: the smoke script (§7) gave 7 of 9, failing only `/privacy-policy` and
+the not-found check, as the old build does. What live users notice at the
+switch (sessions, saved profiles and old links carry over; no downtime) is in
+`docs/release-guide.md`, "What live users notice".
 
 ---
 

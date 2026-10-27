@@ -1394,6 +1394,18 @@ release); the release zip itself.
 is in the session notes (`b6-job-only-lines.md`), for when the other types
 are turned on; the landing's copy stays the owner's call.
 
+**After the checkpoint (2026-10-27), the owner:** the site is already live,
+and this code will be pushed to the live repository. The release guide now
+treats the release as an in-place update of the live site: the push to the
+live repository is the deploy (step 5, a checked fast-forward, never forced),
+steps 2 to 4 come before it, and a new section says what live users notice
+(sessions, saved profiles and old links carry over; no downtime; by design
+and in tests, not watched live). A GET-only check of the live site that day:
+still the old build (the smoke script 7 of 9, failing only `/privacy-policy`
+and the not-found page). Before pushing anywhere, the tracked files were
+scanned: no key-shaped strings, no private findings, only the two
+`.env.example` files with placeholders.
+
 **Next:** the release, `docs/release-guide.md`, when the owner decides.
 
 ---

@@ -4,10 +4,12 @@ As of 2026-10-21. The same guide is kept as a shared doc for whoever runs the
 release; this copy travels with the code. `docs/deploy-checklist.md` is the
 detailed version, with the reasons behind each step.
 
-This takes Onextap live: the new website, dashboard and API on
-www.onextap.com, then extension 1.0.4 on the Chrome Web Store. Everything is
-built and tested against the dev project; nothing here has touched
-production yet. Follow the steps in order.
+Onextap is already live at www.onextap.com, with real users, on the old
+build. This release updates it in place: the new website, dashboard and API,
+then extension 1.0.4 on the Chrome Web Store. The code goes to the live
+repository, and **pushing it there is the deploy**, so steps 2 to 4 come
+before that push. Everything is built and tested against the dev project;
+nothing here has touched production yet. Follow the steps in order.
 
 ## Before you start
 
@@ -37,10 +39,12 @@ owner. Get all of it before step 1.
 - [ ] The owner's private Supabase runbook. It is not in this guide and not in the repository: get it from the owner directly, and finish it before step 2.
 - [ ] Production's keys, from their backup. You type them into the dashboards that need them.
 - [ ] The release zip, `release/onextap-1.0.4.zip`, which you build yourself in step 9: you need production's Supabase anon key for it.
-- [ ] The commit to deploy: `merge/web-dashboard` at checkpoint 16, on the remote `latest` (`github.com/UncannySteel/OneXtap-latest`).
+- [ ] The commit to deploy: `merge/web-dashboard` at checkpoint 16 or later, on the remote `latest` (`github.com/UncannySteel/OneXtap-latest`).
 
 **Rules for the whole release**
 
+- **The push is the deploy.** Nothing goes to the live repository's production branch before step 5, and never with `--force`.
+- **Clone fresh.** Get the code from `latest` after 2026-10-21: the branch's history was reworded that day, so an older clone won't fast-forward.
 - Never paste a key into this guide, a commit, a chat or a ticket. The guide names variables, never values.
 - Never run `supabase/schema.sql` on production. It bootstraps a brand-new project only; production gets the numbered migrations.
 - No code changes during the release. If something seems to need one, stop and tell the owner.
@@ -51,11 +55,11 @@ owner. Get all of it before step 1.
 Ten steps, in this order. Steps 1 to 5 put the new site live; 6 and 7 finish
 and check it; 8 and 9 can take days and wait on nothing else.
 
-1. Find out how a deploy happens. A merge may deploy production at once.
+1. Confirm the live repository and branch, and that pushing this code there is a plain fast-forward.
 2. Production Supabase: the owner's runbook, migrations 006 then 007, the ledger, Redirect URLs.
 3. Vercel's environment variables.
 4. Dodo Payments, live: confirm what exists.
-5. Deploy.
+5. Push to the live repository: this is the deploy.
 6. The auth emails: custom SMTP (sender "Onextap"), then the four templates.
 7. Check the live site: the smoke script, then by hand.
 8. Google's sign-in screen: name, logo, brand verification (days).
@@ -69,29 +73,49 @@ Why this order:
 - **Emails after the deploy.** Custom SMTP sends through Resend, which only the new privacy page names.
 - **Google and the store after the site is live.** Google reads the new home page and `/privacy/`; the store listing points at `/privacy/`, which only the new site serves. Every website works with both extension versions, so neither side blocks the other.
 
-## Step 1 · How a deploy happens
+## What live users notice
 
-Pushing to the branch Vercel watches deploys production. Find out which branch
-that is before you change anything.
+The switch is in place, with no downtime and nothing for users to do. This
+follows from the code and the tests; it has not been watched on the live site.
 
-1. Vercel → the project → **Settings → Git**: write down the connected repository and the **Production Branch**. **Settings → Domains**: `www.onextap.com` and `onextap.com` belong to this project.
-2. Vercel → **Deployments**: write down the live Production deployment's repository, branch and commit. Expect `main` at commit `bae4abc` or later.
-3. Match it to the repository's remotes:
-    - `origin` is `github.com/Aiko002/Onextap`, the backend's repository. `merge/web-dashboard` was cut from its `main` at `bae4abc`.
-    - `latest` is `github.com/UncannySteel/OneXtap-latest`, where `merge/web-dashboard` lives.
-4. Then, by what step 1 showed:
-    - **`Aiko002/Onextap`, branch `main`** (expected): a push to `origin`'s `main` deploys. Nothing goes there before step 5.
-    - **`UncannySteel/OneXtap-latest`, branch `merge/web-dashboard`**: every checkpoint push would already have deployed, yet nothing is supposed to be live. Stop and ask the owner.
-    - **Anything else** (another repository or branch, or deploys from the Vercel CLI): find out how the live deployment was made, and deploy the same way in step 5.
-5. Check that `main` has not moved since the branch was cut. This must print nothing:
+| At the deploy | Why |
+| --- | --- |
+| No downtime | Vercel serves the new build only once it has built; a failed build leaves the old site up |
+| Signed-in users stay signed in | Same Supabase project, same address, same session storage key |
+| Profiles and saved answers in the browser carry over | Same address, same storage keys (`onextap_profiles`, `user_profile`) |
+| Old links still work | The old dashboard's addresses (the extension's `?extensionId=` and `?view=`, a checkout's `?payment=`, sign-in returns) forward to `/dashboard/`; `/privacy-policy` redirects to `/privacy/` |
+| Tabs left open on the old dashboard keep working | They are charged once per generation, not twice |
+| Extension 1.0.2 keeps working | After a save, the new dashboard says the extension is out of date, with a store link, until 1.0.4 is out (step 9) |
+
+Today's live site, checked 2026-10-27 with the smoke script (step 7): 7 of 9
+pass. The two that fail (`/privacy-policy` and the not-found page) are the old
+build's; after the deploy all nine pass.
+
+## Step 1 · The live repository
+
+This code is pushed to the live repository, and that push deploys production.
+Confirm which repository and branch Vercel deploys from, and that the push
+will be a plain fast-forward, before changing anything else.
+
+1. Vercel → the project → **Settings → Git**: the connected repository and its **Production Branch** are the live repository and branch (expected: `github.com/Aiko002/Onextap`, `main`). **Settings → Domains**: `www.onextap.com` and `onextap.com` belong to this project.
+2. Vercel → **Deployments**: the live Production deployment's commit. Expect `main` at `bae4abc`, where this work started.
+3. Make a fresh clone of this code with its remote named `latest` (steps 2 and 9 use that name), and add the live repository as a remote named `live`:
 
     ```
-    git fetch origin
-    git log --oneline bae4abc..origin/main
+    git clone -o latest https://github.com/UncannySteel/OneXtap-latest.git onextap-release
+    cd onextap-release
+    git remote add live https://github.com/Aiko002/Onextap.git
+    git fetch live
+    ```
+4. The push must be a fast-forward: the live branch may not hold anything this code lacks. This must print `fast-forward: ok` (use the Production Branch from item 1 in place of `main`):
+
+    ```
+    git merge-base --is-ancestor live/main latest/merge/web-dashboard && echo "fast-forward: ok"
     ```
 
-    If it prints commits, production changed after the branch left it. Stop: they need merging into `merge/web-dashboard` and the full test gate run again first.
-6. If Vercel builds previews of other branches, note which variables its **Preview** environment holds (step 3 decides what goes there).
+    If it prints nothing, production changed after this work left it. Stop and tell the owner: those commits need merging into `merge/web-dashboard` and the full test gate run again first.
+5. If Vercel builds previews of other branches, note which variables its **Preview** environment holds (step 3 decides what goes there).
+6. If the live repository is not the one item 1 expects, or Vercel deploys some other way (the CLI, another branch), stop and ask the owner before going on.
 
 ## Step 2 · Production Supabase
 
@@ -245,26 +269,30 @@ After launch, from time to time: a duplicate subscription is cancelled
 automatically, but its payment is refunded **by hand** in Dodo. The API log
 names both subscriptions.
 
-## Step 5 · Deploy
+## Step 5 · Push to the live repository (the deploy)
 
-Fast-forward production's branch to the release commit and push; Vercel
-builds and goes live.
+Push this code to the live repository's production branch; Vercel builds it
+and switches the live site over when the build is ready.
 
-1. **Last look:** step 2 done (006 and 007 verified, the ledger committed), step 3 set, step 4 confirmed.
-2. **Optional baseline:** run the smoke script (step 7) against today's site first. Two of its nine checks fail there (the old build answers every address with one page); after the deploy all nine pass, which is how you know the new build is live.
-3. **Optional preview:** if Vercel builds previews and you are happy with Preview's variables, push `merge/web-dashboard` to the watched repository as a branch (never `main`) and run the smoke script against the preview's address. If previews are password-protected every check answers 401: skip it.
-4. **Deploy.** For the expected case (`Aiko002/Onextap`, branch `main`):
+1. **Last look:** step 2 done (006 and 007 verified, the ledger committed and pushed to `latest`), step 3 set, step 4 confirmed.
+2. **Baseline:** run the smoke script (step 7) against the live site. Expect 7 of 9: the old build fails `/privacy-policy` and the not-found check.
+3. **Optional preview:** if Vercel builds previews and you are happy with Preview's variables, push the code to the live repository under its own branch name first (never the production branch) and run the smoke script against the preview's address. If previews are password-protected every check answers 401: skip it.
 
     ```
-    git fetch origin
-    git checkout main
-    git merge --ff-only origin/main
-    git merge --ff-only merge/web-dashboard
-    git push origin main
+    git push live latest/merge/web-dashboard:refs/heads/release-1.0.4
+    ```
+4. **Deploy.** In the clone from step 1:
+
+    ```
+    git fetch latest
+    git fetch live
+    git merge-base --is-ancestor live/main latest/merge/web-dashboard && echo "fast-forward: ok"
+    git push live latest/merge/web-dashboard:refs/heads/main
     ```
 
-    If a `--ff-only` refuses, `main` moved: go back to step 1, item 5.
-5. **Watch the build** in Vercel → Deployments: the website build and the `api/index.js` function. A failed build leaves the old site live.
+    Push only after `fast-forward: ok`, and check `git log -1 latest/merge/web-dashboard` shows step 2's ledger commit. If the push is refused as "non-fast-forward", someone changed the live branch: stop, never retry with `--force`, and go back to step 1, item 4.
+5. **Watch the build** in Vercel → Deployments: the website build and the `api/index.js` function. When it is **Ready**, the new site is live; a failed build leaves the old one up.
+6. If you pushed a preview branch in item 3, delete it: `git push live --delete release-1.0.4`.
 
 ## Step 6 · The auth emails
 
@@ -358,7 +386,7 @@ the old site works with both migrations and both extensions.
 3. **What a rollback brings back** until the next deploy: the old `POST /api/credits/refund` route that mints credits, and the old charging (the page pays after generating). Free improvements and re-runs granted by the new server pause and work again after the next deploy (they last 30 days).
 4. **Open tabs are safe either way:** an old dashboard tab calling the new server is charged once, not twice.
 5. **The extension needs nothing:** 1.0.2 and 1.0.4 both work with the old site.
-6. Fix the cause on `merge/web-dashboard`, run the full test gate again, and come back to step 5.
+6. Fix the cause on `merge/web-dashboard`, run the full test gate again, and come back to step 5. Never roll back by force-pushing the live branch: Vercel's rollback is the way back, and the next push is a normal fast-forward.
 
 ## Step 8 · Google's sign-in screen
 

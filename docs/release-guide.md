@@ -21,7 +21,7 @@ owner. Get all of it before step 1.
 | Part | Where it goes | From |
 | --- | --- | --- |
 | Website, dashboard and API (one Vercel project) | `https://www.onextap.com` (`/`, `/dashboard/`, `/api/`) | branch `merge/web-dashboard` |
-| Two database migrations, 006 and 007 | the production Supabase project, `itqaozltgsyvjhlcllic` | `supabase/migrations/` |
+| Database migrations 006, 007 and 009 | the production Supabase project, `itqaozltgsyvjhlcllic` | `supabase/migrations/` |
 | Extension 1.0.4 | the Chrome Web Store item `fpleipjggoiolomkcnchnlelbjcnoklj` (the store has 1.0.2 today) | `release/onextap-1.0.4.zip`, built from the branch in step 9 |
 
 **Access you need**
@@ -184,6 +184,8 @@ record it, and add two Redirect URLs. All SQL is pasted into production's
     ```
 
     Expected: two rows, each `false`, `false`, `true`. A signed-in browser must not be able to call either function.
+
+    Then **009**, if the ledger doesn't show it applied (production got it on 2026-11-03): paste all of `supabase/migrations/009_dodo_billing_columns.sql` and run it once. It adds the Dodo billing columns a project bootstrapped from a pre-repo script lacks, and does nothing where they exist. Check: `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name like 'dodo_%';` lists `dodo_customer_id` and `dodo_subscription_id`.
 8. **Record it in the ledger, before the deploy.** In `supabase/migrations/README.md`'s Status table, set the Production column of the 006 and 007 rows to **applied** and the date, and add a sentence under the table that both were verified that day with these read-only queries. Then:
 
     ```

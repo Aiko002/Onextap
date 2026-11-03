@@ -78,7 +78,7 @@ None of the four can import from another (the one exception:
 |---|---|---|
 | UI | React 18 + Tailwind 3, `lucide-react` icons | 15 component files under `src/components/{shared,popup,dashboard}/` |
 | Bundler | Vite 5 | Two configs: `vite.config.js` (crx → `dist/`), `vite.dashboard.config.js` (→ `dist-dashboard/`) |
-| Extension | Manifest V3 | `1.0.3`; service worker, no persistent background page |
+| Extension | Manifest V3 | `1.0.4` (the store had `1.0.2`; `1.0.3` was never published); service worker, no persistent background page |
 | Server | Express 4 (ESM) | Node 18+ (no `engines` field declared) |
 | Auth + DB | Supabase (Postgres, GoTrue, RLS) | `@supabase/supabase-js` ^2.95.3 |
 | Answer AI | Groq — `llama-3.3-70b-versatile`, falls back to `llama-3.1-8b-instant` | `groq-sdk` ^0.15.0 |

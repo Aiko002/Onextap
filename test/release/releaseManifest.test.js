@@ -24,6 +24,7 @@ import {
 } from '../../scripts/releaseManifest.js';
 
 const repoManifest = () => JSON.parse(readFileSync(new URL('../../extension/manifest.json', import.meta.url), 'utf8'));
+const repoPackage = () => JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
 const LOCAL = /localhost|127\.0\.0\.1|\[::1\]/i;
 
 test('isLocalPattern: local hosts, whatever the scheme, port or subdomain', () => {
@@ -77,6 +78,8 @@ test('the pinned lists are the repo manifest minus localhost (1.0.2 minus localh
 test('the repo manifest says the release version', () => {
   assert.equal(RELEASE_VERSION, '1.0.4');
   assert.equal(repoManifest().version, RELEASE_VERSION);
+  // npm prints this one on every build; it names the same release.
+  assert.equal(repoPackage().version, RELEASE_VERSION);
 });
 
 test('releaseManifest drops exactly the localhost entries and nothing else', () => {

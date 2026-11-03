@@ -1948,6 +1948,8 @@ Both are unit-tested with Dodo and Supabase faked. The real double checkout at c
 
 **42. The scraper reads an essay-classed question on a job page.** A trade-off since B6-1 (`docs/extension-protocol.md`, the scrapers): the scraper does not know the application type, so a job application page whose single question sits in an `essay` or `personal-statement` class with its textarea gives that question as the description. A wrapper holding more than one textarea is treated as the form and skipped.
 
+**43. ~~A signed-in user could set their own credits and Premium.~~ Fixed on production 2026-11-03 (migration 008).** Pre-existing; found in B2 (checkpoint 12) and kept out of the repo until production was fixed. `schema.sql`'s "Users can update own profile" policy limited rows, not columns, and Supabase grants UPDATE on every column to `authenticated` by default, so a signed-in browser could PATCH its own `credits` or `is_premium` through the REST API with the public anon key, defeating server-side charging. No client wrote `profiles`. **Fixed:** the policy is dropped and INSERT/UPDATE/DELETE on `profiles` and `credit_transactions` revoked from `anon` and `authenticated` (dev 2026-10-17, production 2026-11-03, before the deploy); `schema.sql` carries the same statements, and `test/rules/rule6-no-browser-writes.test.js` fails if a write policy or a browser write grant comes back.
+
 ### Found and fixed along the way (for the record)
 
 - The old dashboard sent the dashboard's own page text to the AI as "the job description" (item 17).

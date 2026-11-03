@@ -49,12 +49,13 @@ create policy "Users can view own profile"
   on public.profiles for select
   using (auth.uid() = id);
 
--- Profiles: users can update their own profile (limited fields)
+-- Profiles: no browser writes (migration 008). Only the server (service role)
+-- and the sign-up trigger write profiles. RLS limits rows, not columns, and
+-- Supabase grants UPDATE on every column to `authenticated` by default, so a
+-- row policy alone would let a user set their own credits and is_premium.
 drop policy if exists "Users can update own profile" on public.profiles;
-create policy "Users can update own profile"
-  on public.profiles for update
-  using (auth.uid() = id)
-  with check (auth.uid() = id);
+revoke insert, update, delete on public.profiles from anon, authenticated;
+revoke insert, update, delete on public.credit_transactions from anon, authenticated;
 
 -- Credit transactions: users can view their own transactions
 drop policy if exists "Users can view own transactions" on public.credit_transactions;

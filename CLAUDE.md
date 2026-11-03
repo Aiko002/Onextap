@@ -35,8 +35,9 @@ billing only. Layout and import rules: `docs/repo-structure.md`; user paths:
 ## Never
 
 6. Never adjust credits or premium status client-side. Every change goes
-   through the authenticated server routes; RLS makes `credit_transactions`
-   writable only by the service role. That is the anti-tamper design.
+   through the authenticated server routes; RLS and revoked grants make
+   `profiles` and `credit_transactions` writable only by the service role
+   (migration 008). That is the anti-tamper design.
 7. Never put a server secret behind a `VITE_*` name. Everything `VITE_*` is
    inlined into the shipped bundle. `SUPABASE_SERVICE_ROLE_KEY`,
    `GROQ_API_KEY`, `GEMINI_API_KEY` and the Dodo keys are `server/.env` only.
@@ -74,7 +75,7 @@ billing only. Layout and import rules: `docs/repo-structure.md`; user paths:
 - **Test: `npm test`** (Node 21+; 22.15+ for the tests that load `src/`
   through `test/extension/viteModules.js`, which older Node skips): unit
   tests, every route through `test/server/harness.js` (the real app, dummy
-  env, no network), and rules 4, 5, 7, 9 and 10 in `test/rules/`. A new route means
+  env, no network), and rules 4, 5, 6, 7, 9 and 10 in `test/rules/`. A new route means
   updating `test/rules/routes.snapshot.json`.
 - **Lint: `npm run lint`** (ESLint 9, correctness only). `no-console` is an
   error outside the loggers, `scripts/` and the e2e probes (rule 11).

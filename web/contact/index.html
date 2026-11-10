@@ -5,11 +5,53 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Contact — Onextap</title>
 <meta name="description" content="Talk to the people building Onextap: send feedback, report a job board that fights back, or ask a question.">
+<!-- Self-referencing canonical, trailing slash included: the same spelling
+     the sitemap lists. The in-app copy at /dashboard/contact/ is the same
+     page for signed-in users; robots.txt keeps it out of the index. -->
+<link rel="canonical" href="https://www.onextap.com/contact/">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<!--
+  Structured data (JSON-LD): this page, and where it sits. The site's identity
+  — Organization, WebSite, the extension itself — is declared once on the
+  landing page, which is where Google reads it from.
+
+  No contactPoint: contact runs through the in-page feedback window, and there
+  is no published address or number to put in one.
+-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "ContactPage",
+      "@id": "https://www.onextap.com/contact/#webpage",
+      "url": "https://www.onextap.com/contact/",
+      "name": "Contact — Onextap",
+      "description": "Talk to the people building Onextap: send feedback, report a job board that fights back, or ask a question.",
+      "inLanguage": "en",
+      "isPartOf": { "@id": "https://www.onextap.com/#website" },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Onextap",
+        "url": "https://www.onextap.com/"
+      },
+      "breadcrumb": { "@id": "https://www.onextap.com/contact/#breadcrumb" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://www.onextap.com/contact/#breadcrumb",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Onextap", "item": "https://www.onextap.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Contact" }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 

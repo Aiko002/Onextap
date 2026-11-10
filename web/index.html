@@ -3,7 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Onextap</title>
+<title>Onextap — autofill job applications</title>
+<meta name="description" content="Browse roles on the job board, tap apply, and the extension fills in every field on every application for you.">
+<!-- Self-referencing canonical. It earns its place here: the published
+     extension opens this page with ?extensionId= (and ?view=), checkout
+     returns with ?payment=, and Supabase sign-in arrives with ?code= — every
+     one of those is the same page at a different URL. The title and
+     description are the WebPage node's name and description verbatim; keep
+     the three in step. -->
+<link rel="canonical" href="https://www.onextap.com/">
 <script>
   /* Links meant for the dashboard, from before it moved to /dashboard/: the
      published extension opens the site with ?extensionId= (and ?view=), a
@@ -30,6 +38,95 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<!--
+  Structured data (JSON-LD). The site's identity lives HERE, on the landing
+  page: Google reads Organization from a site's home page, so the company
+  pages carry only their own WebPage node and a breadcrumb.
+
+  Every claim below is in the visible copy — Google treats markup that is not
+  on the page as spam. So when the price changes in
+  src/features/pricing/pricing.html, change it here too; the board list comes
+  from src/features/job-boards/, the plans from the pricing section.
+
+  No aggregateRating or review: inventing either is a manual action, and the
+  store listing's rating is not ours to restate. No softwareVersion either —
+  it would be wrong between a release here and the store review.
+-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.onextap.com/#organization",
+      "name": "Onextap",
+      "url": "https://www.onextap.com/",
+      "logo": "https://www.onextap.com/icon.png",
+      "description": "An application copilot for the person applying — not an applicant tracking system."
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.onextap.com/#website",
+      "url": "https://www.onextap.com/",
+      "name": "Onextap",
+      "inLanguage": "en",
+      "publisher": { "@id": "https://www.onextap.com/#organization" }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://www.onextap.com/#extension",
+      "name": "Onextap",
+      "applicationCategory": "BrowserApplication",
+      "browserRequirements": "Requires Chrome, Edge, Brave or Opera.",
+      "url": "https://www.onextap.com/",
+      "installUrl": "https://chromewebstore.google.com/detail/fpleipjggoiolomkcnchnlelbjcnoklj",
+      "description": "A browser extension that fills in every field of a job application from your profile and drafts the written answers in your own words. Works on Greenhouse, Lever, Workday, Ashby, iCIMS, Workable, SmartRecruiters and Taleo.",
+      "keywords": "hiring, job, autofill, autofill job applications, companies hiring, job boards",
+      "featureList": [
+        "Unlimited autofill applications",
+        "Local data storage",
+        "Multiple profiles",
+        "Smart field mapping",
+        "3 AI credits for written answers, cover letters and fit explanations"
+      ],
+      "publisher": { "@id": "https://www.onextap.com/#organization" },
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free",
+          "price": "0",
+          "priceCurrency": "USD",
+          "description": "Forever. Unlimited autofill applications, local data storage, multiple profiles, smart field mapping and 3 AI credits."
+        },
+        {
+          "@type": "Offer",
+          "name": "Premium",
+          "price": "5.00",
+          "priceCurrency": "USD",
+          "description": "Everything in Free, plus unlimited AI answers and cover letters and unlimited fit explanations on job matches. Cancel anytime.",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": "5.00",
+            "priceCurrency": "USD",
+            "billingDuration": 1,
+            "unitCode": "MON"
+          }
+        }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://www.onextap.com/#webpage",
+      "url": "https://www.onextap.com/",
+      "name": "Onextap — autofill job applications",
+      "description": "Browse roles on the job board, tap apply, and the extension fills in every field on every application for you.",
+      "inLanguage": "en",
+      "isPartOf": { "@id": "https://www.onextap.com/#website" },
+      "about": { "@id": "https://www.onextap.com/#extension" }
+    }
+  ]
+}
+</script>
 </head>
 <body>
 

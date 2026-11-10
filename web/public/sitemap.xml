@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The site's indexable pages, served from dist-dashboard/sitemap.xml (this file
+  is copied verbatim out of web/public/ by vite.dashboard.config.js).
+
+  Static on purpose: Vercel rewrites only /api/* to the Express app, so a
+  server route at /sitemap.xml is never reached in production.
+
+  Not listed, and disallowed in robots.txt: /dashboard/ and its company pages,
+  /reset-password/. They are signed-in app pages with nothing to index.
+
+  www is the canonical host (CLIENT_URL's default, server/app.js). Bump a
+  <lastmod> when that page's copy changes; a date that is not true is worse
+  than none, since Google drops lastmod it cannot trust.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.onextap.com/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://www.onextap.com/about/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://www.onextap.com/contact/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://www.onextap.com/privacy/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+</urlset>

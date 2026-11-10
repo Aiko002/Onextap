@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# The backend, and the signed-in app pages: nothing to crawl or index.
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /reset-password/
+
+Sitemap: https://www.onextap.com/sitemap.xml

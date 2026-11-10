@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Disallow access to backend APIs or admin routes
+Disallow: /api/
+Disallow: /admin/
+
+# Point search engine crawlers to your sitemap
+Sitemap: https://www.onextap.com/sitemap.xml
+Sitemap: https://onextap.com/sitemap.xml

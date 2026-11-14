@@ -11,7 +11,7 @@
     <p class="lede sub-hero__lede" data-rise>
       The plain version: what Onextap keeps on your device, what leaves it when you ask for
       something and who handles it, and what your account holds. Written down, not left to
-      inference. Last updated October 2026.
+      inference. Last updated November 2026.
     </p>
   </div>
 </section>
@@ -43,15 +43,16 @@
           that feature needs:
         </p>
         <ul class="sub-list" data-rise>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Writing an answer or personalising a cover letter</strong> sends Groq the question, your draft or template, the job description you pasted or had open, a short summary of your profile (current role, top skills, recent experience) and the saved answers relevant to the question.</span></li>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Uploading a resume</strong> sends the file to Google (Gemini), which reads it into your profile's fields.</span></li>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Job Matches</strong> sends a summary of your profile — skills, job titles, seniority and years of experience, not your full resume — with the listings being ranked, to Gemini, or to Groq when Gemini is unavailable.</span></li>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Explain my fit</strong> sends fuller resume text — your summary and experience — with that one job's description, to Groq.</span></li>
+          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Writing an answer or personalising a cover letter</strong> sends the question, your draft or template, the job description, a short summary of your profile and the saved answers relevant to the question.</span></li>
+          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Uploading a resume</strong> sends the whole resume, contact details included, to be sorted into your profile's fields. Our server does not keep the file or its text.</span></li>
+          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Job Matches</strong> sends a summary of your profile (skills, job titles, seniority and years of experience, not your full resume) with the listings being ranked.</span></li>
+          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Explain my fit</strong> sends your resume summary and experience with that one job's description.</span></li>
         </ul>
         <p class="sub-copy" data-rise>
-          We do not sell, rent or trade any of it, and we do not use it to train models of our own.
-          What Groq and Google do with text sent through their APIs is governed by their terms, not
-          ours.
+          That text goes through our server to third-party AI providers, which process it to answer
+          the request. We do not sell, rent or trade any of it, and we do not use it to train models
+          of our own. What the providers do with text sent through their APIs is governed by their
+          terms, not ours.
         </p>
       </div>
     </section>
@@ -91,15 +92,13 @@
       <div>
         <h2 class="display sub-sec__title" id="privacy-services" data-split>The services we use.</h2>
         <ul class="sub-list" data-rise>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Supabase</strong> — sign-in, and the account and billing records above.</span></li>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Groq</strong> — writing and improving answers and cover letters, Explain my fit, and the fallback for ranking job matches.</span></li>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Google (Gemini)</strong> — reading uploaded resumes, and the main model for ranking job matches.</span></li>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Google Sign-In</strong> — only if you choose it: your browser goes to Google's own sign-in page, and we receive back your email and name, through Supabase.</span></li>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Dodo Payments</strong> — payments, and the billing portal for invoices and your card.</span></li>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Opik (Comet)</strong> — the operational metadata described in 03.</span></li>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Resend</strong> — delivering feedback-form messages to our team, with a reply-to address if you give one. Nothing is stored. It also sends our account emails (confirming your address, resetting your password), which carry your email address and a one-time link.</span></li>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Google Fonts</strong> — this site's typefaces. Loading them, like any request to Google's servers, shows Google your IP address.</span></li>
-          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Job sources</strong> (Adzuna, Greenhouse, Lever, Ashby, Arbeitnow, Jobicy, Himalayas, Remotive, RemoteOK) — a one-way, read-only feed of public postings. Nothing of yours is sent to them.</span></li>
+          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Supabase</strong> — sign-in and your account.</span></li>
+          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>AI providers</strong> — the AI features described in 02.</span></li>
+          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Google Sign-In</strong> — only if you choose it; we receive your email and name.</span></li>
+          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Dodo Payments</strong> — payments and billing.</span></li>
+          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Opik (Comet)</strong> — the metadata described in 03.</span></li>
+          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Resend</strong> — account emails and feedback messages.</span></li>
+          <li><span class="tick" aria-hidden="true">◆</span> <span><strong>Google Fonts</strong> — this site's typefaces, which shows Google your IP address.</span></li>
         </ul>
       </div>
     </section>

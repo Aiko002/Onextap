@@ -81,6 +81,15 @@ export function initRail(opts) {
     var c = el.cloneNode(true);
     c.setAttribute('data-clone', '');
     c.setAttribute('aria-hidden', 'true');
+    // A clone's title is a div, not a heading, so the page's outline (and a
+    // crawler's reading of it) lists each step once. The class carries every
+    // style the heading had.
+    c.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function (h) {
+      var d = document.createElement('div');
+      Array.prototype.forEach.call(h.attributes, function (a) { d.setAttribute(a.name, a.value); });
+      while (h.firstChild) d.appendChild(h.firstChild);
+      h.replaceWith(d);
+    });
     return c;
   }
 

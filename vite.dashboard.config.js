@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { fileURLToPath } from 'node:url';
 import { applicationTypesDefine } from './scripts/applicationTypesOverride.js';
+import { inlineMarkup } from './scripts/inlineMarkup.js';
 
 const here = (path) => fileURLToPath(new URL(path, import.meta.url));
 
@@ -30,6 +31,10 @@ export default defineConfig({
   // Null unless ONEXTAP_E2E_APPLICATION_TYPES is set: the e2e suites' way to
   // list every application type (scripts/applicationTypesOverride.js).
   define: applicationTypesDefine(process.env),
+  // The landing and company pages ship their markup in the HTML, not only
+  // in the script that used to mount it, so crawlers that do not run
+  // JavaScript still read the page (scripts/inlineMarkup.js).
+  plugins: [inlineMarkup({ webRoot: here('./web') })],
   resolve: {
     // The modules the dashboard shares with the popup and the server:
     // profile + resume stores, auth, credits, matching (src/, see

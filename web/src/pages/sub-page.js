@@ -15,7 +15,7 @@ import '../shared/styles/buttons.css';
 import './sub-page.css';
 
 import { gsap } from 'gsap';
-import { mountFeatures } from '../app/mount.js';
+import { mountFeatures, revealPage } from '../app/mount.js';
 import { prefersReducedMotion, registerMotion, initSmoothScroll } from '../shared/lib/motion.js';
 import { splitWords } from '../shared/lib/split-words.js';
 
@@ -75,6 +75,9 @@ export function bootSubPage(features) {
   navApi.onToggle(hold);
   login.initLogin({ signIn: signInAttempt }).onToggle(hold);
   wireHeader();
+  // Laid out: show it (the HTML shipped it hidden, scripts/inlineMarkup.js).
+  // The page's own script finishes in this same task, before any paint.
+  revealPage();
   return { hold: hold };
 }
 

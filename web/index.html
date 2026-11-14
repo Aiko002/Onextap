@@ -3,15 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Onextap — autofill job applications</title>
-<meta name="description" content="Browse roles on the job board, tap apply, and the extension fills in every field on every application for you.">
+<!-- Written for the search a job seeker makes: "find jobs" and "job board"
+     (what the site is to them) next to "autofill" and "application" (what
+     it does). It claims nothing the visible copy does not: "Browse roles on
+     our job board, tap apply, and the extension fills in every field". -->
+<title>Onextap — find jobs and autofill every application</title>
+<meta name="description" content="Browse roles on the Onextap job board, tap apply, and the extension fills in every field on every application for you. Autofill is free.">
 <!-- Self-referencing canonical. It earns its place here: the published
      extension opens this page with ?extensionId= (and ?view=), checkout
      returns with ?payment=, and Supabase sign-in arrives with ?code= — every
      one of those is the same page at a different URL. The title and
-     description are the WebPage node's name and description verbatim; keep
-     the three in step. -->
+     description are the WebPage node's name and description verbatim, and
+     og:title and og:description below; keep all of them in step. -->
 <link rel="canonical" href="https://www.onextap.com/">
+<!-- Link previews (LinkedIn, X, Slack, WhatsApp, iMessage …). X reads the
+     og: tags too, and needs only its card size. The image is web/public/og.png,
+     drawn from scripts/og-image.html by `npm run og:image`. Absolute URLs:
+     preview fetchers do not resolve relative ones. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Onextap">
+<meta property="og:locale" content="en_US">
+<meta property="og:url" content="https://www.onextap.com/">
+<meta property="og:title" content="Onextap — find jobs and autofill every application">
+<meta property="og:description" content="Browse roles on the Onextap job board, tap apply, and the extension fills in every field on every application for you. Autofill is free.">
+<meta property="og:image" content="https://www.onextap.com/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="&quot;We're hiring&quot;, struck through. Below it: But we can help you get hired. Onextap: find jobs and autofill every application.">
+<meta name="twitter:card" content="summary_large_image">
 <script>
   /* Links meant for the dashboard, from before it moved to /dashboard/: the
      published extension opens the site with ?extensionId= (and ?view=), a
@@ -51,6 +71,8 @@
   No aggregateRating or review: inventing either is a manual action, and the
   store listing's rating is not ours to restate. No softwareVersion either —
   it would be wrong between a release here and the store review.
+  operatingSystem names the browsers, as the copy does: an extension runs
+  wherever they run, and Google recommends the field for software.
 -->
 <script type="application/ld+json">
 {
@@ -78,6 +100,7 @@
       "name": "Onextap",
       "applicationCategory": "BrowserApplication",
       "browserRequirements": "Requires Chrome, Edge, Brave or Opera.",
+      "operatingSystem": "Chrome, Edge, Brave, Opera",
       "url": "https://www.onextap.com/",
       "installUrl": "https://chromewebstore.google.com/detail/fpleipjggoiolomkcnchnlelbjcnoklj",
       "description": "A browser extension that fills in every field of a job application from your profile and drafts the written answers in your own words. Works on Greenhouse, Lever, Workday, Ashby, iCIMS, Workable, SmartRecruiters and Taleo.",
@@ -118,8 +141,9 @@
       "@type": "WebPage",
       "@id": "https://www.onextap.com/#webpage",
       "url": "https://www.onextap.com/",
-      "name": "Onextap — autofill job applications",
-      "description": "Browse roles on the job board, tap apply, and the extension fills in every field on every application for you.",
+      "name": "Onextap — find jobs and autofill every application",
+      "description": "Browse roles on the Onextap job board, tap apply, and the extension fills in every field on every application for you. Autofill is free.",
+      "primaryImageOfPage": "https://www.onextap.com/og.png",
       "inLanguage": "en",
       "isPartOf": { "@id": "https://www.onextap.com/#website" },
       "about": { "@id": "https://www.onextap.com/#extension" }
@@ -131,7 +155,9 @@
 <body>
 
 <!-- Page skeleton. Each [data-mount] placeholder is replaced by that feature's
-     markup (src/features/<name>/<name>.html) — see src/app/mount.js. -->
+     markup (src/features/<name>/<name>.html) in the served HTML, by the build
+     and the dev server alike (scripts/inlineMarkup.js), so the page reads
+     without JavaScript; src/app/mount.js does it for anything left. -->
 <div data-mount="cursor"></div>
 <div data-mount="nav"></div>
 <div data-mount="hud"></div>

@@ -6,8 +6,9 @@
   Static on purpose: Vercel rewrites only /api/* to the Express app, so a
   server route at /sitemap.xml is never reached in production.
 
-  Not listed, and disallowed in robots.txt: /dashboard/ and its company pages,
-  /reset-password/. They are signed-in app pages with nothing to index.
+  Not listed, and marked noindex in their HTML: /dashboard/ and its company
+  pages, /reset-password/. They are signed-in app pages with nothing to index.
+  (robots.txt lets crawlers fetch them, or they could not read the noindex.)
 
   www is the canonical host (CLIENT_URL's default, server/app.js). Bump a
   <lastmod> when that page's copy changes; a date that is not true is worse
@@ -16,18 +17,18 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.onextap.com/</loc>
-    <lastmod>2026-10-21</lastmod>
+    <lastmod>2026-11-12</lastmod>
   </url>
   <url>
     <loc>https://www.onextap.com/about/</loc>
-    <lastmod>2026-10-21</lastmod>
+    <lastmod>2026-11-12</lastmod>
   </url>
   <url>
     <loc>https://www.onextap.com/contact/</loc>
-    <lastmod>2026-10-21</lastmod>
+    <lastmod>2026-11-12</lastmod>
   </url>
   <url>
     <loc>https://www.onextap.com/privacy/</loc>
-    <lastmod>2026-10-21</lastmod>
+    <lastmod>2026-11-12</lastmod>
   </url>
 </urlset>

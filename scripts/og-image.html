@@ -1,0 +1,81 @@
+<!doctype html>
+<!--
+  The site's link-preview image (og:image on every public page), drawn as a
+  page and photographed at 1200×630 by `npm run og:image`
+  (scripts/renderOgImage.js) into web/public/og.png. Edit here, re-run that,
+  and commit both.
+
+  It is the landing page's first screen in one frame: the hiring sign, struck
+  through, over the truth underneath. Faces and colours are the site's
+  (web/src/shared/styles/tokens.css, base.css, features/hero/hero.css).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+  :root{
+    --ink:#0C1710; --bone:#E9E4D4; --moss-line:#31432A;
+    --citrine:#C6DA43; --citrine-deep:#9FB52C;
+    --ash:#8C9585; --ash-deep:#5E6858;
+    --display:'Archivo','Archivo Narrow','Helvetica Neue',Arial,sans-serif;
+    --voice:'Instrument Serif',Georgia,'Times New Roman',serif;
+    --mono:'DM Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    --pad:64px;
+  }
+  html,body{margin:0}
+  body{width:1200px;height:630px;overflow:hidden;background:var(--bone);color:var(--ink)}
+  .display{
+    font-family:var(--display);font-weight:650;font-stretch:62%;
+    text-transform:uppercase;letter-spacing:-0.035em;line-height:0.84;margin:0;
+  }
+  .label{
+    font-family:var(--mono);font-size:17px;font-weight:500;
+    letter-spacing:0.08em;text-transform:uppercase;margin:0;
+  }
+
+  .sign{background:var(--ink);color:var(--bone);padding:38px var(--pad) 34px}
+  .sign__eyebrow{display:flex;gap:24px;align-items:center;color:var(--citrine)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--citrine);display:inline-block}
+  .sign__title{font-size:156px;margin-top:20px}
+  .sign__words{position:relative;display:inline-block}
+  .sign__strike{
+    position:absolute;left:-1.5%;top:52%;height:13px;width:103%;
+    background:var(--citrine);border-radius:2px;
+  }
+
+  .truth{padding:30px var(--pad) 0}
+  .truth__aside{
+    font-family:var(--voice);font-style:italic;font-weight:400;
+    font-size:40px;line-height:1;color:var(--ash-deep);margin:0;
+  }
+  .truth__title{font-size:112px;margin-top:14px}
+  .hit{color:var(--citrine-deep);white-space:nowrap}
+
+  .foot{
+    position:absolute;left:var(--pad);right:var(--pad);bottom:34px;
+    display:flex;justify-content:space-between;align-items:center;gap:24px;
+    color:var(--ash-deep);
+  }
+  .foot .rule{flex:1;height:1px;background:var(--ash-deep);opacity:0.35}
+  .foot strong{color:var(--ink);font-weight:500}
+</style>
+</head>
+<body>
+  <div class="sign">
+    <p class="label sign__eyebrow"><span class="dot"></span> Now hiring <span>All departments</span> <span>Remote friendly</span></p>
+    <p class="display sign__title"><span class="sign__words">We're hiring<span class="sign__strike"></span></span></p>
+  </div>
+  <div class="truth">
+    <p class="truth__aside">well… we are not.</p>
+    <p class="display truth__title">But we can help you <span class="hit">get hired</span>.</p>
+  </div>
+  <div class="foot label">
+    <span><strong>Onextap</strong> — find jobs, tap apply, every field filled in</span>
+    <span class="rule"></span>
+    <span>onextap.com</span>
+  </div>
+</body>
+</html>

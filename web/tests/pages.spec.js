@@ -181,7 +181,9 @@ test.describe('company pages', () => {
     await openPage(page, '/privacy/');
     await page.click('.back');
     await expect(page).toHaveURL(/\/$/);
-    await expect(page).toHaveTitle('Onextap');
+    // The landing page's title leads with the name ("Onextap — …"); the
+    // company pages' end with it. The rest is search copy, and changes.
+    await expect(page).toHaveTitle(/^Onextap — /);
   });
 
   test('between company pages, Back goes to the last one', async ({ page }) => {

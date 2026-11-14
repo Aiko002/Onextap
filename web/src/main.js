@@ -12,7 +12,7 @@ import './shared/styles/buttons.css';
 import './shared/styles/stage.css';
 
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { mountFeatures } from './app/mount.js';
+import { mountFeatures, revealPage } from './app/mount.js';
 import { createStage } from './app/stage.js';
 import { pageChapters } from './app/chapters.js';
 import { initArrival } from './app/arrival.js';
@@ -136,3 +136,6 @@ if (prefersReducedMotion) {
 // Sent here to sign in (the dashboard, for a visitor with no session): the
 // window opens once the page — and whatever holds it still — is set up.
 openOnArrival(loginApi);
+
+// Laid out: show it (the HTML shipped it hidden, scripts/inlineMarkup.js).
+revealPage();

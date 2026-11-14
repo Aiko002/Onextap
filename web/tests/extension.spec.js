@@ -263,13 +263,21 @@ test.describe('the extension, loaded', () => {
     await expect(rows).toHaveCount(2);
 
     // The rest is on the dashboard: its Cover Letter workspace, told which
-    // extension to sync back to.
-    const [dashboard] = await Promise.all([
-      context.waitForEvent('page'),
-      popup.getByRole('button', { name: 'Manage templates on the dashboard' }).click()
-    ]);
-    await dashboard.waitForLoadState();
-    const opened = new URL(dashboard.url());
+    // extension to sync back to. Read from the tab as the extension creates
+    // it, not from the page that ends up in it: the stand-in dashboard only
+    // answers when Playwright catches the new tab's first request, and a tab
+    // the extension opens can send it first. The real dashboard then loads,
+    // finds no sign-in on the website (only the extension has one here) and
+    // sends the tab to `/`, which says nothing about what the popup opened.
+    await serviceWorker.evaluate(() => {
+      globalThis.e2eOpenedTabs = [];
+      chrome.tabs.onCreated.addListener((tab) => globalThis.e2eOpenedTabs.push(tab.pendingUrl || tab.url));
+    });
+    await popup.getByRole('button', { name: 'Manage templates on the dashboard' }).click();
+    const openedTabs = () => serviceWorker.evaluate(() => globalThis.e2eOpenedTabs);
+    await expect.poll(openedTabs).toHaveLength(1);
+    const opened = new URL((await openedTabs())[0]);
+    expect(opened.origin).toBe(SITE);
     expect(opened.pathname).toBe('/dashboard/');
     expect(opened.searchParams.get('view')).toBe('cover');
     expect(opened.searchParams.get('extensionId')).toBe(extensionId);

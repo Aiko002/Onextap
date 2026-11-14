@@ -2,7 +2,7 @@ import { h, ico, fill, uid } from '../ui/dom.js';
 import { section, field, input, select, textarea, checkbox, button, iconButton, setBusy, spinner } from '../ui/controls.js';
 import { fileDrop } from '../ui/file-drop.js';
 import { profileSwitcher } from '../ui/switchers.js';
-import { COUNTRIES, GENDERS } from '../../../../extension/constants.js';
+import { COUNTRIES, DIAL_CODES, DIAL_CODE_HOMES, GENDERS } from '../../../../extension/constants.js';
 import {
   DEFAULT_PROFILE, RACES, VETERAN_STATUS,
   emptyCertificate, emptyCustomField, emptyEducation, emptyExperience,
@@ -196,24 +196,29 @@ export function mount(body, ctx) {
    * a number can be from elsewhere than where you live, so this changes the
    * code alone and never moves Country.
    *
-   * Closed it shows only the code ("+91 ▾"); open, the countries by name. The
-   * native select lies invisible over the code, so it keeps the keyboard and
-   * the phone's own picker. Options are keyed by country, since some share a
-   * code (+1); a stored code the list lacks is kept as an option of its own
-   * rather than lost on render.
+   * Closed it shows only the code ("+91 ▾"); open, every country by name, A
+   * to Z (DIAL_CODES, not the shorter Country list). The native select lies
+   * invisible over the code, so it keeps the keyboard and the phone's own
+   * picker. Options are keyed by country, since some share a code (+1): the
+   * one shown as chosen is the profile's Country if it has this code, else
+   * the code's home (DIAL_CODE_HOMES: +1 is the United States, not American
+   * Samoa). Only the code is saved. A stored code the list lacks is kept as
+   * an option of its own rather than lost on render.
    */
   function dialPicker() {
     const code = profile.countryCode || DEFAULT_PROFILE.countryCode;
-    const known = COUNTRIES.filter((c) => c.dial_code === code);
-    const current = (known.find((c) => c.name === profile.country) || known[0])?.name || '';
+    const known = DIAL_CODES.filter((c) => c.dial_code === code);
+    const current = (known.find((c) => c.name === profile.country)
+      || known.find((c) => c.code === DIAL_CODE_HOMES[code])
+      || known[0])?.name || '';
     const shown = h('span.f-dial-code', null, code);
-    const options = COUNTRIES.map((c) => ({ value: c.name, label: `${c.name} (${c.dial_code})` }));
+    const options = DIAL_CODES.map((c) => ({ value: c.name, label: `${c.name} (${c.dial_code})` }));
     if (!known.length) options.unshift({ value: '', label: code });
     const control = select(options, {
       value: current,
       'aria-label': 'Phone country code',
       onchange: (e) => {
-        const chosen = COUNTRIES.find((c) => c.name === e.target.value);
+        const chosen = DIAL_CODES.find((c) => c.name === e.target.value);
         if (!chosen) return;
         profile.countryCode = chosen.dial_code;
         shown.textContent = chosen.dial_code;

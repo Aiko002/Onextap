@@ -55,7 +55,7 @@ the Vercel project needs no change.
 │   ├── profileSync.js         # Files a dashboard profile into the extension's
 │   │                          #   profile store (pure; the worker writes it)
 │   ├── logger.js              # Service-worker logger (no window, no DOM)
-│   └── constants.js           # COUNTRIES / GENDERS option lists
+│   └── constants.js           # COUNTRIES / DIAL_CODES / GENDERS option lists
 ├── public/                    # Copied verbatim into the extension build
 │   ├── content.js             # Content script: autofill + page scraping,
 │   │                          #   injected on demand
@@ -235,7 +235,7 @@ The website (website build), through the @app alias (→ src/):
                                 profileDefaults,fabricationCorpus,coverLetterCredits,
                                 logger}.js
                      └──► @app/matching/index.js
-                     └──► extension/constants.js   (my-profiles.js: COUNTRIES, GENDERS)
+                     └──► extension/constants.js   (my-profiles.js: COUNTRIES, DIAL_CODES, GENDERS)
   web/dashboard/site/** ──► web/src/{features,shared,app,pages}/…   (the landing's own
                                                                      pieces, reused)
   web/src/app/backend.js ──► @app/config.js, @app/auth.js (loaded on first sign-in)
@@ -330,7 +330,8 @@ public/content.js         — standalone. Imports nothing at all.
 
 3. **`src/` and `web/` may import `extension/constants.js`, and only that.**
    `src/resumeToProfile.js` pulls `COUNTRIES`, and
-   `web/dashboard/js/ws/my-profiles.js` pulls `COUNTRIES` and `GENDERS`.
+   `web/dashboard/js/ws/my-profiles.js` pulls `COUNTRIES`, `DIAL_CODES` (with
+   `DIAL_CODE_HOMES`) and `GENDERS`.
    Adding a second file from `extension/` should be a conscious decision;
    anything with behavior belongs in `src/` instead.
 

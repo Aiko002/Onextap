@@ -5,6 +5,7 @@ import { test, expect } from '@playwright/test';
 import { stubAuth, stubApi } from './stubs.js';
 import { mergeParsedResumeIntoProfile } from '../../src/resumeToProfile.js';
 import { DEFAULT_PROFILE } from '../../src/profileDefaults.js';
+import { DIAL_CODES } from '../../extension/constants.js';
 
 // Signed in the way a reader is: through the sign-in window, here on Contact
 // (a plain page, quicker than the landing page's stage). Supabase's own client
@@ -236,6 +237,53 @@ test.describe('the dashboard: My Profiles', () => {
     await expect(code).toHaveText('+91');
     await expect(dial).toHaveValue('India');
     await expect(country).toHaveValue('Germany');
+  });
+
+  test('the dial codes are every country, A to Z; a shared code shows its home; Gender offers Transgender', async ({ page, isMobile }) => {
+    await stubAuth(page);
+    await stubApi(page);
+    await signIn(page, isMobile);
+    await page.goto('/dashboard/#/my-profiles');
+
+    const country = page.getByLabel('Country', { exact: true }).first();
+    const dial = page.getByLabel('Phone country code');
+    const code = page.locator('.f-dial-code');
+    const gender = page.getByLabel('Gender');
+    const save = async () => {
+      await page.getByRole('button', { name: 'Save changes' }).click();
+      await expect(page.locator('.savebar-status')).toHaveText('Saved on this device');
+    };
+    const stored = () => page.evaluate(() => {
+      const store = JSON.parse(localStorage.getItem('onextap_profiles'));
+      const { country, countryCode, gender } = store.profiles[store.activeProfileId].autofillData;
+      return { country, countryCode, gender };
+    });
+
+    // +1 is shared by 25: the United States unless Country says otherwise.
+    await expect(dial).toHaveValue('United States');
+    expect(await dial.locator('option').allTextContents()).toEqual(DIAL_CODES.map((c) => `${c.name} (${c.dial_code})`));
+    expect(await gender.locator('option').allTextContents()).toContain('Transgender');
+    await country.selectOption('Canada');
+    await expect(dial).toHaveValue('Canada');
+
+    // Only the code is saved, so after a reload +358 is Finland, its home,
+    // not the Åland Islands, which come first A to Z.
+    await dial.selectOption('Finland');
+    await expect(code).toHaveText('+358');
+    await save();
+    await page.reload();
+    await expect(dial).toHaveValue('Finland');
+
+    // A country the Country list lacks, and Transgender.
+    await dial.selectOption('Pakistan');
+    await gender.selectOption('Transgender');
+    await expect(code).toHaveText('+92');
+    await save();
+    expect(await stored()).toEqual({ country: 'Canada', countryCode: '+92', gender: 'Transgender' });
+    await page.reload();
+    await expect(dial).toHaveValue('Pakistan');
+    await expect(code).toHaveText('+92');
+    await expect(gender).toHaveValue('Transgender');
   });
 
   // What the resume says, and what the editor then shows and saves: the

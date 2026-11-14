@@ -90,6 +90,7 @@ const PHONE_FORM = `<!doctype html><title>Apply</title>
       <option value="+1">United States (+1)</option>
       <option value="+49">Germany (+49)</option>
       <option value="+91">India (+91)</option>
+      <option value="+92">Pakistan (+92)</option>
     </select>
     <label for="ph">Phone number</label><input id="ph" name="phone_number" type="tel">
     <label for="co">Country</label>
@@ -98,6 +99,13 @@ const PHONE_FORM = `<!doctype html><title>Apply</title>
       <option>United States</option>
       <option>Germany</option>
       <option>India</option>
+    </select>
+    <label for="gd">Gender</label>
+    <select id="gd" name="gender">
+      <option value="">Select…</option>
+      <option>Male</option>
+      <option>Female</option>
+      <option>Transgender</option>
     </select>
   </form>`;
 
@@ -168,6 +176,8 @@ test.describe('the extension, loaded', () => {
   // The dial code picked on My Profiles apart from Country is the one
   // autofill uses: in the form's code box, and as the code taken off the
   // number (stripDialCode in public/content.js). Country fills as Country.
+  // Pakistan is in the dial list but not the Country list; Transgender is
+  // Gender's newest option.
   test('a dial code picked apart from Country fills the code box, and the number without it', async ({ context, page, serviceWorker, extensionId }) => {
     await stubAuth(context);
     await stubApi(context);
@@ -177,13 +187,14 @@ test.describe('the extension, loaded', () => {
     await page.goto(`${SITE}/dashboard/?extensionId=${extensionId}&view=profiles`);
     await page.getByLabel('First name').fill('Ada');
     await page.getByLabel('Country', { exact: true }).first().selectOption('Germany');
-    await page.getByLabel('Phone country code').selectOption('India');
-    await page.getByLabel('Phone', { exact: true }).fill('+91 98765 43210');
+    await page.getByLabel('Phone country code').selectOption('Pakistan');
+    await page.getByLabel('Phone', { exact: true }).fill('+92 300 1234567');
+    await page.getByLabel('Gender').selectOption('Transgender');
     await page.getByRole('button', { name: 'Save changes' }).click();
     await expect(page.locator('.savebar-status')).toHaveText('Saved and synced to the extension');
 
     const stored = await extensionStorage(serviceWorker, ['onextap_profiles', 'user_profile']);
-    const phone = { country: 'Germany', countryCode: '+91', phone: '+91 98765 43210' };
+    const phone = { country: 'Germany', countryCode: '+92', phone: '+92 300 1234567', gender: 'Transgender' };
     expect(activeProfile(stored).autofillData).toMatchObject(phone);
     expect(stored.user_profile).toMatchObject(phone);
 
@@ -195,9 +206,10 @@ test.describe('the extension, loaded', () => {
     await form.bringToFront();
     await popup.getByRole('button', { name: 'Autofill Application' }).click();
     await expect(form.locator('#fn')).toHaveValue('Ada');
-    await expect(form.locator('#cc')).toHaveValue('+91');
-    await expect(form.locator('#ph')).toHaveValue('98765 43210');
+    await expect(form.locator('#cc')).toHaveValue('+92');
+    await expect(form.locator('#ph')).toHaveValue('300 1234567');
     await expect(form.locator('#co')).toHaveValue('Germany');
+    await expect(form.locator('#gd')).toHaveValue('Transgender');
   });
 
   // The popup's Cover tab only reads (completion plan D6): templates and their

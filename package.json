@@ -16,8 +16,7 @@
     "evals": "node --test \"test/evals/**/*.test.js\"",
     "lint": "eslint .",
     "test:e2e": "playwright test --config web/playwright.config.js",
-    "test:e2e:extension": "playwright test --config web/playwright.extension.config.js",
-    "og:image": "node scripts/renderOgImage.js"
+    "test:e2e:extension": "playwright test --config web/playwright.extension.config.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",

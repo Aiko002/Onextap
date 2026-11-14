@@ -163,7 +163,6 @@ export function mount(body, ctx) {
   }
 
   function buildBasic() {
-    const dial = h('span.f-addon', { 'aria-hidden': 'true' }, profile.countryCode || '+1');
     const phoneId = uid('phone');
     return section({ num: 2, label: 'Basic info', title: 'Who you are' },
       h('div.fgrid', null,
@@ -179,10 +178,10 @@ export function mount(body, ctx) {
           }),
         }),
         field({
-          label: `Phone (${profile.countryCode || '+1'})`,
+          label: 'Phone',
           span: 3,
           labelFor: phoneId,
-          control: h('div.f-group', null, dial, text(() => profile.phone, (v) => { profile.phone = v; }, { type: 'tel', autocomplete: 'tel-national', id: phoneId })),
+          control: h('div.f-group', null, dialPicker(), text(() => profile.phone, (v) => { profile.phone = v; }, { type: 'tel', autocomplete: 'tel-national', id: phoneId })),
         }),
         field({ label: 'Birth date', span: 3, control: text(() => profile.birthDate, (v) => { profile.birthDate = v; }, { type: 'date' }) }),
         field({
@@ -190,6 +189,38 @@ export function mount(body, ctx) {
           span: 3,
           control: pick([{ value: '', label: 'Select…' }, ...GENDERS.map((g) => ({ value: g, label: g }))], () => profile.gender, (v) => { profile.gender = v; }),
         })));
+  }
+
+  /**
+   * The phone's dial code, its own choice. Country sets it (onCountry), but
+   * a number can be from elsewhere than where you live, so this changes the
+   * code alone and never moves Country.
+   *
+   * Closed it shows only the code ("+91 ▾"); open, the countries by name. The
+   * native select lies invisible over the code, so it keeps the keyboard and
+   * the phone's own picker. Options are keyed by country, since some share a
+   * code (+1); a stored code the list lacks is kept as an option of its own
+   * rather than lost on render.
+   */
+  function dialPicker() {
+    const code = profile.countryCode || DEFAULT_PROFILE.countryCode;
+    const known = COUNTRIES.filter((c) => c.dial_code === code);
+    const current = (known.find((c) => c.name === profile.country) || known[0])?.name || '';
+    const shown = h('span.f-dial-code', null, code);
+    const options = COUNTRIES.map((c) => ({ value: c.name, label: `${c.name} (${c.dial_code})` }));
+    if (!known.length) options.unshift({ value: '', label: code });
+    const control = select(options, {
+      value: current,
+      'aria-label': 'Phone country code',
+      onchange: (e) => {
+        const chosen = COUNTRIES.find((c) => c.name === e.target.value);
+        if (!chosen) return;
+        profile.countryCode = chosen.dial_code;
+        shown.textContent = chosen.dial_code;
+        touch();
+      },
+    });
+    return h('span.f-addon.f-dial', null, shown, ico('chevron', 14), control);
   }
 
   /**

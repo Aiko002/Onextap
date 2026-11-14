@@ -149,6 +149,31 @@ input[type="date"].f-in { min-height: 41px; }
   font-family: var(--mono);
   font-size: 13px;
 }
+/* The dial-code picker: an addon that shows the code, with the real select
+   laid invisibly over it (my-profiles.js, dialPicker). */
+.f-dial {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 9px 0 12px;
+  cursor: pointer;
+}
+.f-dial .icon { color: var(--ash-deep); }
+.f-dial select.f-in {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.f-dial:hover { border-color: color-mix(in srgb, var(--ink) 28%, var(--bone-line)); }
+.f-dial:focus-within {
+  z-index: 1;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(198,218,67,.5);
+}
 .f-check { align-content: end; padding-bottom: 9px; }
 .check { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; cursor: pointer; }
 .check input { width: 16px; height: 16px; margin: 0; accent-color: var(--ink); cursor: pointer; }

@@ -86,7 +86,8 @@ Multiple named profiles, each with its own autofill data, saved answers and
 cover letters. One is active at a time; the active profile is what fills
 forms and what the AI reads for context.
 
-Per profile: personal details, address, phone with country dial code, up to
+Per profile: personal details, address, phone with country dial code (Country
+sets it; the user can pick another for the number alone), up to
 three URLs (LinkedIn / GitHub / Portfolio), education, experience,
 certificates, skills, current job, salary and notice period, and optional
 demographic fields (race, ethnicity, veteran status, disability, gender).

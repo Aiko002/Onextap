@@ -3,6 +3,8 @@
 // (tests/stubs.js). Nothing here reaches a real project or a real model.
 import { test, expect } from '@playwright/test';
 import { stubAuth, stubApi } from './stubs.js';
+import { mergeParsedResumeIntoProfile } from '../../src/resumeToProfile.js';
+import { DEFAULT_PROFILE } from '../../src/profileDefaults.js';
 
 // Signed in the way a reader is: through the sign-in window, here on Contact
 // (a plain page, quicker than the landing page's stage). Supabase's own client
@@ -180,5 +182,122 @@ test.describe('the dashboard: Answer Studio and credits', () => {
     expect(generateCalls()[1].body.allowanceId).toMatch(/^[0-9a-f-]{36}$/);
     expect(api.state.credits).toBe(0);
     await expect(page.getByText('Free improvements on this answer: 1')).toBeVisible();
+  });
+});
+
+// The phone's dial code is its own choice: Country sets it, but a number can
+// be from somewhere other than where you live, so picking a code leaves
+// Country alone (dialPicker in ws/my-profiles.js).
+//
+// A resume upload fills the same two fields, through
+// mergeParsedResumeIntoProfile (src/resumeToProfile.js); the picker only
+// shows what that merge produced, so what is saved is exactly its output.
+const savedPhone = (page) => page.evaluate(() => {
+  const store = JSON.parse(localStorage.getItem('onextap_profiles'));
+  const { country, countryCode, phone, address } = store.profiles[store.activeProfileId].autofillData;
+  return { country, countryCode, phone, addressCountry: address?.country };
+});
+const phoneFields = ({ country, countryCode, phone, address }) => ({ country, countryCode, phone, addressCountry: address?.country });
+
+// POST /api/parse-resume answering with `data` as the parser's fields, and a
+// PDF dropped on the upload (the client checks only its type and size).
+async function uploadResume(page, data) {
+  await page.route('**/api/parse-resume', (route) => route.fulfill({ json: { data, text: 'An e2e resume.' } }));
+  await page.getByRole('region', { name: 'Start from a resume' }).locator('input[type="file"]').setInputFiles({ name: 'cv.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 e2e') });
+  await expect(page.getByText('Resume read — review the fields, then save.')).toBeVisible();
+}
+
+test.describe('the dashboard: My Profiles', () => {
+  test('the phone’s dial code can be picked apart from Country, and is saved', async ({ page, isMobile }) => {
+    await stubAuth(page);
+    await stubApi(page);
+    await signIn(page, isMobile);
+    await page.goto('/dashboard/#/my-profiles');
+
+    const country = page.getByLabel('Country', { exact: true }).first();
+    const dial = page.getByLabel('Phone country code');
+    const code = page.locator('.f-dial-code');
+    await expect(country).toHaveValue('United States');
+    await expect(code).toHaveText('+1');
+
+    await country.selectOption('Germany');
+    await expect(code).toHaveText('+49');
+
+    await dial.selectOption('India');
+    await expect(code).toHaveText('+91');
+    await expect(country).toHaveValue('Germany');
+    await page.getByLabel('Phone', { exact: true }).fill('98765 43210');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.locator('.savebar-status')).toHaveText('Saved on this device');
+
+    expect(await savedPhone(page)).toEqual({ country: 'Germany', countryCode: '+91', phone: '98765 43210', addressCountry: 'Germany' });
+
+    await page.reload();
+    await expect(code).toHaveText('+91');
+    await expect(dial).toHaveValue('India');
+    await expect(country).toHaveValue('Germany');
+  });
+
+  // What the resume says, and what the editor then shows and saves: the
+  // number's own code wins the dial code, and moves Country only when the
+  // resume names none.
+  const RESUMES = [
+    {
+      title: 'a +91 number with an address in Germany: the code is India’s, Country stays Germany',
+      parsed: { phone: '+91 98765 43210', address: { country: 'Germany' } },
+      shown: { country: 'Germany', dial: 'India', code: '+91', phone: '98765 43210' },
+    },
+    {
+      title: 'a +44 number and no country: Country follows the code',
+      parsed: { phone: '+44 20 7946 0958' },
+      shown: { country: 'United Kingdom', dial: 'United Kingdom', code: '+44', phone: '20 7946 0958' },
+    },
+    {
+      title: 'a number with no code: the address country’s code',
+      parsed: { phone: '98765 43210', address: { country: 'India' } },
+      shown: { country: 'India', dial: 'India', code: '+91', phone: '98765 43210' },
+    },
+  ];
+  for (const { title, parsed, shown } of RESUMES) {
+    test(`resume upload, ${title}`, async ({ page, isMobile }) => {
+      await stubAuth(page);
+      await stubApi(page);
+      await signIn(page, isMobile);
+      await page.goto('/dashboard/#/my-profiles');
+      await expect(page.locator('.f-dial-code')).toHaveText('+1');
+
+      await uploadResume(page, parsed);
+      await expect(page.getByLabel('Country', { exact: true }).first()).toHaveValue(shown.country);
+      await expect(page.getByLabel('Phone country code')).toHaveValue(shown.dial);
+      await expect(page.locator('.f-dial-code')).toHaveText(shown.code);
+      await expect(page.getByLabel('Phone', { exact: true })).toHaveValue(shown.phone);
+
+      await page.getByRole('button', { name: 'Save changes' }).click();
+      await expect(page.locator('.savebar-status')).toHaveText('Saved on this device');
+      const saved = await savedPhone(page);
+      expect(saved).toMatchObject({ country: shown.country, countryCode: shown.code, phone: shown.phone });
+      // The editor starts from the default profile, hydrated by the same merge.
+      expect(saved).toEqual(phoneFields(mergeParsedResumeIntoProfile(mergeParsedResumeIntoProfile(DEFAULT_PROFILE, {}), parsed)));
+    });
+  }
+
+  test('a code picked by hand survives a resume whose number names none', async ({ page, isMobile }) => {
+    await stubAuth(page);
+    await stubApi(page);
+    await signIn(page, isMobile);
+    await page.goto('/dashboard/#/my-profiles');
+
+    await page.getByLabel('Phone country code').selectOption('India');
+    const parsed = { phone: '555 0100' };
+    await uploadResume(page, parsed);
+    await expect(page.getByLabel('Country', { exact: true }).first()).toHaveValue('United States');
+    await expect(page.locator('.f-dial-code')).toHaveText('+91');
+    await expect(page.getByLabel('Phone', { exact: true })).toHaveValue('555 0100');
+
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.locator('.savebar-status')).toHaveText('Saved on this device');
+    const picked = { ...mergeParsedResumeIntoProfile(DEFAULT_PROFILE, {}), countryCode: '+91' };
+    expect(await savedPhone(page)).toEqual(phoneFields(mergeParsedResumeIntoProfile(picked, parsed)));
+    expect(await savedPhone(page)).toMatchObject({ country: 'United States', countryCode: '+91', phone: '555 0100' });
   });
 });

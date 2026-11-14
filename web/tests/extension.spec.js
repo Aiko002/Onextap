@@ -79,6 +79,28 @@ const FORM = `<!doctype html><title>Apply</title>
     <label for="cl">Cover letter</label><textarea id="cl" name="cover_letter"></textarea>
   </form>`;
 
+// A form asking for the phone in two parts, and the country apart.
+const PHONE_FORM_URL = `${SITE}/e2e-apply-phone/`;
+const PHONE_FORM = `<!doctype html><title>Apply</title>
+  <form>
+    <label for="fn">First name</label><input id="fn" name="first_name">
+    <label for="cc">Phone country code</label>
+    <select id="cc" name="phone_country_code">
+      <option value="">Select…</option>
+      <option value="+1">United States (+1)</option>
+      <option value="+49">Germany (+49)</option>
+      <option value="+91">India (+91)</option>
+    </select>
+    <label for="ph">Phone number</label><input id="ph" name="phone_number" type="tel">
+    <label for="co">Country</label>
+    <select id="co" name="country">
+      <option value="">Select…</option>
+      <option>United States</option>
+      <option>Germany</option>
+      <option>India</option>
+    </select>
+  </form>`;
+
 // A template with two versions saved from it on the dashboard, the older first.
 const LETTERS = [{
   id: 'cl-1',
@@ -141,6 +163,41 @@ test.describe('the extension, loaded', () => {
     await expect(form.locator('#fn')).toHaveValue('Augusta');
     await expect(form.locator('#ln')).toHaveValue('Lovelace');
     await expect(form.locator('#em')).toHaveValue('ada@example.com');
+  });
+
+  // The dial code picked on My Profiles apart from Country is the one
+  // autofill uses: in the form's code box, and as the code taken off the
+  // number (stripDialCode in public/content.js). Country fills as Country.
+  test('a dial code picked apart from Country fills the code box, and the number without it', async ({ context, page, serviceWorker, extensionId }) => {
+    await stubAuth(context);
+    await stubApi(context);
+    await context.route(PHONE_FORM_URL, (route) => route.fulfill({ contentType: 'text/html', body: PHONE_FORM }));
+    await signIn(page);
+
+    await page.goto(`${SITE}/dashboard/?extensionId=${extensionId}&view=profiles`);
+    await page.getByLabel('First name').fill('Ada');
+    await page.getByLabel('Country', { exact: true }).first().selectOption('Germany');
+    await page.getByLabel('Phone country code').selectOption('India');
+    await page.getByLabel('Phone', { exact: true }).fill('+91 98765 43210');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.locator('.savebar-status')).toHaveText('Saved and synced to the extension');
+
+    const stored = await extensionStorage(serviceWorker, ['onextap_profiles', 'user_profile']);
+    const phone = { country: 'Germany', countryCode: '+91', phone: '+91 98765 43210' };
+    expect(activeProfile(stored).autofillData).toMatchObject(phone);
+    expect(stored.user_profile).toMatchObject(phone);
+
+    const popup = await context.newPage();
+    await popup.goto(`chrome-extension://${extensionId}/index.html`);
+    await expect(popup.getByRole('button', { name: 'Autofill Application' })).toBeVisible();
+    const form = await context.newPage();
+    await form.goto(PHONE_FORM_URL);
+    await form.bringToFront();
+    await popup.getByRole('button', { name: 'Autofill Application' }).click();
+    await expect(form.locator('#fn')).toHaveValue('Ada');
+    await expect(form.locator('#cc')).toHaveValue('+91');
+    await expect(form.locator('#ph')).toHaveValue('98765 43210');
+    await expect(form.locator('#co')).toHaveValue('Germany');
   });
 
   // The popup's Cover tab only reads (completion plan D6): templates and their

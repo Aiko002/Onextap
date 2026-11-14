@@ -166,6 +166,65 @@ test('a recognised country drives the dial code', () => {
   assert.equal(next.address.country, 'India');
 });
 
+test('a dial code written on the number is split into its own box', () => {
+  const next = mergeParsedResumeIntoProfile(blank(), { phone: '+91 98765 43210' });
+  assert.equal(next.phone, '98765 43210');
+  assert.equal(next.countryCode, '+91');
+  assert.equal(next.country, 'India', 'no address country stated, so the number decides');
+  assert.equal(next.address.country, 'India');
+});
+
+test('every way a resume writes the dial code is split the same', () => {
+  const cases = [
+    ['+919876543210', '+91', '9876543210'],
+    ['(+91) 98765-43210', '+91', '98765-43210'],
+    ['0091 98765 43210', '+91', '98765 43210'],
+    ['+44 7700 900123', '+44', '7700 900123'],
+    ['+971 50 123 4567', '+971', '50 123 4567'],
+    ['+1 (510) 555-0147', '+1', '(510) 555-0147'],
+  ];
+  for (const [phone, dial, national] of cases) {
+    const next = mergeParsedResumeIntoProfile(blank(), { phone });
+    assert.deepEqual([next.countryCode, next.phone], [dial, national], phone);
+  }
+});
+
+test('a bare dial code is split only when the country is already known', () => {
+  const india = mergeParsedResumeIntoProfile(blank(), { phone: '91 98765 43210', address: { country: 'India' } });
+  assert.deepEqual([india.countryCode, india.phone], ['+91', '98765 43210']);
+
+  // A local number that merely starts with the digits keeps them.
+  const local = mergeParsedResumeIntoProfile(blank(), { phone: '9198765432', address: { country: 'India' } });
+  assert.equal(local.phone, '9198765432');
+});
+
+test('a number without a code, or with one the picker lacks, is left whole', () => {
+  assert.equal(mergeParsedResumeIntoProfile(blank(), PARSED).phone, '(510) 555-0147');
+  const unknown = mergeParsedResumeIntoProfile(blank(), { phone: '+880 1712 345678' });
+  assert.equal(unknown.phone, '+880 1712 345678');
+  assert.equal(unknown.countryCode, DEFAULT_PROFILE.countryCode);
+});
+
+test('the number sets the dial code but a stated address country keeps Country', () => {
+  const next = mergeParsedResumeIntoProfile(blank(), {
+    phone: '+91 98765 43210',
+    address: { country: 'Germany' },
+  });
+  assert.equal(next.countryCode, '+91');
+  assert.equal(next.country, 'Germany');
+  assert.equal(next.address.country, 'Germany');
+});
+
+test('+1 keeps Canada for a Canadian profile instead of switching to the US', () => {
+  const prev = blank();
+  prev.country = 'Canada';
+  prev.countryCode = '+1';
+  prev.address.country = 'Canada';
+  const next = mergeParsedResumeIntoProfile(prev, { phone: '+1 416 555 0199' });
+  assert.equal(next.country, 'Canada');
+  assert.equal(next.phone, '416 555 0199');
+});
+
 test('a parsed value does win over an existing one', () => {
   const prev = blank();
   prev.email = 'old@example.com';

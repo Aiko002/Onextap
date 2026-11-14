@@ -90,8 +90,9 @@ for (const [label, setUp] of surfaces) {
     assert.match(result.sourceHash, /^[0-9a-f]{64}$/);
 
     if (sent) assert.deepEqual(sent, [], 'nothing goes to the extension');
-    assert.deepEqual(fetches.map((f) => f.url), [`${API}/api/me`, `${API}/api/parse-resume`]);
-    const { init } = fetches[1];
+    // One request: no /api/me preflight, the parse route checks the session.
+    assert.deepEqual(fetches.map((f) => f.url), [`${API}/api/parse-resume`]);
+    const { init } = fetches[0];
     assert.equal(init.method, 'POST');
     assert.equal(init.headers.Authorization, 'Bearer jwt-test');
     assert.deepEqual(JSON.parse(init.body), {
@@ -116,6 +117,15 @@ test('a refusal from the server is a parse-failed result, in its words', { skip 
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'parse-failed');
   assert.equal(result.error.message, 'Could not read that file. [debug: {"status":422}]');
+});
+
+test('a rejected session is a session-rejected result', { skip }, async () => {
+  mock.method(console, 'error', () => {});
+  parseReply = () => Response.json({ error: 'Invalid token' }, { status: 401 });
+  const result = await parseResumeFile(pdf());
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'session-rejected');
+  assert.match(result.error.message, /Invalid token.*sign in again/);
 });
 
 test('signed out: no request at all', { skip }, async () => {

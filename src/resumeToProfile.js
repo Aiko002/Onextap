@@ -94,6 +94,54 @@ function firstNonEmpty(...values) {
 }
 
 /**
+ * A resume phone number split into its dial code and the rest.
+ *
+ * The parser copies the number as the CV printed it, so "+91 98765 43210"
+ * used to land whole in the Phone box with the dial-code box still saying
+ * "+1". Only a code that can be proven is split off:
+ *
+ * - written as "+91" or "0091" (optionally in brackets), matched against the
+ *   dial codes the picker offers, longest first so "+971" is never read as
+ *   "+97" plus a stray 1;
+ * - or the bare digits of `knownDial` (the code we already believe in)
+ *   followed by a separator, the same rule `stripDialCode` in
+ *   public/content.js uses, so a local number that merely starts with 91
+ *   keeps its digits.
+ *
+ * @param {string} phone As parsed.
+ * @param {string} [knownDial] E.g. "+91", from the address or the profile.
+ * @returns {{ dial: string, national: string }|null} null when no code was
+ *   proven, or nothing would be left after removing it.
+ */
+export function splitDialCode(phone, knownDial) {
+  const raw = str(phone);
+  if (!raw) return null;
+  const dials = [...new Set(COUNTRIES.map((c) => c.dial_code))]
+    .sort((a, b) => b.length - a.length);
+
+  const explicit = raw.match(/^\(?\s*(?:\+|00)\s*(\d+)/);
+  if (explicit) {
+    const run = explicit[1];
+    const dial = dials.find((d) => run.startsWith(d.slice(1)));
+    if (!dial) return null;
+    const rest = raw
+      .replace(new RegExp(`^\\(?\\s*(?:\\+|00)\\s*${dial.slice(1)}`), '')
+      // A ")" closing "(+91)", then separators, but never the "(" that opens
+      // an area code: "+1 (510) 555-0147" keeps "(510)".
+      .replace(/^\)?[\s.-]*/, '')
+      .trim();
+    return rest.replace(/\D/g, '').length >= 4 ? { dial, national: rest } : null;
+  }
+
+  const digits = String(knownDial || '').replace(/\D/g, '');
+  if (!digits) return null;
+  const bare = raw.match(new RegExp(`^${digits}(?=[\\s().-])\\)?[\\s.-]*`));
+  if (!bare) return null;
+  const rest = raw.slice(bare[0].length).trim();
+  return rest.replace(/\D/g, '').length >= 6 ? { dial: `+${digits}`, national: rest } : null;
+}
+
+/**
  * The four-digit year inside a date the resume wrote however it liked —
  * "June 2019", "2019-06", "06/2019" all yield "2019".
  *
@@ -536,6 +584,31 @@ export function mergeParsedResumeIntoProfile(prev, parsed) {
     next.country = matched.name;
     next.countryCode = matched.dial_code;
     next.address = { ...next.address, country: matched.name };
+  }
+
+  // Phone dial code, split off the number the parser copied verbatim. Runs
+  // only on a number the resume itself stated, so rehydrating a stored
+  // profile (parsed = {}) never touches it.
+  //
+  // The number's own "+91" is the strongest evidence of its dial code, so it
+  // sets `countryCode` even when the address names another country. It moves
+  // the top-level Country too, but only when the resume did not name one: an
+  // address in Germany with a +91 mobile keeps Germany. The address country
+  // follows the top-level one under the same rule as the editor's picker:
+  // only while it is blank or still equal to it.
+  const parsedPhone = firstNonEmpty(p.phone, p.phoneNumber, p.mobile);
+  const split = parsedPhone && splitDialCode(parsedPhone, matched ? matched.dial_code : base.countryCode);
+  if (split) {
+    next.phone = split.national;
+    next.countryCode = split.dial;
+    if (!matched) {
+      const keep = COUNTRIES.find((c) => c.name === base.country && c.dial_code === split.dial);
+      const country = keep || COUNTRIES.find((c) => c.dial_code === split.dial);
+      const addr = asObject(next.address);
+      const following = !addr.country || addr.country === base.country;
+      next.country = country.name;
+      if (following) next.address = { ...addr, country: country.name };
+    }
   }
 
   // Never parsed, never touched: the editor owns these and a resume upload

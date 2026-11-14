@@ -82,7 +82,7 @@ None of the four can import from another (the one exception:
 | Server | Express 4 (ESM) | Node 18+ (no `engines` field declared) |
 | Auth + DB | Supabase (Postgres, GoTrue, RLS) | `@supabase/supabase-js` ^2.95.3 |
 | Answer AI | Groq — `llama-3.3-70b-versatile`, falls back to `llama-3.1-8b-instant` | `groq-sdk` ^0.15.0 |
-| Resume AI | Google Gemini — `gemini-2.5-flash`, falls back to `gemini-2.5-pro` | Raw `fetch` against `v1beta` |
+| Resume AI | Text PDFs: text read by `unpdf` 1.9.1, fields from Groq (`GROQ_MODEL`). Scans, photos and Groq failures: Google Gemini, the `GEMINI_PARSE_MODELS` chain in `server/lib/gemini.js` | Raw `fetch` against `v1beta` (`GEMINI_BASE_URL` overrides the host, for the test harness) |
 | Payments | Dodo Payments + `standardwebhooks` | **Version drift:** root `^0.18.0`, server `^2.36.0` |
 | Hosting | Vercel (dashboard + API), Chrome Web Store (extension) | |
 
@@ -143,7 +143,7 @@ verified by `requireAuth` calling `supabaseAdmin.auth.getUser(token)`.
 | POST | `/api/credits/refund` | — | `{ success, remaining }` |
 | GET | `/api/verify-premium` | — | `{ isPremium, premiumSince?, subscriptionStatus? }` or `{ isPremium: false, reason }` |
 | POST | `/api/answer-vault/generate` | `{ question, draft, jobContext, vaultAnswers[], profileContext?, taskHint, styleHint, model, applicationType? }` | `{ text, answer, model, provider: 'groq', finishReason? }` |
-| POST | `/api/parse-resume` | `{ fileData (base64), fileName, fileType }` | `{ data: <structured profile> }` |
+| POST | `/api/parse-resume` | `{ fileData (base64), fileName, fileType }` | `{ data: <structured profile>, text: <transcription> }` |
 | POST | `/api/create-checkout-session` | — | `{ url, sessionId }` |
 | POST | `/api/cancel-subscription` | — | `{ success }` |
 | POST | `/api/webhook` | raw Dodo event | `{ received: true }` |

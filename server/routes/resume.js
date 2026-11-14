@@ -1,5 +1,7 @@
 /**
- * Resume parsing: POST /api/parse-resume, through Gemini. Prompt text is in
+ * Resume parsing: POST /api/parse-resume. A PDF with a text layer is read on
+ * the server and its fields come from Groq; scans, photos, and any text PDF
+ * Groq fails on go to Gemini, which reads the file itself. Prompt text is in
  * server/prompts/resumeParse.js; the larger JSON body limit for this path is
  * mounted in server/app.js.
  */
@@ -8,10 +10,14 @@ import { requireAuth } from '../supabase.js';
 import { log } from '../logger.js';
 import { parseJsonLenient } from '../llmJson.js';
 import { callGemini } from '../lib/gemini.js';
+import { extractPdfText, hasTextLayer } from '../lib/pdfText.js';
+import { getGroq, GROQ_ANSWER_MODEL, groqAssistantMessageText } from '../groqClient.js';
 import {
   RESUME_PARSE_SYSTEM_INSTRUCTION,
+  RESUME_TEXT_SYSTEM_INSTRUCTION,
   resumeParsePrompt,
   resumeRepairPrompt,
+  resumeTextPrompt,
 } from '../prompts/resumeParse.js';
 
 const router = express.Router();
@@ -49,6 +55,50 @@ function base64ByteLength(value) {
   return Math.max(0, Math.floor((value.length * 3) / 4) - padding);
 }
 
+/**
+ * The resume's fields, from its extracted text, by Groq.
+ *
+ * Returns null on any failure (provider error, timeout, unparseable or empty
+ * answer) so the route falls back to Gemini reading the file itself. The
+ * resume text is never logged: only the error's class and status.
+ *
+ * @param {string} fileName
+ * @param {string} text
+ * @returns {Promise<object|null>}
+ */
+async function fieldsFromText(fileName, text) {
+  try {
+    const completion = await getGroq().chat.completions.create({
+      model: GROQ_ANSWER_MODEL,
+      messages: [
+        { role: 'system', content: RESUME_TEXT_SYSTEM_INSTRUCTION },
+        { role: 'user', content: resumeTextPrompt(fileName, text) },
+      ],
+      temperature: 0.1,
+      max_tokens: 4096,
+      response_format: { type: 'json_object' },
+    });
+    const choice = completion?.choices?.[0];
+    if (choice?.finish_reason === 'length') throw new Error('truncated');
+    const data = parseJsonLenient(groqAssistantMessageText(choice?.message));
+    // An object with nothing a resume states is a failed read, not an empty
+    // resume: the text layer passed the threshold, so something is in it.
+    const found = data && typeof data === 'object' && !Array.isArray(data)
+      && ['firstName', 'lastName', 'email', 'experience', 'education', 'skills']
+        .some((k) => (Array.isArray(data[k]) ? data[k].length : data[k]));
+    if (!found) throw new Error('no fields');
+    delete data.__rawText;
+    return data;
+  } catch (error) {
+    log.warn('resume text path failed; falling back to gemini', {
+      errName: error?.name,
+      reason: error?.message === 'truncated' || error?.message === 'no fields' ? error.message : undefined,
+      status: error?.status,
+    });
+    return null;
+  }
+}
+
 router.post('/api/parse-resume', requireAuth, async (req, res) => {
   try {
     const { fileData, fileName, fileType } = req.body || {};
@@ -78,6 +128,27 @@ router.post('/api/parse-resume', requireAuth, async (req, res) => {
         error: `Unsupported resume file type (${mimeType}). Please upload PDF or image files.`,
       });
     }
+    const startedAt = Date.now();
+
+    // ═══ TEXT PDFS: READ HERE, FIELDS FROM GROQ ═══
+    //
+    // An exported CV carries its text, so it is read on the server in
+    // milliseconds and only the fields are asked of a model: Groq, which
+    // writes far faster than Gemini, and which no longer has to type out
+    // the transcription because we already have it. A scan or photo has no
+    // text layer and goes to Gemini below, as everything used to. So does a
+    // text PDF whenever Groq fails, which costs time, never the upload.
+    if (mimeType === 'application/pdf') {
+      const pdfText = await extractPdfText(Buffer.from(fileData, 'base64'));
+      if (hasTextLayer(pdfText)) {
+        const data = await fieldsFromText(fileName, pdfText);
+        if (data) {
+          log.info('resume parsed', { via: 'text', ms: Date.now() - startedAt, chars: pdfText.length });
+          return res.json({ data, text: pdfText });
+        }
+      }
+    }
+
     const prompt = resumeParsePrompt(fileName);
 
     const { text: raw } = await callGemini({
@@ -90,6 +161,10 @@ router.post('/api/parse-resume', requireAuth, async (req, res) => {
       // returns a short response.
       maxTokens: 8192,
       temperature: 0.1,
+      // JSON mode: without it the model sometimes fenced or prefixed the
+      // object, and the repair call below then re-sent the whole answer,
+      // doubling the wait on the uploads that were already the slowest.
+      json: true,
       inlineData: {
         mimeType,
         data: fileData,
@@ -107,6 +182,7 @@ router.post('/api/parse-resume', requireAuth, async (req, res) => {
         prompt: repairPrompt,
         maxTokens: 8192,
         temperature: 0,
+        json: true,
       });
 
       data = parseJsonLenient(repairedRaw);
@@ -134,6 +210,7 @@ router.post('/api/parse-resume', requireAuth, async (req, res) => {
       delete data.__rawText;
     }
 
+    log.info('resume parsed', { via: 'vision', ms: Date.now() - startedAt, mimeType });
     return res.json({ data, text });
   } catch (error) {
     log.error('POST /api/parse-resume error:', error?.message || error);

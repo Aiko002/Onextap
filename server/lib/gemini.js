@@ -14,6 +14,13 @@ import { shouldTryFallbackModel } from '../groqClient.js';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 /**
+ * Google's endpoint unless overridden. The override exists for the test
+ * harness, which serves a fake Gemini on loopback, as it does for Groq
+ * (whose SDK reads GROQ_BASE_URL itself).
+ */
+const GEMINI_BASE_URL = (process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
+
+/**
  * Parse a comma-separated model list from the environment.
  *
  * Shared by the two Gemini chains (resume parsing here, ranking further down)
@@ -124,7 +131,13 @@ function thinkingConfigForGeminiModel(modelId) {
   return undefined;
 }
 
-export async function callGemini({ prompt, systemInstruction, maxTokens = 1024, temperature = 0.4, inlineData, models, timeoutMs = 90000 }) {
+/**
+ * @param {object} args
+ * @param {boolean} [args.json] Sets `responseMimeType: application/json`, so
+ *   the model cannot wrap the object in fences or prose. That wrapping is what
+ *   sent resume parsing through a second, full-length repair call.
+ */
+export async function callGemini({ prompt, systemInstruction, maxTokens = 1024, temperature = 0.4, inlineData, models, timeoutMs = 90000, json = false }) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('Server missing GEMINI_API_KEY');
   const userParts = [{ text: prompt }];
@@ -145,10 +158,11 @@ export async function callGemini({ prompt, systemInstruction, maxTokens = 1024, 
 
   for (let i = 0; i < modelCandidates.length; i += 1) {
     const model = modelCandidates[i];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const url = `${GEMINI_BASE_URL}/v1beta/models/${model}:generateContent?key=${apiKey}`;
     const isLastModel = i === modelCandidates.length - 1;
 
     const generationConfig = { maxOutputTokens: maxTokens, temperature };
+    if (json) generationConfig.responseMimeType = 'application/json';
     const thinkingCfg = thinkingConfigForGeminiModel(model);
     if (thinkingCfg) generationConfig.thinkingConfig = thinkingCfg;
 

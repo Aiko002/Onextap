@@ -88,8 +88,9 @@ export const HARNESS_ENV = Object.freeze({
   DODO_PRODUCT_ID: 'prod_harness_dummy',
   DODO_PAYMENTS_BASE_URL: undefined,
 
-  // Gemini (raw fetch to a fixed host; the guards cover it)
+  // Gemini (raw fetch; server/lib/gemini.js reads GEMINI_BASE_URL)
   GEMINI_API_KEY: 'harness-dummy-gemini-key',
+  GEMINI_BASE_URL: UNREACHABLE_URL,
   GEMINI_MODEL: undefined,
   GEMINI_FALLBACK_MODEL: undefined,
   GEMINI_PARSE_MODELS: undefined,

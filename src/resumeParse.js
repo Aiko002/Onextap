@@ -7,9 +7,8 @@ const log = baseLog.child('resume');
 /**
  * Resume parse transport.
  *
- * TRANSPORT ONLY. This module base64s the file, pre-flights the session against
- * GET /api/me, and sends the result straight to POST /api/parse-resume, on
- * every surface. It does not decide what the parsed fields mean and it does
+ * TRANSPORT ONLY. This module base64s the file and sends it straight to
+ * POST /api/parse-resume, on every surface. It does not decide what the parsed fields mean and it does
  * not merge anything into a profile — that stays with the caller, which is the
  * only reason this extract was safe to do to working code.
  *
@@ -208,25 +207,10 @@ export async function parseResumeFile(file) {
     return fail('not-authenticated', 'Not authenticated. Please sign in first.', withHash);
   }
 
-  if (API_URL) {
-    try {
-      const meRes = await fetch(`${API_URL}/api/me`, {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!meRes.ok) {
-        const meBody = await meRes.json().catch(() => ({}));
-        return fail(
-          'session-rejected',
-          `Session token rejected (${meBody.error || meRes.status}). Please sign out and sign in again.`,
-          withHash,
-        );
-      }
-    } catch (e) {
-      log.warn('session preflight failed', { errName: e?.name });
-      return fail('session-rejected', 'Could not reach the Onextap server. Check your connection and try again.', withHash);
-    }
-  }
+  // No GET /api/me preflight any more. It cost a full round trip (two on a
+  // cold serverless start) before every upload, and the parse route runs the
+  // same requireAuth check itself: a rejected session comes back as a 401
+  // from that call and gets the same sentence below.
 
   // ═══ ONE TRANSPORT ═══
   //
@@ -242,6 +226,16 @@ export async function parseResumeFile(file) {
   log.info('sending resume parse request to the api');
   const reply = await parseResumeViaApi({ fileData: base64, fileName, fileType: mimeType, token });
 
+  if (!reply.success && reply.debug?.status === 401) {
+    return fail(
+      'session-rejected',
+      `Session token rejected (${reply.error || 401}). Please sign out and sign in again.`,
+      withHash,
+    );
+  }
+  if (!reply.success && reply.unreachable) {
+    return fail('session-rejected', 'Could not reach the Onextap server. Check your connection and try again.', withHash);
+  }
   if (!reply.success || !reply.data) {
     const debug = reply.debug ? ` [debug: ${JSON.stringify(reply.debug)}]` : '';
     return fail('parse-failed', `${reply.error || 'Parse failed'}${debug}`, withHash);
@@ -404,6 +398,6 @@ async function parseResumeViaApi({ fileData, fileName, fileType, token }) {
     };
   } catch (err) {
     log.error('resume parse request failed', { errName: err?.name });
-    return { success: false, error: err?.message || 'Could not reach the Onextap server.' };
+    return { success: false, unreachable: true, error: err?.message || 'Could not reach the Onextap server.' };
   }
 }

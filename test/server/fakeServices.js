@@ -119,6 +119,28 @@ export function fakeSupabase({ store, users }) {
 }
 
 /**
+ * Gemini's generateContent. `reply(body, n)` returns the model's text, or
+ * `{ status, message }` for a provider error. Records each request body and
+ * the model id from the path.
+ */
+export function fakeGemini() {
+  const calls = [];
+  const state = { reply: () => '{}' };
+
+  async function handler(req, res) {
+    const body = await readBody(req);
+    const model = /\/models\/([^:]+):generateContent/.exec(req.url)?.[1];
+    if (!model) return send(res, 404, { error: { message: 'not faked' } });
+    calls.push({ model, body });
+    const answer = state.reply(body, calls.length);
+    if (answer && answer.status) return send(res, answer.status, { error: { message: answer.message || 'fake provider error' } });
+    return send(res, 200, { candidates: [{ content: { parts: [{ text: answer }] }, finishReason: 'STOP' }] });
+  }
+
+  return { handler, calls, state };
+}
+
+/**
  * Groq's chat completions. `reply(body, n)` decides each answer: `{ content,
  * finish? }` for a completion, or `{ status, message }` for a provider error.
  * The default writes "Draft number <n>, written for the test."

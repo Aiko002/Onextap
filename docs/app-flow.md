@@ -241,11 +241,13 @@ Choose or drop a file (PDF or image, size-capped)
     │
     ├─ type and size checked; hashed (a re-upload of the same bytes is found in the library)
     ├─ getAccessToken()  ──► none → "Not authenticated. Please sign in first."
-    ├─ GET /api/me       ──► rejected → "Session token rejected… sign out and sign in again."
     │
     └─ POST /api/parse-resume, always (the website no longer sends PARSE_RESUME)
-                                        │
-                                 Gemini (primary → fallback model)
+         │                      401 → "Session token rejected… sign out and sign in again."
+         │
+         ├─ PDF with a text layer → text read on the server (unpdf)
+         │                          → Groq for the fields; the text is the transcription
+         └─ scan, photo, or Groq failed → Gemini reads the file (model chain)
                                         │
                                  { data: <structured>, text }
     │

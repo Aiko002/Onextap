@@ -306,12 +306,23 @@ AUTOFILL_TRIGGERED { profile, sections }
         ▼  public/content.js → autofill()
    buildIntents(profile)         ordered, specific before generic
         │
-   for each input / textarea / select:
-        skip: wrong input type · invisible · disabled · readonly · already filled
-        sig = name + id + placeholder + aria-label + autocomplete + label text
-        first matching intent wins
-        SELECT → fillSelect (exact value → exact text → substring)
+   1. for each input / textarea / select:
+        skip: wrong input type · a combobox (step 2's) · invisible · disabled
+              · readonly · already filled (a <select>: anything but a
+              placeholder or a first option nobody chose)
+        sig = name + id (and camelCase split) + placeholder + aria-label
+              + autocomplete + aria-labelledby / label text, else the
+              question the field sits under
+        first matching intent wins; a <select> that has no answer passes it on
+        SELECT → fillSelect → pickOption: exact value → exact text → "+NN"
+                 dial code → yes/no/decline → number in a range → whole-word
+                 containment → degree level; aliases for countries, US/CA
+                 states, gender, degrees; a date split into month/day/year
         else   → setNativeValue + dispatch input & change
+   2. for each custom dropdown ([role=combobox], [aria-haspopup=listbox])
+      showing nothing yet: open it (click, then ArrowDown), else type into
+      it; click the option pickOption chooses; check it shows the answer
+   3. step 1 again, for questions an answer revealed
         │
         ▼
    { success: true, filled: N }  ──►  "Filled N fields"  (resets after 2s)

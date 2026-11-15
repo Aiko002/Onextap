@@ -479,8 +479,10 @@ test('the button finds its field the way FILL_COVER_LETTER does: the same functi
 
 test('MOUNT_COVER_BUTTON and AUTOFILL_TRIGGERED both mount it', () => {
   assert.match(CONTENT_SOURCE, /'MOUNT_COVER_BUTTON'/);
+  // The branch replies asynchronously (the dropdowns are opened one by one),
+  // so it ends at its `return true;`.
   const autofillBranch = CONTENT_SOURCE.slice(CONTENT_SOURCE.indexOf("msg.action === 'AUTOFILL_TRIGGERED'"));
-  assert.match(autofillBranch.slice(0, autofillBranch.indexOf('return false;')), /coverButton\.mount\(\)/);
+  assert.match(autofillBranch.slice(0, autofillBranch.indexOf('return true;')), /coverButton\.mount\(\)/);
 });
 
 /** The FunctionDeclaration `name` in content.js. */

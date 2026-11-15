@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staff Engineer — Apply</title>
+<!--
+  A job application made of dropdowns, for tests/autofill-dropdowns.spec.js.
+  Each block copies the markup and the behaviour of a kind the job sites use,
+  so the autofill meets what it meets there:
+
+    A  native <select>s, the label in a sibling <div> (Lever), placeholders
+       of every kind: none at all, no value attribute, value "0", disabled
+    B  a date of birth in three <select>s
+    C  education and pay in native <select>s: degree level, field, year,
+       notice period and salary bands
+    D  a React-controlled <select> (React 18, served from node_modules)
+    E  react-select comboboxes (Greenhouse's job boards): an <input
+       role="combobox"> labelled by aria-labelledby, a menu that only exists
+       while open, and an async one that offers nothing until you type
+    F  Workday-style buttons: aria-haspopup="listbox", the list portalled to
+       <body> a moment after the click
+    G  a Select2-style native <select>, visually hidden behind its widget
+    H  fields autofill must leave alone: one the user already answered,
+       one no profile field matches, and a "Personal statement" box
+-->
+<style>
+  body { font: 15px/1.4 system-ui, sans-serif; margin: 24px; max-width: 760px; }
+  fieldset { margin: 0 0 18px; padding: 12px 16px; border: 1px solid #ccc; }
+  .application-question { margin: 8px 0; }
+  .application-label { font-weight: 600; margin-bottom: 4px; }
+  .field { margin: 8px 0; }
+  .field > label { display: block; font-weight: 600; margin-bottom: 4px; }
+  select, input[type=text], input[type=email], textarea { min-width: 260px; padding: 4px; }
+  /* react-select's look, roughly */
+  .select__control { display: flex; align-items: center; min-height: 34px; width: 360px; border: 1px solid #999; border-radius: 4px; cursor: default; position: relative; }
+  .select__value-container { flex: 1; display: grid; padding: 2px 8px; }
+  .select__placeholder, .select__single-value, .select__input-container { grid-area: 1 / 1 / 2 / 3; }
+  .select__placeholder { color: #888; }
+  .select__input-container input { border: 0; outline: 0; padding: 0; margin: 0; width: 100%; background: transparent; font: inherit; }
+  .select__indicators { padding: 0 8px; color: #666; }
+  .select__menu { position: absolute; top: 100%; left: 0; right: 0; z-index: 5; background: #fff; border: 1px solid #999; margin-top: 2px; }
+  .select__option { padding: 6px 10px; }
+  .select__option--is-focused { background: #def; }
+  .select__menu-notice { padding: 6px 10px; color: #888; }
+  /* Workday's look, roughly */
+  .wd-button { width: 360px; text-align: left; padding: 6px 8px; background: #fff; border: 1px solid #999; border-radius: 4px; }
+  .wd-popup { position: absolute; z-index: 10; background: #fff; border: 1px solid #999; width: 360px; }
+  .wd-popup ul { list-style: none; margin: 0; padding: 0; }
+  .wd-popup li { padding: 6px 10px; cursor: pointer; }
+  .wd-popup li:hover { background: #def; }
+  /* Select2's look, roughly */
+  .s2-hidden { border: 0; clip: rect(0 0 0 0); height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; width: 1px; white-space: nowrap; }
+  .s2-selection { display: inline-block; width: 360px; padding: 6px 8px; border: 1px solid #999; border-radius: 4px; }
+  .s2-placeholder { color: #888; }
+</style>
+</head>
+<body>
+<h1>Staff Software Engineer</h1>
+<form id="application" onsubmit="return false">
+
+  <fieldset id="block-a">
+    <legend>A. Personal information</legend>
+    <div class="field"><label for="first_name">First name</label><input type="text" id="first_name" name="first_name"></div>
+    <div class="field"><label for="last_name">Last name</label><input type="text" id="last_name" name="last_name"></div>
+    <div class="field"><label for="email">Email</label><input type="email" id="email" name="email"></div>
+
+    <!-- No placeholder: the first option is selected until someone changes it.
+         +1 is Canada's code too, and Canada comes first. -->
+    <div class="field">
+      <label for="phone_code">Phone country code</label>
+      <select id="phone_code" name="phone_code">
+        <option value="AF">Afghanistan (+93)</option>
+        <option value="CA">Canada (+1)</option>
+        <option value="DE">Germany (+49)</option>
+        <option value="IN">India (+91)</option>
+        <option value="US">United States (+1)</option>
+      </select>
+    </div>
+    <div class="field"><label for="phone">Phone</label><input type="text" id="phone" name="phone"></div>
+
+    <!-- Lever: the question is a sibling <div>, no <label>, an opaque name.
+         The placeholder has no value attribute, so its value is its text. -->
+    <div class="application-question">
+      <div class="application-label"><div class="text">Country<span class="required">✱</span></div></div>
+      <div class="application-field">
+        <select id="lever_country" name="cards[0a1b][field0]">
+          <option>Please select</option>
+          <option value="CAN">Canada</option>
+          <option value="IND">India</option>
+          <option value="GBR">United Kingdom</option>
+          <option value="USA">United States of America</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- The placeholder's value is "0"; the states are numbered, and the
+         profile holds "TX". -->
+    <div class="field">
+      <label for="state">State</label>
+      <select id="state" name="state">
+        <option value="0">-- Select --</option>
+        <option value="42">Tennessee</option>
+        <option value="43">Texas</option>
+        <option value="44">Utah</option>
+      </select>
+    </div>
+    <div class="field"><label for="city">City</label><input type="text" id="city" name="city"></div>
+
+    <!-- A disabled placeholder, and "Woman" for a profile saying "Female". -->
+    <div class="field">
+      <label for="gender">Gender</label>
+      <select id="gender" name="gender">
+        <option selected disabled>Choose…</option>
+        <option>Man</option>
+        <option>Woman</option>
+        <option>Non-binary</option>
+        <option>I prefer not to say</option>
+      </select>
+    </div>
+  </fieldset>
+
+  <fieldset id="block-b">
+    <legend>B. Date of birth</legend>
+    <select id="dob_month" name="dob_month" aria-label="Date of birth month">
+      <option value="">Month</option>
+      <option value="01">January</option><option value="02">February</option><option value="03">March</option>
+      <option value="04">April</option><option value="05">May</option><option value="06">June</option>
+      <option value="07">July</option><option value="08">August</option><option value="09">September</option>
+      <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+    </select>
+    <select id="dob_day" name="dob_day" aria-label="Date of birth day"><option value="">Day</option></select>
+    <select id="dob_year" name="dob_year" aria-label="Date of birth year"><option value="">Year</option></select>
+  </fieldset>
+
+  <fieldset id="block-c">
+    <legend>C. Education and pay</legend>
+    <div class="field">
+      <label for="education_level">Highest level of education</label>
+      <select id="education_level" name="education_level">
+        <option value="">Select...</option>
+        <option value="hs">High School</option>
+        <option value="assoc">Associate's Degree</option>
+        <option value="ba">Bachelor's Degree</option>
+        <option value="ma">Master's Degree</option>
+        <option value="phd">Doctorate (PhD)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="discipline">Field of study</label>
+      <select id="discipline" name="discipline">
+        <option value="">Select...</option>
+        <option>Business</option>
+        <option>Computer Science</option>
+        <option>Electrical Engineering</option>
+        <option>Mathematics</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="grad_year">Graduation year</label>
+      <select id="grad_year" name="grad_year"><option value="">Select...</option></select>
+    </div>
+    <div class="field"><label for="gpa">GPA</label><input type="text" id="gpa" name="gpa"></div>
+    <div class="field">
+      <label for="notice">Notice period</label>
+      <select id="notice" name="notice">
+        <option value="">Select...</option>
+        <option value="0">Immediately</option>
+        <option value="1">Less than 15 days</option>
+        <option value="2">15–30 days</option>
+        <option value="3">1–2 months</option>
+        <option value="4">More than 2 months</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="salary_band">Expected salary (USD)</label>
+      <select id="salary_band" name="salary_band">
+        <option value="">Select...</option>
+        <option value="a">Under $100,000</option>
+        <option value="b">$100,000 – $150,000</option>
+        <option value="c">$150,001 – $200,000</option>
+        <option value="d">Over $200,000</option>
+      </select>
+    </div>
+  </fieldset>
+
+  <fieldset id="block-d">
+    <legend>D. React</legend>
+    <div id="react-years"></div>
+  </fieldset>
+
+  <fieldset id="block-e">
+    <legend>E. react-select</legend>
+    <div id="react-selects"></div>
+  </fieldset>
+
+  <fieldset id="block-f">
+    <legend>F. Workday</legend>
+    <div class="field" data-wd="hear">
+      <label id="hear-label" for="hear-btn">How did you hear about us?</label>
+      <button type="button" class="wd-button" id="hear-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="hear-label hear-btn">Select One</button>
+      <input type="hidden" name="hear" id="hear-value">
+    </div>
+    <div class="field" data-wd="relocate">
+      <label id="relocate-label" for="relocate-btn">Are you willing to relocate?</label>
+      <button type="button" class="wd-button" id="relocate-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="relocate-label relocate-btn">Select One</button>
+      <input type="hidden" name="relocate" id="relocate-value">
+    </div>
+  </fieldset>
+
+  <fieldset id="block-g">
+    <legend>G. Select2</legend>
+    <div class="field">
+      <label for="residence">Country of residence</label>
+      <select id="residence" name="residence" class="s2-hidden" tabindex="-1" aria-hidden="true">
+        <option value=""></option>
+        <option value="CA">Canada</option>
+        <option value="IN">India</option>
+        <option value="US">United States</option>
+      </select>
+      <span class="s2-selection" role="combobox" aria-haspopup="true" aria-expanded="false" tabindex="0" aria-labelledby="residence-rendered"><span id="residence-rendered"><span class="s2-placeholder">Select a country</span></span></span>
+    </div>
+  </fieldset>
+
+  <fieldset id="block-h">
+    <legend>H. Leave alone</legend>
+    <div class="field">
+      <label for="mailing_country">Mailing country</label>
+      <select id="mailing_country" name="mailing_country">
+        <option value="">Select...</option>
+        <option>Canada</option>
+        <option>India</option>
+        <option>United States</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="shirt">T-shirt size</label>
+      <select id="shirt" name="shirt">
+        <option value="">Select...</option>
+        <option>S</option><option>M</option><option>L</option>
+      </select>
+    </div>
+    <div class="field"><label for="statement">Personal statement</label><textarea id="statement" name="statement" rows="3"></textarea></div>
+  </fieldset>
+</form>
+
+<script>
+  // Block B and C's long lists.
+  (function fillLists() {
+    const day = document.getElementById('dob_day');
+    for (let d = 1; d <= 31; d += 1) day.add(new Option(String(d), String(d)));
+    const year = document.getElementById('dob_year');
+    for (let y = 2008; y >= 1950; y -= 1) year.add(new Option(String(y), String(y)));
+    const grad = document.getElementById('grad_year');
+    for (let y = 2026; y >= 1990; y -= 1) grad.add(new Option(String(y), String(y)));
+  })();
+
+  // Block F: Workday's buttons. The list is portalled to <body> a moment
+  // after the click, and goes on a click outside it.
+  (function workday() {
+    const LISTS = {
+      hear: ['Company website', 'Indeed', 'LinkedIn', 'Referral', 'Other'],
+      relocate: ['Yes', 'No'],
+    };
+    let open = null;
+    function close() {
+      if (!open) return;
+      open.popup.remove();
+      open.button.setAttribute('aria-expanded', 'false');
+      open.button.removeAttribute('aria-controls');
+      open = null;
+    }
+    document.querySelectorAll('[data-wd]').forEach((field) => {
+      const key = field.dataset.wd;
+      const button = field.querySelector('button');
+      const hidden = field.querySelector('input[type=hidden]');
+      button.addEventListener('click', () => {
+        if (open && open.button === button) { close(); return; }
+        close();
+        setTimeout(() => {
+          const popup = document.createElement('div');
+          popup.className = 'wd-popup';
+          const rect = button.getBoundingClientRect();
+          popup.style.left = `${rect.left + window.scrollX}px`;
+          popup.style.top = `${rect.bottom + window.scrollY + 2}px`;
+          const list = document.createElement('ul');
+          list.setAttribute('role', 'listbox');
+          list.id = `${key}-listbox`;
+          LISTS[key].forEach((label, i) => {
+            const li = document.createElement('li');
+            li.setAttribute('role', 'option');
+            li.setAttribute('aria-selected', String(hidden.value === String(i)));
+            li.dataset.id = String(i);
+            li.textContent = label;
+            li.addEventListener('click', () => {
+              hidden.value = String(i);
+              button.textContent = label;
+              close();
+            });
+            list.append(li);
+          });
+          popup.append(list);
+          document.body.append(popup);
+          button.setAttribute('aria-expanded', 'true');
+          button.setAttribute('aria-controls', list.id);
+          open = { button, popup };
+        }, 80);
+      });
+    });
+    document.addEventListener('mousedown', (e) => {
+      if (open && !open.popup.contains(e.target) && e.target !== open.button) close();
+    });
+  })();
+
+  // Block G: Select2. The widget shows the hidden <select>'s choice, and
+  // picks one into it from its own list.
+  (function select2() {
+    const select = document.getElementById('residence');
+    const shown = document.getElementById('residence-rendered');
+    const widget = shown.closest('[role=combobox]');
+    function render() {
+      const chosen = select.options[select.selectedIndex];
+      shown.textContent = '';
+      if (chosen && chosen.value) shown.textContent = chosen.text;
+      else shown.innerHTML = '<span class="s2-placeholder">Select a country</span>';
+    }
+    select.addEventListener('change', render);
+    let popup = null;
+    widget.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      if (popup) { popup.remove(); popup = null; widget.setAttribute('aria-expanded', 'false'); return; }
+      popup = document.createElement('ul');
+      popup.setAttribute('role', 'listbox');
+      popup.className = 'wd-popup';
+      Array.from(select.options).filter((o) => o.value).forEach((o) => {
+        const li = document.createElement('li');
+        li.setAttribute('role', 'option');
+        li.textContent = o.text;
+        li.addEventListener('mouseup', () => {
+          select.value = o.value;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+          popup.remove(); popup = null; widget.setAttribute('aria-expanded', 'false');
+        });
+        popup.append(li);
+      });
+      widget.after(popup);
+      widget.setAttribute('aria-expanded', 'true');
+    });
+  })();
+</script>
+
+<script src="/e2e-vendor/react.js"></script>
+<script src="/e2e-vendor/react-dom.js"></script>
+<script>
+  const e = React.createElement;
+  const { useState, useRef, useEffect } = React;
+
+  // Block D: a controlled <select>. React re-renders it from state, so a
+  // value set without the change event React listens for snaps back.
+  function YearsOfExperience() {
+    const [value, setValue] = useState('');
+    return e('div', { className: 'field' },
+      e('label', { htmlFor: 'years' }, 'Years of experience'),
+      e('select', { id: 'years', name: 'years', value, onChange: (ev) => setValue(ev.target.value) },
+        e('option', { value: '' }, 'Select...'),
+        e('option', { value: '0-2' }, '0–2 years'),
+        e('option', { value: '3-5' }, '3–5 years'),
+        e('option', { value: '6-9' }, '6–9 years'),
+        e('option', { value: '10+' }, '10+ years')),
+      e('output', { id: 'years-state' }, value));
+  }
+
+  // Block E: react-select, as v5 renders it: the menu exists only while
+  // open, opens on a mousedown on the control (once the input has focus) or
+  // on typing, filters on what is typed, picks on a click, and on blur
+  // closes and clears what was typed. `load` makes it async: no options
+  // until two letters are typed, then after a delay.
+  let seq = 0;
+  function ReactSelect({ name, label, options, load }) {
+    const id = useRef(`rs-${++seq}`).current;
+    const inputRef = useRef(null);
+    const [open, setOpen] = useState(false);
+    const [focused, setFocused] = useState(false);
+    const [text, setText] = useState('');
+    const [chosen, setChosen] = useState(null);
+    const [active, setActive] = useState(0);
+    const [loaded, setLoaded] = useState(load ? [] : options);
+    const openAfterFocus = useRef(false);
+
+    useEffect(() => {
+      if (!load) return undefined;
+      if (text.trim().length < 2) { setLoaded([]); return undefined; }
+      const t = setTimeout(() => setLoaded(options.filter((o) => o.toLowerCase().includes(text.trim().toLowerCase()))), 120);
+      return () => clearTimeout(t);
+    }, [text]);
+
+    const shown = load ? loaded : loaded.filter((o) => o.toLowerCase().includes(text.toLowerCase()));
+    const pick = (o) => { setChosen(o); setText(''); setOpen(false); };
+
+    return e('div', { className: 'field', 'data-rs': name, style: { position: 'relative', width: 360 } },
+      e('label', { id: `${id}-label`, htmlFor: `${id}-input` }, label),
+      e('div', {
+        className: 'select__control',
+        onMouseDown: (ev) => {
+          if (ev.button !== 0) return;
+          if (ev.target.tagName !== 'INPUT') ev.preventDefault();
+          if (!focused) { openAfterFocus.current = true; inputRef.current.focus(); }
+          else setOpen(!open);
+        },
+      },
+        e('div', { className: 'select__value-container' },
+          !text && (chosen
+            ? e('div', { className: 'select__single-value' }, chosen)
+            : e('div', { className: 'select__placeholder', id: `${id}-placeholder` }, 'Select...')),
+          e('div', { className: 'select__input-container' },
+            e('input', {
+              ref: inputRef,
+              id: `${id}-input`,
+              type: 'text',
+              role: 'combobox',
+              autoComplete: 'off',
+              'aria-autocomplete': 'list',
+              'aria-expanded': String(open),
+              'aria-haspopup': 'true',
+              'aria-labelledby': `${id}-label`,
+              'aria-describedby': `${id}-placeholder`,
+              'aria-controls': open ? `${id}-listbox` : undefined,
+              value: text,
+              onChange: (ev) => { setText(ev.target.value); setActive(0); setOpen(true); },
+              onFocus: () => { setFocused(true); if (openAfterFocus.current) { openAfterFocus.current = false; setOpen(true); } },
+              onBlur: () => { setFocused(false); setOpen(false); setText(''); },
+              onKeyDown: (ev) => {
+                if (ev.key === 'ArrowDown') { ev.preventDefault(); if (!open) setOpen(true); else setActive((a) => Math.min(a + 1, shown.length - 1)); }
+                else if (ev.key === 'Enter' && open && shown[active]) { ev.preventDefault(); pick(shown[active]); }
+                else if (ev.key === 'Escape') { setOpen(false); setText(''); }
+              },
+            }))),
+        e('div', { className: 'select__indicators', 'aria-hidden': 'true' }, '▾')),
+      // The menu is the control's sibling, as in react-select, and keeps
+      // the focus in the input on a press, as react-select's does.
+      open && e('div', {
+        className: 'select__menu',
+        onMouseDown: (ev) => { if (ev.button !== 0) return; ev.stopPropagation(); ev.preventDefault(); inputRef.current.focus(); },
+      },
+          e('div', { className: 'select__menu-list', role: 'listbox', id: `${id}-listbox` },
+            shown.length
+              ? shown.map((o, i) => e('div', {
+                key: o,
+                id: `${id}-option-${i}`,
+                role: 'option',
+                'aria-selected': String(chosen === o),
+                className: `select__option${i === active ? ' select__option--is-focused' : ''}`,
+                onMouseMove: () => setActive(i),
+                onClick: () => pick(o),
+              }, o))
+              : e('div', { className: 'select__menu-notice' }, load ? 'Type to search' : 'No options'))),
+      e('input', { type: 'hidden', name, value: chosen || '' }));
+  }
+
+  const EEO = [
+    { name: 'authorized', label: 'Are you legally authorized to work in the United States?', options: ['Yes', 'No'] },
+    { name: 'sponsorship', label: 'Will you now or in the future require sponsorship for employment visa status?', options: ['Yes', 'No'] },
+    { name: 'school', label: 'School', load: true, options: ['Brookfield College', 'Brookhollow State University', 'Calderwood Institute of Technology', 'Northgate University'] },
+    { name: 'hispanic', label: 'Are you Hispanic/Latino?', options: ['Yes', 'No', 'Decline To Self Identify'] },
+    { name: 'race', label: 'Race', options: ['American Indian or Alaskan Native', 'Asian', 'Black or African American', 'Native Hawaiian or Other Pacific Islander', 'White', 'Two or More Races', 'Decline To Self Identify'] },
+    { name: 'veteran', label: 'Veteran Status', options: ['I am not a protected veteran', 'I identify as one or more of the classifications of protected veteran', "I don't wish to answer"] },
+    { name: 'disability', label: 'Disability Status', options: ['Yes, I have a disability (or previously had a disability)', 'No, I do not have a disability', 'I do not want to answer'] },
+  ];
+
+  ReactDOM.createRoot(document.getElementById('react-years')).render(e(YearsOfExperience));
+  ReactDOM.createRoot(document.getElementById('react-selects')).render(
+    e(React.Fragment, null, EEO.map((q) => e(ReactSelect, { key: q.name, ...q }))));
+</script>
+</body>
+</html>

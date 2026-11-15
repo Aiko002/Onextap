@@ -31,7 +31,7 @@ export default defineConfig({
     trace: 'off'
   },
   projects: [
-    { name: 'extension', testMatch: /(^|[\\/])(extension|cover-handoff)\.spec\.js$/ },
+    { name: 'extension', testMatch: /(^|[\\/])(extension|cover-handoff|autofill-dropdowns)\.spec\.js$/ },
     { name: 'legacy', testMatch: /(^|[\\/])extension-legacy\.spec\.js$/ }
   ],
   webServer: {

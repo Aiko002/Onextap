@@ -117,8 +117,9 @@ The worker holds no Supabase session; `token` is the caller's JWT. Listeners
 
 ### 3.2 `chrome.tabs` messaging → content script
 
-Every handler replies synchronously (listener returns `false`). Messages
-without an `action` are ignored.
+Every handler but `AUTOFILL_TRIGGERED` replies synchronously (listener
+returns `false`); it replies when its custom dropdowns are done (listener
+returns `true`). Messages without an `action` are ignored.
 
 | Message | Payload | Reply |
 |---|---|---|

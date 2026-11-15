@@ -132,7 +132,11 @@ Injected on demand — no content script runs until the user clicks. The pass:
 4. Set the value through the native setter and dispatch `input` + `change`,
    so React and Vue forms register it.
 
-`<select>` elements match by exact value, then exact text, then substring.
+`<select>` elements match by exact value, then exact text, then by meaning:
+aliases ("TX" is Texas, "Female" is Woman, "M.S." is a Master's), yes / no /
+decline, a number inside a range ("2 weeks" is "Less than 15 days"), then
+whole words. Custom dropdowns (react-select, Workday, MUI and the like) are
+opened, and the matching option is clicked.
 The popup reports the count: "Filled 12 fields".
 
 **Section detection.** Before the user clicks, the popup asks the page which

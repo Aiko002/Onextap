@@ -177,7 +177,7 @@ sends them, so they are not a compatibility surface with 1.0.2's worker.
 
 | Message | Reply |
 | --- | --- |
-| `AUTOFILL_TRIGGERED { profile }` | `{ success, filled }`; then mounts the cover-letter button |
+| `AUTOFILL_TRIGGERED { profile }` | `{ success, filled }`, asynchronously (the listener returns `true`): it replies once the custom dropdowns have been opened and answered, a few seconds on a long form; then mounts the cover-letter button |
 | `DETECT_SECTIONS` | `{ success, sections: { personalInfo, education, workExperience, openEnded, coverLetter } }` |
 | `FILL_COVER_LETTER { text }` | `{ success }`, false when no field matched |
 | `MOUNT_COVER_BUTTON` | `{ success, mounted }` (also read from `type`) |

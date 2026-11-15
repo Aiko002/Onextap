@@ -27,7 +27,7 @@ const STUB_ENV = {
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 // Need the extension loaded: playwright.extension.config.js runs them.
-const EXTENSION_SPECS = /(extension(-legacy)?|cover-handoff)\.spec\.js/;
+const EXTENSION_SPECS = /(extension(-legacy)?|cover-handoff|autofill-dropdowns)\.spec\.js/;
 // Needs every type listed: the types-on project, on 5191.
 const TYPES_ON_SPEC = /application-types\.spec\.js/;
 // A project's testIgnore replaces the config's, so each says both.

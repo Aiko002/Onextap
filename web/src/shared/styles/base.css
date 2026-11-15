@@ -11,6 +11,14 @@ body{
   -webkit-font-smoothing:antialiased;
   overflow-x:hidden;
 }
+/* While the page is held (the open menu, an open window), html's own
+   overflow:hidden goes to the window, and body's overflow-x is no longer
+   handed up: it would make body a scroll box of its own, and the sticky
+   stage would stick to body (unscrolled) instead of the window, at the top
+   of the track, off screen. Chrome puts it back on release; WebKit, every
+   iOS browser included, leaves it there until the next scroll: a blank
+   screen of ink. The window clips both ways while held anyway. */
+html.menu-open body,html.dlg-open body{overflow-x:visible}
 
 /* --- shared type roles ---------------------------------------------------- */
 .display{

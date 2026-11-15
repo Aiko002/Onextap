@@ -168,6 +168,39 @@ test.describe('stage', () => {
     await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(y);
   });
 
+  // Holding the page (the menu, a window) once made body a scroll box of its
+  // own (shared/styles/base.css), and the sticky stage stuck to it: at the
+  // top of the track, off screen. WebKit, every iOS browser included, left
+  // it there after closing, over a blank screen of ink.
+  test('the stage stays on screen while the page is held, and after', async ({ page, isMobile }) => {
+    await boot(page);
+    await seek(page, chapter(await info(page), 'form').arrive + 0.05);
+    const press = sel => isMobile ? page.tap(sel) : page.click(sel);
+    const stageTop = () => page.evaluate(() => document.getElementById('stage').getBoundingClientRect().top);
+    // Read only while held: otherwise body hands its overflow to the window,
+    // and its computed overflow-y (auto) is not what is used.
+    const bodyScrolls = () => page.evaluate(() => getComputedStyle(document.body).overflowY !== 'visible');
+    const layer = () => page.evaluate(() => document.elementFromPoint(innerWidth / 2, innerHeight / 2).closest('.layer')?.id);
+
+    await press('#burger');
+    await expect(page.locator('#siteMenu')).toHaveClass(/is-open/);
+    expect(await bodyScrolls()).toBe(false);
+    expect(await stageTop()).toBe(0);
+    await press('#burger');
+    await expect(page.locator('#siteMenu')).not.toHaveClass(/is-open/);
+    expect(await stageTop()).toBe(0);
+    expect(await layer()).toBe('form');
+
+    await press('.hud [data-login]');
+    await expect(page.locator('#login')).toHaveClass(/is-open/);
+    expect(await bodyScrolls()).toBe(false);
+    expect(await stageTop()).toBe(0);
+    await press('#login .dlg__x');
+    await expect(page.locator('#login')).not.toHaveClass(/is-open/);
+    expect(await stageTop()).toBe(0);
+    expect(await layer()).toBe('form');
+  });
+
   // The swap happens mid-spin, on the animation clock: allow for a software
   // renderer (see playwright.config.js) that only manages a few frames/sec.
   test('feature tabs still swap the deck', async ({ page, browserName }) => {

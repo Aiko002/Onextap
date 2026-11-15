@@ -276,12 +276,12 @@ test('all five steps: the zip, named by version, with its SHA-256', { skip: zipC
   const r = release();
   const result = await r.run();
   assert.equal(result.ok, true, r.lines.join('\n'));
-  assert.equal(result.zip, path.join(r.root, 'release', 'onextap-1.0.4.zip'));
+  assert.equal(result.zip, path.join(r.root, 'release', 'onextap-1.0.5.zip'));
   const bytes = readFileSync(result.zip);
   assert.equal(result.sha256, createHash('sha256').update(bytes).digest('hex'));
   const out = r.lines.join('\n');
   assert.match(out, new RegExp(`SHA-256\\s+${result.sha256}`));
-  assert.match(out, /release[\\/]onextap-1\.0\.4\.zip/);
+  assert.match(out, /release[\\/]onextap-1\.0\.5\.zip/);
 });
 
 // ---------- the zip ----------

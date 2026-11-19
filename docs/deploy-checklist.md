@@ -1,5 +1,9 @@
 # Deploy checklist: the website, the API and extension 1.0.4
 
+> **Doing a repeat release from another machine?** Follow
+> `docs/release-from-another-machine.md` instead. This checklist is the
+> first-time 1.0.4 release, kept for the reasons behind each step.
+
 Written in B5 of `docs/plans/completed/completion-plan.md`, for the owner to
 run after B6. `docs/release-guide.md` is the same release as a shorter
 step-by-step guide, for whoever runs it. The plan stops at deploy-ready, so

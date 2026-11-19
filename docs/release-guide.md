@@ -1,5 +1,10 @@
 # Onextap live release guide
 
+> **Doing a repeat release from another machine?** Follow
+> `docs/release-from-another-machine.md` instead. This guide is the
+> first-time 1.0.4 release: most of its steps are production setup that has
+> already been done, and re-running them would be a mistake.
+
 As of 2026-10-27. The same guide is kept as a shared doc for whoever runs the
 release; this copy travels with the code. `docs/deploy-checklist.md` is the
 detailed version, with the reasons behind each step.

@@ -118,7 +118,8 @@ browser. Say so plainly when you have not.
   redaction key lists mirror each other.
 - Every server response carries `X-Request-Id`: quote it to find the log line.
 - Git: the work is on `merge/web-dashboard`, pushed to remote `latest`;
-  `origin` is the backend's repo. Nothing is merged into `main`. Commit
+  `origin` is the live website: a fast-forward push to its `main` is the
+  production deploy, only when the owner asks. Commit
   messages name no assistant or tool and carry no co-author line (the
   owner's rule, 2026-10-21).
 
@@ -135,7 +136,8 @@ Stop and ask before:
   `onextap_profiles` handling: the migration in `src/profileStore.js`, or the
   worker's sync in `extension/profileSync.js`.
 - Publishing to the Chrome Web Store, deploying to Vercel, merging into
-  `main` or pushing to `origin` (`main` may auto-deploy).
+  `main` or pushing to `origin` (`main` may auto-deploy). Doing either from
+  a fresh clone: `docs/release-from-another-machine.md`.
 
 ---
 

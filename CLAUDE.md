@@ -67,7 +67,8 @@ billing only. Layout and import rules: `docs/repo-structure.md`; user paths:
   `dist-dashboard/`, `npm run build:dashboard`.
 - Store zip → `release/onextap-<version>.zip`: `npm run build:release`.
   Refuses unless `.env` holds production's addresses; drops localhost from
-  the manifest, scans for secrets, checks permissions against 1.0.2's.
+  the manifest, scans for secrets, checks permissions against
+  `scripts/releaseManifest.js`.
 - Dev: `npm run dev` (website; keep :5173, the only local origin
   `externally_connectable` allows), `npm run dev:extension`,
   `npm run server:dev` (`LOG_LEVEL=debug` for more; client side

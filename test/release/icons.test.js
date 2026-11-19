@@ -226,7 +226,7 @@ test('the release manifest still passes build:release\'s check, icons included',
   assert.equal(typeof release.icons, 'object');
   assert.deepEqual(release.icons, manifest().icons);
   assert.deepEqual(release.action.default_icon, manifest().action.default_icon);
-  assert.equal(release.permissions.length, 4, 'no permission change');
+  assert.equal(release.permissions.length, 3, 'storage, activeTab, scripting (1.0.5 dropped identity)');
 });
 
 const PAGES = [

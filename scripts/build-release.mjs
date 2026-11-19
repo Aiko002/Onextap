@@ -24,9 +24,9 @@
  *      Dodo's API keys have no prefix to match, so the name is what catches
  *      them (and step 1 keeps them out of VITE_*).
  *   4. The built manifest against the pinned release (checkReleaseManifest):
- *      the version, permissions exactly storage/activeTab/scripting/identity,
- *      host permissions and externally_connectable equal to 1.0.2's minus
- *      localhost.
+ *      the version, permissions exactly storage/activeTab/scripting, and
+ *      host permissions and externally_connectable equal to the pinned lists
+ *      (no localhost; since 1.0.5 also no identity and no Supabase host).
  *   5. Zip dist-release/ (without .vite/, Vite's build metadata) with the
  *      platform's tar, which must be bsdtar (Windows and macOS ship it), to
  *      release/onextap-<version>.zip, and print its SHA-256.

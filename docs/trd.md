@@ -249,7 +249,7 @@ most text, falling back to `document.body`; whitespace collapsed, capped at
 | Field allowlist | Autofill fills a listed set of input types only — never password, hidden, file, checkbox or radio |
 | Log redaction | Four loggers, matching `SECRET_KEY` / `PII_KEY` regexes, replacing values with `[secret]` / `[redacted]` before printing |
 | Content-script logging | Runs in a third-party page, so it logs error names, messages and counts only — never field values or scraped text |
-| OAuth (extension) | `chrome.identity.launchWebAuthFlow` against `https://<extension-id>.chromiumapp.org/`, so the popup survives the flow |
+| OAuth (extension) | None. The popup has no sign-in (D5), and since 1.0.5 the manifest has no `identity` permission. Sign-in is on the website |
 
 ### Manifest permissions and why each is needed
 
@@ -258,8 +258,7 @@ most text, falling back to `document.body`; whitespace collapsed, capped at
 | `storage` | Local profile + Supabase session |
 | `activeTab` | Access to the tab the user invoked the action on |
 | `scripting` | On-demand injection of `content.js` and `scrapeJobPage` |
-| `identity` | Google OAuth from the popup |
-| `host_permissions` | Supabase project, onextap.com, and the two localhost dev ports — API calls, not page access |
+| `host_permissions` | onextap.com, and (dev builds only) the two localhost ports — API calls, not page access. 1.0.5 dropped the Supabase host: the extension never requested it |
 | `externally_connectable` | Lets the deployed dashboard message the extension directly |
 
 Widening any of these is an escalation, not a routine change.

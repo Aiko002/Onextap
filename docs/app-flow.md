@@ -178,7 +178,9 @@ read-only and send people to the dashboard to write (§5, §6).
 `src/auth.js` keeps an extension Google flow
 (`chrome.identity.launchWebAuthFlow`, needing
 `https://<extension-id>.chromiumapp.org/` on Supabase's allowlist) that no
-screen calls; its last caller was the old in-extension dashboard.
+screen calls; its last caller was the old in-extension dashboard. Since
+1.0.5 the manifest has no `identity` permission, so that flow could not run
+in the extension without adding it back (a permission change: escalate).
 
 **On the database side**, `on_auth_user_created` inserts a `profiles` row
 with 3 credits and an `initial` credit transaction (seen on every sign-up in

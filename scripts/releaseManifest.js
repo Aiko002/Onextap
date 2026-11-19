@@ -16,10 +16,11 @@
  * checkReleaseManifest() is step 4 of build:release. The lists it compares
  * against are pinned, not derived from extension/manifest.json, so widening
  * the dev manifest also fails the release check instead of slipping into the
- * store build. Store 1.0.2's permissions, host permissions and
- * externally_connectable match the repo's manifest, localhost entries
- * included (plan §2), so these are 1.0.2's minus localhost. Changing them is a
- * permission change: CLAUDE.md, Escalate.
+ * store build. These are store 1.0.2's lists minus localhost (plan §2), and,
+ * since 1.0.5, minus two entries nothing used: `identity` (the popup has not
+ * signed in since 1.0.4; sign-in is on the website) and
+ * `https://*.supabase.co/*` (no extension code requests it). Narrowing shows
+ * users no warning; widening them is a permission change: CLAUDE.md, Escalate.
  *
  * Pure, no I/O: vite.config.js and the unit tests import it.
  */
@@ -27,10 +28,9 @@
 /** The version build:release ships. Bump it with extension/manifest.json. */
 export const RELEASE_VERSION = '1.0.5';
 
-export const RELEASE_PERMISSIONS = Object.freeze(['storage', 'activeTab', 'scripting', 'identity']);
+export const RELEASE_PERMISSIONS = Object.freeze(['storage', 'activeTab', 'scripting']);
 
 export const RELEASE_HOST_PERMISSIONS = Object.freeze([
-  'https://*.supabase.co/*',
   'https://www.onextap.com/*',
   'https://onextap.com/*',
 ]);
@@ -101,7 +101,7 @@ function compareList(label, actual, expected) {
   const local = extra.filter(isLocalPattern);
   if (local.length) problems.push(`${label} has localhost entries: ${local.join(', ')}`);
   const other = extra.filter((item) => !isLocalPattern(item));
-  if (other.length) problems.push(`${label} has entries 1.0.2 does not: ${other.join(', ')}`);
+  if (other.length) problems.push(`${label} has entries the release does not: ${other.join(', ')}`);
   if (missing.length) problems.push(`${label} is missing ${missing.join(', ')}`);
   if (!extra.length && !missing.length && actual.length !== expected.length) {
     problems.push(`${label} lists an entry twice`);
@@ -132,7 +132,7 @@ export function checkReleaseManifest(manifest, { version = RELEASE_VERSION } = {
   }
   problems.push(...compareList('permissions', manifest?.permissions, RELEASE_PERMISSIONS));
   for (const key of ['optional_permissions', 'optional_host_permissions']) {
-    if (manifest?.[key] !== undefined) problems.push(`${key} is set; 1.0.2 has none`);
+    if (manifest?.[key] !== undefined) problems.push(`${key} is set; the release has none`);
   }
   problems.push(...compareList('host_permissions', manifest?.host_permissions, RELEASE_HOST_PERMISSIONS));
   problems.push(

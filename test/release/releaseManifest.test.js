@@ -1,11 +1,11 @@
 /**
  * The release manifest (completion plan B3-C, D10): the store build drops the
  * localhost entries the dev build needs, and `npm run build:release` refuses
- * a manifest that differs from 1.0.2's in anything but its version.
+ * a manifest that differs from the pinned release in anything but its version.
  *
- * 1.0.2's permissions, host permissions and externally_connectable match the
- * repo's manifest, localhost entries included (plan §2), so the pinned lists
- * are the repo's minus localhost.
+ * The pinned lists are the repo's manifest minus localhost: store 1.0.2's,
+ * less the two entries 1.0.5 dropped because nothing used them (`identity`
+ * and `https://*.supabase.co/*`).
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -64,7 +64,7 @@ test('the repo manifest is the dev one: it still has its localhost entries', () 
   assert.ok(manifest.externally_connectable.matches.some(isLocalPattern));
 });
 
-test('the pinned lists are the repo manifest minus localhost (1.0.2 minus localhost)', () => {
+test('the pinned lists are the repo manifest minus localhost', () => {
   const manifest = repoManifest();
   assert.deepEqual([...RELEASE_PERMISSIONS], manifest.permissions);
   assert.deepEqual([...RELEASE_HOST_PERMISSIONS], manifest.host_permissions.filter((p) => !isLocalPattern(p)));
@@ -72,7 +72,8 @@ test('the pinned lists are the repo manifest minus localhost (1.0.2 minus localh
     [...RELEASE_EXTERNALLY_CONNECTABLE],
     manifest.externally_connectable.matches.filter((p) => !isLocalPattern(p)),
   );
-  assert.deepEqual([...RELEASE_PERMISSIONS], ['storage', 'activeTab', 'scripting', 'identity']);
+  assert.deepEqual([...RELEASE_PERMISSIONS], ['storage', 'activeTab', 'scripting']);
+  assert.deepEqual([...RELEASE_HOST_PERMISSIONS], ['https://www.onextap.com/*', 'https://onextap.com/*']);
 });
 
 test('the repo manifest says the release version', () => {
@@ -130,7 +131,7 @@ test('the release check refuses a permission added, dropped or optional', () => 
   const release = releaseManifest(repoManifest());
   const cases = [
     { ...release, permissions: [...release.permissions, 'tabs'] },
-    { ...release, permissions: release.permissions.filter((p) => p !== 'identity') },
+    { ...release, permissions: release.permissions.filter((p) => p !== 'scripting') },
     { ...release, permissions: [...release.permissions, 'storage'] },
     { ...release, optional_permissions: ['downloads'] },
     { ...release, optional_host_permissions: ['https://*/*'] },

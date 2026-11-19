@@ -239,8 +239,8 @@ node scripts/smoke-prod.mjs <origin>  # After a deploy: GET-only smoke checks
 `npm run build:release` refuses unless `.env` holds production's addresses
 (pass or fail per variable, never a value), builds `dist-release/` with a
 manifest that drops the localhost entries, scans it for secrets and
-localhost, checks its permissions against store 1.0.2's, and prints the
-zip's SHA-256.
+localhost, checks its permissions against the pinned list in
+`scripts/releaseManifest.js`, and prints the zip's SHA-256.
 
 After changing `src/`, `extension/` or `public/`, rebuild and reload the
 extension in Chrome: a loaded extension does not pick up dev-server changes.

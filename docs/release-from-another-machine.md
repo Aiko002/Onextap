@@ -391,7 +391,7 @@ Get-FileHash -Algorithm SHA256 release\onextap-1.0.5.zip
 ```
 
 The manifest must say the version you meant, must contain no `localhost`, and
-must list exactly `storage`, `activeTab`, `scripting`, `identity`. The hash
+must list exactly `storage`, `activeTab`, `scripting`. The hash
 must equal what step 7.4 printed — a different hash is a different file.
 (macOS/Linux: `shasum -a 256 release/onextap-1.0.5.zip`.)
 
@@ -423,12 +423,12 @@ Hand over:
 - The zip and its SHA-256, and the sentence "check the hash again just before
   uploading".
 - **The item:** `fpleipjggoiolomkcnchnlelbjcnoklj` → Package → upload the zip.
-- **Permissions are unchanged** from the published version — `storage`,
-  `activeTab`, `scripting`, `identity`; hosts `https://*.supabase.co/*`,
+- **Permissions:** `storage`, `activeTab`, `scripting`; hosts
   `https://www.onextap.com/*`, `https://onextap.com/*`;
-  `externally_connectable` for the two onextap.com addresses. So users see no
-  new permission warning and the privacy-practice justifications stay as they
-  are.
+  `externally_connectable` for the two onextap.com addresses. 1.0.5 dropped
+  `identity` and `https://*.supabase.co/*` from 1.0.4's list (nothing used
+  them). Dropping a permission never shows users a warning; the Privacy
+  practices tab stops asking for the identity justification.
 - **Privacy policy URL:** `https://www.onextap.com/privacy/` (the old
   `/privacy-policy` redirects there).
 - **"What's new"** — draft for 1.0.5, for the owner to edit:

@@ -184,8 +184,8 @@ the type is presentation plus prompt wording, not gating.
 
 ### 5.7 Accounts and billing
 
-Email/password or Google sign-in via Supabase. In the extension, Google goes
-through `chrome.identity.launchWebAuthFlow` so the popup does not close.
+Email/password or Google sign-in via Supabase, on the website. The extension
+has no sign-in of its own, and since 1.0.5 no `identity` permission.
 
 Free accounts get 3 credits on sign-up, granted by a database trigger.
 Premium is **$5/month** via Dodo Payments: the server creates a hosted

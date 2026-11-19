@@ -19,6 +19,9 @@ body{
    iOS browser included, leaves it there until the next scroll: a blank
    screen of ink. The window clips both ways while held anyway. */
 html.menu-open body,html.dlg-open body{overflow-x:visible}
+/* iOS zooms the page into any field under 16px when it is tapped, and every
+   iOS browser does it; the fields here are 14-15.5px. Touch screens only. */
+@media(pointer:coarse){input,textarea,select{font-size:16px!important}}
 
 /* --- shared type roles ---------------------------------------------------- */
 .display{

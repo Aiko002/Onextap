@@ -188,7 +188,7 @@ the real run). If that trigger is missing, `getProfile()` backfills the row
 on the first API call.
 
 **First run of the dashboard:** the guided tour shows only on the home view,
-and only to accounts created in the last 2 minutes; everyone else gets
+and only to accounts created in the last 24 hours; everyone else gets
 `onextap_tutorial_seen` set so it never appears.
 
 ---

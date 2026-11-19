@@ -1,6 +1,7 @@
 import { getAccessToken } from './auth';
 import { API_URL } from './config';
 import { log as baseLog } from './logger';
+import { fetchOrExplain, requestError } from './requestError';
 
 // API_URL comes from config.js, the one place it is decided. This module used
 // to work it out again, and the two copies both sent a website on any domain
@@ -16,7 +17,7 @@ async function authFetch(path, options = {}) {
   if (!token) {
     throw new Error('Not authenticated');
   }
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetchOrExplain(`${API_URL}${path}`, {
     ...options,
     cache: 'no-store',
     headers: {
@@ -28,18 +29,10 @@ async function authFetch(path, options = {}) {
     },
   });
   if (!res.ok) {
-    const raw = await res.text();
-    let message = `HTTP ${res.status}`;
-    if (raw) {
-      try {
-        const body = JSON.parse(raw);
-        message = body.error || body.message || message;
-        if (typeof message !== 'string') message = raw.slice(0, 300);
-      } catch {
-        message = raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300) || message;
-      }
-    }
-    throw new Error(message);
+    const body = await res.json().catch(() => null);
+    const said = body?.error || body?.message;
+    log.warn('request failed', { path, status: res.status, said });
+    throw requestError(res.status, said);
   }
   return res.json();
 }

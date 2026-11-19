@@ -116,11 +116,15 @@ export function initSubscription({ dialog, getUser, onChange }) {
   });
 
   billing.addEventListener('click', async () => {
+    // Off while the portal link is fetched, or a double press opens two tabs.
+    billing.disabled = true;
     toast('Opening billing…');
     try {
       await services.openSubscriptionPortal();
     } catch (err) {
       toast(err?.message || 'Couldn’t open billing. Try again.', 'error');
+    } finally {
+      billing.disabled = false;
     }
   });
 

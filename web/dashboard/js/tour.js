@@ -4,7 +4,7 @@ import { listPhrase } from './application-type.js';
 
 // The first-run tour, as the backend's TourOverlay ran it: a few steps
 // pointing at the dashboard's own controls, shown once, to an account created
-// in the last couple of minutes (main.js decides; `onextap_tutorial_seen`
+// in the last day (main.js decides; `onextap_tutorial_seen`
 // remembers). A citrine ring around the thing, a small oat card beside it.
 
 /**

@@ -196,6 +196,7 @@ export function mount(body, ctx) {
   let loadError = null;
   let actionError = null;
   let explanations = {};
+  const explainInFlight = () => Object.values(explanations).some((e) => e?.loading);
   let openExplainId = null;
   let footerOpen = false;
   let dropUploading = false;
@@ -624,7 +625,9 @@ export function mount(body, ctx) {
     const coverage = coverageFor(job);
     const relaxed = relaxedLabel(entry.relaxedFilters);
     const explaining = explanations[entry.jobId]?.loading === true;
-    const explainBtn = button('Explain my fit', { kind: 'ghost', size: 'sm', icon: 'spark', onClick: () => handleExplain(entry), disabled: explaining });
+    // One paid explanation at a time: the list moves when one starts, so a second tap can land on another job.
+    const busyElsewhere = !explaining && !explanations[entry.jobId]?.data && explainInFlight();
+    const explainBtn = button('Explain my fit', { kind: 'ghost', size: 'sm', icon: 'spark', onClick: () => handleExplain(entry), disabled: explaining || busyElsewhere });
     explainBtn.append(h('span.btn-cost', null, explanations[entry.jobId]?.data ? 'ready' : '1 credit'));
     if (explaining) setBusy(explainBtn, true, 'Reading…');
 
@@ -696,7 +699,8 @@ export function mount(body, ctx) {
       renderExplain(true);
       return;
     }
-    explanations = { ...explanations, [jobId]: { loading: true, error: null, data: null } };
+    if (explainInFlight()) return;
+    explanations ={ ...explanations, [jobId]: { loading: true, error: null, data: null } };
     renderResults();
     renderExplain(true);
     try {

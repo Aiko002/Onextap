@@ -1,5 +1,7 @@
 import { bootSubPage } from '../sub-page.js';
 import { newPasswordProblem } from '../../features/login/password-rule.js';
+import { authFault } from '../../app/backend.js';
+import { SERVER_MESSAGE } from '@app/requestError.js';
 import markup from './reset-password.html?raw';
 import '../../features/login/login.css';
 import './reset-password.css';
@@ -73,7 +75,8 @@ function said(error) {
   var message = String((error && error.message) || '');
   if (/should be different|same as the old/i.test(message)) return 'That’s the password you have now. Choose a different one.';
   if (/password should be|weak password/i.test(message)) return 'Use a longer password: at least 8 characters, with upper and lower case letters and a number.';
-  if (/failed to fetch|network/i.test(message)) return 'We couldn’t reach Onextap. Check your connection and try again.';
+  if (/failed to fetch|load failed|network/i.test(message)) return 'We couldn’t reach Onextap. Check your connection and try again.';
+  if (message && authFault(error)) return SERVER_MESSAGE;
   return message || 'That didn’t work. Try again.';
 }
 

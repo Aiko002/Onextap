@@ -14,7 +14,8 @@ import { getApplicationType, setApplicationType } from '@app/applicationTypeStor
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const PAYMENT_POLL_MS = 8000;
 const PAYMENT_POLL_ATTEMPTS = 15;           // two minutes, as the backend waited for the webhook
-const NEW_ACCOUNT_MS = 2 * 60 * 1000;       // the tour is for accounts made in the last two minutes
+// The tour is for accounts made in the last day: confirming the sign-up email can take longer than minutes.
+const NEW_ACCOUNT_MS = 24 * 60 * 60 * 1000;
 
 const $ = (id) => document.getElementById(id);
 const app = $('app');
@@ -260,8 +261,9 @@ deleteDialog.addEventListener('close', async () => {
         await new Promise((resolve) => setTimeout(resolve, WIPE_FAILED_NOTICE_MS));
       },
     });
-  } catch (error) {
-    toast(error?.message || 'Couldn’t delete your account. Try again.', 'error');
+  } catch {
+    // Nothing was deleted (deleteAccount throws before clearing anything); the same words whatever the cause.
+    toast('Could not delete your account. Try again in a moment, or contact us.', 'error');
   }
 });
 
@@ -568,7 +570,7 @@ async function boot() {
       createdAt: session.user.created_at || null,
       nameFromAccount: !!(meta.full_name || meta.name),
     };
-    toast(`Couldn’t load your account: ${error?.message || 'the server did not answer'}. Credits and plan may be out of date.`, 'error');
+    toast(`Couldn’t load your account, so credits and plan may be out of date. ${error?.message || ''}`.trim(), 'error');
   }
   renderUser();
   app.removeAttribute('aria-busy');

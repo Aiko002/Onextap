@@ -9,12 +9,10 @@
  *
  * ═══ WHY authFetch IS COPIED AND NOT IMPORTED ═══
  *
- * `src/creditManager.js` has the best error extraction in this codebase: it
- * reads the body once as text, tries JSON, falls back to stripping HTML out of
- * a proxy's error page, and never lets a non-string `error` field reach a
- * toast as "[object Object]". That is exactly what these calls need.
+ * `src/creditManager.js` has the same request shape, and both turn a failure
+ * into words a person can read through `src/requestError.js`.
  *
- * It is module-private there, and creditManager.js is the credit surface —
+ * Its authFetch is module-private there, and creditManager.js is the credit surface —
  * the file where "did the server say the balance changed" is decided. Adding
  * an export to it to save thirty lines here would widen that file's API for
  * the benefit of an unrelated feature, and every future reader of an
@@ -30,6 +28,7 @@ import { API_URL } from './config';
 import { getAccessToken } from './auth';
 import { withTimeout } from './answerStudio';
 import { log as baseLog } from './logger';
+import { fetchOrExplain, requestError } from './requestError';
 
 const log = baseLog.child('jobs');
 
@@ -118,7 +117,7 @@ async function authFetch(path, options = {}) {
     throw new Error('Not authenticated');
   }
   const requestId = newRequestId();
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetchOrExplain(`${API_URL}${path}`, {
     ...options,
     cache: 'no-store',
     headers: {
@@ -131,18 +130,10 @@ async function authFetch(path, options = {}) {
     },
   });
   if (!res.ok) {
-    const raw = await res.text();
-    let message = `HTTP ${res.status}`;
-    if (raw) {
-      try {
-        const body = JSON.parse(raw);
-        message = body.error || body.message || message;
-        if (typeof message !== 'string') message = raw.slice(0, 300);
-      } catch {
-        message = raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300) || message;
-      }
-    }
-    throw new Error(message);
+    const body = await res.json().catch(() => null);
+    const said = body?.error || body?.message;
+    log.warn('request failed', { path, status: res.status, requestId, said });
+    throw requestError(res.status, said);
   }
   return res.json();
 }

@@ -12,6 +12,9 @@ body {
 }
 h1, h2, h3, p { margin: 0; }
 button { font: inherit; color: inherit; }
+/* iOS zooms the page into any field under 16px when it is tapped, and every
+   iOS browser does it; the fields here are 14px. Touch screens only. */
+@media (pointer: coarse) { input, textarea, select { font-size: 16px !important; } }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--citrine); outline-offset: 3px; }
 .icon { flex: none; display: block; }
@@ -416,7 +419,8 @@ a { color: inherit; }
   line-height: 1.2;
   letter-spacing: -0.015em;
 }
-.app[data-view="home"] .nav-word { grid-area: 1 / 1; transition: transform 0.55s var(--ease-roll); }
+/* Wraps instead of cutting off when the text is made larger. */
+.app[data-view="home"] .nav-word { grid-area: 1 / 1; white-space: normal; transition: transform 0.55s var(--ease-roll); }
 .app[data-view="home"] .nav-word-alt { font-style: italic; color: var(--citrine); transform: translateY(100%); }
 .app[data-view="home"] .nav-link:focus-visible .nav-word { transform: translateY(-100%); }
 .app[data-view="home"] .nav-link:focus-visible .nav-word-alt { transform: none; }
@@ -849,7 +853,7 @@ a { color: inherit; }
   height: 3px;
   background: var(--citrine);
 }
-.plan-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; }
+.plan-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; }
 .plan-name { color: var(--ink); }
 .plan-badge {
   display: inline-flex;

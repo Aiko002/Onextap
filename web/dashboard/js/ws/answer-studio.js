@@ -14,6 +14,7 @@ import { DEFAULT_PROFILE } from '@app/profileDefaults.js';
 import { getActiveLegacyProfile, loadProfileStore, saveLegacyUserProfile } from '@app/profileStore.js';
 import { loadFabricationCorpus } from '@app/fabricationCorpus.js';
 import { log as baseLog } from '@app/logger.js';
+import { fetchOrExplain, requestError } from '@app/requestError.js';
 
 const log = baseLog.child('ui');
 
@@ -370,6 +371,7 @@ export function mount(body, ctx) {
   }
 
   async function improve() {
+    if (generating) return;
     const q = question.value.trim();
     if (!q) {
       errorText = 'Enter a question first.';
@@ -377,6 +379,8 @@ export function mount(body, ctx) {
       return;
     }
 
+    // Taken before the balance read below: a second press during it must not start a second paid run.
+    generating = true;
     let latest = credits;
     if (!premium && latest === null) {
       const res = await creditManager.getCreditsWithStatus();
@@ -389,13 +393,13 @@ export function mount(body, ctx) {
     // the balance unknown, it is the server's call too.
     const consumesCredit = !premium && !(allowanceId && improvementsLeft > 0);
     if (consumesCredit && Number.isFinite(latest) && latest <= 0) {
+      generating = false;
       errorText = 'No credits remaining. Premium makes answers unlimited.';
       renderMessages();
       ctx.toast('No credits remaining. Upgrade to continue.', 'error');
       return;
     }
 
-    generating = true;
     errorText = '';
     flags = [];
     const draft = answer.value.trim();
@@ -433,13 +437,16 @@ export function mount(body, ctx) {
       };
 
       const result = await withTimeout(
-        fetch(`${API_URL}/api/answer-vault/generate`, {
+        fetchOrExplain(`${API_URL}/api/answer-vault/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(requestBody),
         }).then(async (res) => {
           const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data?.error || `Generation failed (${res.status})`);
+          if (!res.ok) {
+            log.warn('generate failed', { status: res.status, said: data?.error });
+            throw requestError(res.status, data?.error);
+          }
           return data;
         }),
         AI_TIMEOUT_SEC * 1000,

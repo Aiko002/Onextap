@@ -1,6 +1,7 @@
 import { getAccessToken } from './auth';
 import { API_URL } from './config';
 import { log as baseLog } from './logger';
+import { requestError } from './requestError';
 
 const log = baseLog.child('resume');
 
@@ -227,18 +228,14 @@ export async function parseResumeFile(file) {
   const reply = await parseResumeViaApi({ fileData: base64, fileName, fileType: mimeType, token });
 
   if (!reply.success && reply.debug?.status === 401) {
-    return fail(
-      'session-rejected',
-      `Session token rejected (${reply.error || 401}). Please sign out and sign in again.`,
-      withHash,
-    );
+    return fail('session-rejected', 'Your session has ended. Sign out and sign in again.', withHash);
   }
   if (!reply.success && reply.unreachable) {
     return fail('session-rejected', 'Could not reach the Onextap server. Check your connection and try again.', withHash);
   }
   if (!reply.success || !reply.data) {
-    const debug = reply.debug ? ` [debug: ${JSON.stringify(reply.debug)}]` : '';
-    return fail('parse-failed', `${reply.error || 'Parse failed'}${debug}`, withHash);
+    // The status and the server's own words are in parseResumeViaApi's log line.
+    return fail('parse-failed', requestError(reply.debug?.status, reply.error).message, withHash);
   }
 
   // `text` is a newer addition to the server's reply. A server build older
@@ -390,6 +387,7 @@ async function parseResumeViaApi({ fileData, fileName, fileType, token }) {
     log.error('resume parse rejected by server', {
       status: res.status,
       requestId: res.headers.get('X-Request-Id'),
+      said: body.error,
     });
     return {
       success: false,

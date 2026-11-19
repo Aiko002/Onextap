@@ -116,7 +116,15 @@ test('a refusal from the server is a parse-failed result, in its words', { skip 
   const result = await parseResumeFile(pdf());
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'parse-failed');
-  assert.equal(result.error.message, 'Could not read that file. [debug: {"status":422}]');
+  assert.equal(result.error.message, 'Could not read that file.');
+});
+
+test('a server error is a parse-failed result in plain words, never its internals', { skip }, async () => {
+  mock.method(console, 'error', () => {});
+  parseReply = () => Response.json({ error: 'relation "profiles" does not exist' }, { status: 500 });
+  const result = await parseResumeFile(pdf());
+  assert.equal(result.error.code, 'parse-failed');
+  assert.equal(result.error.message, 'Something went wrong on our side. Try again in a moment.');
 });
 
 test('a rejected session is a session-rejected result', { skip }, async () => {
@@ -125,7 +133,8 @@ test('a rejected session is a session-rejected result', { skip }, async () => {
   const result = await parseResumeFile(pdf());
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'session-rejected');
-  assert.match(result.error.message, /Invalid token.*sign in again/);
+  assert.match(result.error.message, /sign in again/);
+  assert.doesNotMatch(result.error.message, /Invalid token/);
 });
 
 test('signed out: no request at all', { skip }, async () => {

@@ -12,6 +12,7 @@
    page, the dashboard and the API share one origin, so it is the same one
    the dashboard will use. */
 import { API_URL, CHROME_WEB_STORE_URL, DASHBOARD_PATH } from '@app/config.js';
+import { SERVER_MESSAGE } from '@app/requestError.js';
 import { supabaseStorageKey, hasStoredSession } from './session.js';
 
 /* --- is anyone signed in? --------------------------------------------------
@@ -57,7 +58,8 @@ var WORDS = [
   [/only request this/i, 'Wait a minute before asking for another link.'],
   [/rate limit|too many/i, 'Too many attempts. Wait a minute, then try again.'],
   [/password should be|weak password/i, 'Use a longer password: at least 8 characters, with upper and lower case letters and a number.'],
-  [/failed to fetch|network/i, 'We couldn’t reach Onextap. Check your connection and try again.']
+  // Chrome says "Failed to fetch", Safari "Load failed", Firefox "NetworkError…".
+  [/failed to fetch|load failed|network/i, 'We couldn’t reach Onextap. Check your connection and try again.']
 ];
 
 function refusal(error) {
@@ -66,8 +68,15 @@ function refusal(error) {
   for (var i = 0; i < WORDS.length; i++) {
     if (WORDS[i][0].test(message)) { err.userMessage = WORDS[i][1]; break; }
   }
-  if (!err.userMessage && message) err.userMessage = message;
+  // Supabase's own words are kept for a refusal; a server fault ("Database error
+  // saving new user") or a gateway page (read as "{}") is not for people.
+  if (!err.userMessage && message) err.userMessage = authFault(error) ? SERVER_MESSAGE : message;
   return err;
+}
+
+/** A Supabase error that is the service's fault, not the person's. Exported for reset-password. */
+export function authFault(error) {
+  return (error && error.status >= 500) || !/[a-z]/i.test(String((error && error.message) || ''));
 }
 
 export function signInAttempt(details, next) {

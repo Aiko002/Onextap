@@ -201,10 +201,12 @@ of what is applied where. That is the owner's call, not yours. As of
 2026-11-19 the last applied migration is `009`, applied 2026-11-03.
 
 **3.4 What the store has today.** You need this in step 7 to pick a version.
-Ask the owner, or look at the public listing. As of 2026-11-19 the record says:
-**1.0.4 was submitted for review on 2026-11-03**; the publish date was never
-written down. The repository is at **1.0.5** (unreleased, built 2026-11-15:
-dropdown autofill).
+As of 2026-11-19 the store has **1.0.4, published** — submitted 2026-11-03,
+confirmed published by the owner on 2026-11-19 (the publish date itself was
+never written down). The repository is at **1.0.5**, unreleased, built
+2026-11-15: dropdown autofill. So 1.0.5 is a clean bump over what users have.
+If time has passed since this was written, confirm it with the owner or the
+public listing rather than trusting this line.
 
 ---
 
@@ -328,6 +330,9 @@ nothing. It never prints a key.
   build.
 - A 1.0.5 is sitting **in review** → uploading again replaces the pending
   submission. Ask the owner first.
+
+On 2026-11-19 it is the first case: the store has 1.0.4 published, so build
+1.0.5 as it is, with no bump.
 
 **7.2 Production's four values**, in a new file `.env.production.local` at the
 repository root. Nothing else goes in it. Git ignores `.env.*.local`, and a
@@ -477,7 +482,7 @@ do not round it up to "done".
 | Production Supabase | project ref `itqaozltgsyvjhlcllic`; last migration applied `009`, 2026-11-03 |
 | Chrome Web Store item | `fpleipjggoiolomkcnchnlelbjcnoklj` |
 | Repository version | 1.0.5 (manifest, `package.json`, `RELEASE_VERSION`) |
-| Store version | 1.0.4 submitted 2026-11-03; publish date not recorded — confirm with the owner |
+| Store version | **1.0.4, published** (submitted 2026-11-03; confirmed published by the owner 2026-11-19). 1.0.5 is a clean bump |
 | Smoke | `node scripts/smoke-prod.mjs https://www.onextap.com`, expect 9/9 |
 | Baselines (2026-11-19, `82371dd`) | lint clean; `npm test` 1193 tests / 1191 pass / 0 fail / 2 skipped; e2e 229 + 10 skipped; extension e2e 16/16 with `legacy` |
 
